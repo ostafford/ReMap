@@ -11,9 +11,17 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Location from 'expo-location';
+import { useRouter } from 'expo-router';
+
+
+// imports for the components!
+import { Button } from "../../components/Button";
+
+
 
 // Import backend integration service
 import { healthMonitorClient } from '../services/health';
+import { router } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
@@ -323,11 +331,22 @@ export default function MemoryMapScreen() {
       
       {/* Header Section */}
       <View style={styles.header}>
-        <Text style={styles.title}>🗺️ ReMap Memory Atlas</Text>
+        <Text style={styles.title}>Welcome to ReMap</Text>
         <Text style={styles.subtitle}>
           Your interactive map of experiences and stories
         </Text>
       </View>
+
+
+
+      {/* implementing custom components */}
+      <Button onPress={() => router.navigate('/starters')}>
+        NEXT to Starter Packs
+      </Button>
+
+
+
+
 
       {/* Backend Connection Status */}
       <TouchableOpacity 
