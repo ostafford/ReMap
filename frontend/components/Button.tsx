@@ -17,10 +17,12 @@ export const Button = ({ children, onPress,style }: CustomButtonProps) => {
 
 const styles = StyleSheet.create ({
 	button: {
-		backgroundColor: "black",
+		backgroundColor: "#1E1E1E",
 		padding: 20,
 		borderRadius: 25,
-		margin: 10
+		margin: 10,
+		alignItems: 'center',
+    	justifyContent: 'center', 
 	},
 	buttonText: {
 		color: "white",

@@ -1,22 +1,50 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { router } from 'expo-router';
-
+import React from "react";
 
 // importing components
 import { Button } from "../../components/Button";
+import { Modal } from "../../components/Modal";
+
 
 export default function ExploreScreen() {
+
+  const [isModalVisible, setIsModalVisible] = React.useState(false);
+  const toggleModal = () => setIsModalVisible(() => !isModalVisible);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🧭 ReMap Your Journey</Text>
       <Text style={styles.subtitle}>Discover authentic stories from others</Text>
       <Text style={styles.status}>✅ Memory discovery features coming soon!</Text>
       
-      {/* implementing custom components */}
-      <Button style={[styles.button]} onPress={() => router.navigate('/home')}>
+      {/* implementing custom components ! ! ! */}
+      <Button style={styles.button} onPress={toggleModal}>
         Sign in
       </Button>
+      <Button style={[styles.button]} onPress={() => router.navigate('/home')}>
+        Add Pin
+      </Button>
+
+      <Modal isVisible={isModalVisible} onBackdropPress={toggleModal}>
+        <Modal.Container>
+          <Modal.Header title={`Discover\n Yesterday · Today · Tomorrow`}/>
+          <Modal.Body>
+            <Text>Form content herrrrrrrrrrrrre</Text>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button style={[styles.modalButton, styles.signUpButton]} onPress={toggleModal}>Sign Up</Button>
+            <Button style={[styles.modalButton]} onPress={() => {
+              // Submit action here
+              toggleModal();
+            }}>
+              Login
+            </Button>
+          </Modal.Footer>
+        </Modal.Container>
+      </Modal>
+
+
     </View>
   );
 }
@@ -48,8 +76,14 @@ const styles = StyleSheet.create({
   },
 
   button: {
-    paddingLeft: 135,
-    paddingRight: 135,
+    width: 325
   },
+  modalButton: {
+    width: 150
+  },
+  signUpButton: {
+    backgroundColor: "#2900E2",
+  }
+
 
 });
