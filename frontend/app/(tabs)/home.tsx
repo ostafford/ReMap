@@ -1,11 +1,22 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
+
+
+// importing components
+import { Button } from "../../components/Button";
 
 export default function ExploreScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🧭 Explore Memories</Text>
+      <Text style={styles.title}>🧭 ReMap Your Journey</Text>
       <Text style={styles.subtitle}>Discover authentic stories from others</Text>
       <Text style={styles.status}>✅ Memory discovery features coming soon!</Text>
+      
+      {/* implementing custom components */}
+      <Button style={[styles.button]} onPress={() => router.navigate('/home')}>
+        Sign in
+      </Button>
     </View>
   );
 }
@@ -35,4 +46,10 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontWeight: '600',
   },
+
+  button: {
+    paddingLeft: 135,
+    paddingRight: 135,
+  },
+
 });

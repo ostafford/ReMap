@@ -341,7 +341,7 @@ export default function MemoryMapScreen() {
 
       {/* implementing custom components */}
       <Button onPress={() => router.navigate('/starters')}>
-        NEXT to Starter Packs
+        Starter Packs
       </Button>
 
 
