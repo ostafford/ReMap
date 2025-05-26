@@ -77,7 +77,7 @@ if %errorlevel% neq 0 (
 echo ✅ Docker is running
 
 REM Check if containers exist
-docker ps -q --filter "name=remap-backend" >nul 2>&1
+docker ps -q --filter "name=remap-container" >nul 2>&1
 if %errorlevel% neq 0 (
     echo 🔨 Building and starting containers...
     docker-compose up -d --build
@@ -102,7 +102,7 @@ echo 🚀 Starting development server...
 echo.
 
 REM Start Expo with proper environment
-docker exec -it remap-backend bash -c "cd /workspace/frontend && export REACT_NATIVE_PACKAGER_HOSTNAME=%HOST_IP% && export EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 && npx expo start --host lan"
+docker exec -it remap-container bash -c "cd /workspace/frontend && export REACT_NATIVE_PACKAGER_HOSTNAME=%HOST_IP% && export EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 && npx expo start --host lan"
 
 echo.
 echo Development server stopped.

@@ -231,7 +231,7 @@ The development environment automatically handles network configuration across d
 - Try rebuilding: `docker-compose down && docker-compose up --build`
 
 **Backend health check fails:**
-- Check container logs: `docker logs remap-backend`
+- Check container logs: `docker logs remap-container`
 - Verify database connectivity: `docker logs remap-postgres`
 - Test direct API access: `curl http://localhost:3000/health`
 

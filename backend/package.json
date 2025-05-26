@@ -1,5 +1,5 @@
 {
-    "name": "remap-backend",
+    "name": "remap-container",
     "version": "1.0.0",
     "description": "Express.js backend API for ReMap memory sharing application",
     "main": "src/server.js",

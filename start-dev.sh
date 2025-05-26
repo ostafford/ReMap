@@ -144,7 +144,7 @@ setup_containers() {
     fi
     
     # Start containers
-    if ! docker ps | grep -q remap-backend; then
+    if ! docker ps | grep -q remap-container; then
         echo -e "${YELLOW}🚀 Starting containers...${NC}"
         $DOCKER_COMPOSE_CMD up -d
         
@@ -154,7 +154,7 @@ setup_containers() {
         # Wait for backend to be healthy
         echo -e "${YELLOW}🔍 Checking backend health...${NC}"
         for i in {1..30}; do
-            if docker exec remap-backend curl -f http://localhost:3000/health >/dev/null 2>&1; then
+            if docker exec remap-container curl -f http://localhost:3000/health >/dev/null 2>&1; then
                 echo -e "${GREEN}✅ Backend is healthy!${NC}"
                 break
             fi
@@ -172,9 +172,9 @@ ensure_frontend_dependencies() {
     echo -e "${BLUE}📦 Verifying frontend dependencies...${NC}"
     
     # Check if node_modules exists and has the right packages
-    if ! docker exec remap-backend bash -c "cd /workspace/frontend && [ -f node_modules/expo/package.json ]"; then
+    if ! docker exec remap-container bash -c "cd /workspace/frontend && [ -f node_modules/expo/package.json ]"; then
         echo -e "${YELLOW}📥 Installing frontend dependencies...${NC}"
-        docker exec remap-backend bash -c "cd /workspace/frontend && npm install"
+        docker exec remap-container bash -c "cd /workspace/frontend && npm install"
         
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}✅ Frontend dependencies installed successfully${NC}"
@@ -234,7 +234,7 @@ main() {
     echo ""
 
     # Start Expo with proper environment configuration
-    docker exec -it remap-backend bash -c "
+    docker exec -it remap-container bash -c "
         cd /workspace/frontend && 
         export REACT_NATIVE_PACKAGER_HOSTNAME=$HOST_IP && 
         export EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 && 

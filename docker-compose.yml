@@ -9,7 +9,7 @@ services:
     build:
       context: .                   # Build from project root
       dockerfile: backend/Dockerfile
-    container_name: remap-backend
+    container_name: remap-container
     restart: unless-stopped        # Automatically restart if container crashes
     
     # Port mapping exposes our API to the host machine and mobile app this is how we connect to the backend
