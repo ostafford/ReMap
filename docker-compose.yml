@@ -1,0 +1,115 @@
+# ReMap Development Environment
+# This docker-compose.yml creates our backend services for consistent development
+# backend services are connected to the same database and share the same environment variables
+
+services:
+  # Express.js Backend Service
+  # This container runs our Node.js backend API that connects frontend to database
+  backend:
+    build:
+      context: .                   # Build from project root
+      dockerfile: backend/Dockerfile
+    container_name: remap-backend
+    restart: unless-stopped        # Automatically restart if container crashes
+    
+    # Port mapping exposes our API to the host machine and mobile app this is how we connect to the backend
+    ports:
+      - "3000:3000"
+      - "8081:8081"
+      - "19000:19000"  # Expo Dev Server
+      - "19001:19001"  # Expo Dev Server (WebSocket)
+      - "19002:19002"  # Expo Dev Server (additional ports)
+    
+    # Environment variables for backend configuration
+    # This is how the backend connects to the database (postgres is the service name)
+    environment:
+      # Database connection settings - these match our PostgreSQL service (Supabase is something we will use later and figure out how to connect to it)
+      DB_HOST: postgres           # Service name becomes hostname in Docker network
+      DB_PORT: 5432              # PostgreSQL default port
+      DB_NAME: remap_dev         
+      DB_USER: remap_user         
+      DB_PASSWORD: dev_password  
+      # Node.js environment settings (This is how we run the backend in development mode)
+      NODE_ENV: development
+      PORT: 3000
+      
+      # Expo CLI configuration for containerized development
+      EXPO_DEVTOOLS_LISTEN_ADDRESS: lan  # Allow connections from outside container
+      REACT_NATIVE_PACKAGER_HOSTNAME: ${HOST_IP:-host.docker.internal}  # Dynamic IP resolution
+      
+      # Android Debug Bridge configuration for mobile development
+      ADB_SERVER_SOCKET: tcp:host-gateway:5037
+      
+    # Volume mounting for complete development environment
+    # This provides access to the entire Git repository and project structure
+    volumes:
+      - .:/workspace                 # Mount entire project root to /workspace (we can change this later if we want to)
+      - /workspace/node_modules      # Preserve container's node_modules 
+      - backend_cache:/workspace/backend/node_modules  # Backend-specific node_modules cache
+    
+    # Service dependencies ensure database starts before backend
+    # This is how we ensure the database is running before the backend starts (order matters)
+    depends_on:
+      postgres:
+        condition: service_healthy  # Wait for database health check to pass
+    
+    # Working directory will be the complete project workspace
+    working_dir: /workspace
+    
+    # Development command with enhanced project structure support
+    # This essentially runs the backend in development mode and allows us to make changes to the code and see them immediately
+    command: sh -c "cd /workspace/backend && npm run dev"
+    
+    # Health Check settings for the backend API (this is how we ensure the backend is running correctly)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s              # Check every 30 seconds
+      timeout: 10s               # Wait up to 10 seconds for response
+      retries: 5                 # Try 5 times before marking as unhealthy
+      start_period: 60s          # Wait 60 seconds before starting health checks
+
+  # PostgreSQL Database Service
+  postgres:
+    image: postgres:17-bookworm    # Using PostgreSQL 17 with Ubuntu-based image (bookworm is the version latest and stable)
+    container_name: remap-postgres
+    restart: unless-stopped        # Automatically restart if container crashes
+    
+    # Environment variables configure the database
+    environment:
+      # These create the initial database and user credentials
+      POSTGRES_DB: remap_dev          
+      POSTGRES_USER: remap_user       
+      POSTGRES_PASSWORD: dev_password 
+      POSTGRES_HOST_AUTH_METHOD: md5  # Authentication method for connections
+    
+    # Port mapping allows access from host machine and other containers
+    # This is how the backend connects to the backend container
+    ports:
+      - "5432:5432"
+    
+    # Volume ensures database data persists when container restarts
+    volumes:
+      - postgres_data:/var/lib/postgresql/data    # Named volume for data persistence
+      # **Note: We'll add initialization scripts later when we need them (if we need to that is)
+    
+    # Just another health check to ensure the database is running correctly
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U remap_user -d remap_dev"]
+      interval: 30s      # Check every 30 seconds
+      timeout: 10s       # Wait up to 10 seconds for response
+      retries: 5         # Try 5 times before marking as unhealthy
+      start_period: 30s  # Wait 30 seconds before starting health checks
+
+# Named volumes for data persistence
+# This ensures your database data survives container restarts
+volumes:
+  postgres_data:
+    driver: local
+  backend_cache:
+    driver: local    # Cache for backend node_modules to improve build performance
+
+# Networks for service communication
+# This creates an isolated network for our services to communicate securely (container to container communication)
+networks:
+  default:
+    name: remap-network
