@@ -138,7 +138,7 @@ setup_containers() {
     fi
     
     # Build containers if needed
-    if ! docker images | grep -q testroadmap; then
+    if ! docker images | grep -q ReMap; then
         echo -e "${YELLOW}🔨 Building containers for the first time (this may take a few minutes)...${NC}"
         $DOCKER_COMPOSE_CMD build
     fi
