@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import React from "react";
 
+
 // importing components
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
@@ -22,6 +23,8 @@ export default function ExploreScreen() {
       <Button style={styles.button} onPress={toggleModal}>
         Sign in
       </Button>
+
+      {/* im wondering if we can hide this until system recognises user is logged in */}
       <Button style={[styles.button]} onPress={() => router.navigate('/home')}>
         Add Pin
       </Button>
@@ -33,11 +36,10 @@ export default function ExploreScreen() {
             <Text>Form content herrrrrrrrrrrrre</Text>
           </Modal.Body>
           <Modal.Footer>
-            <Button style={[styles.modalButton, styles.signUpButton]} onPress={toggleModal}>Sign Up</Button>
-            <Button style={[styles.modalButton]} onPress={() => {
-              // Submit action here
-              toggleModal();
-            }}>
+            <Button style={[styles.modalButton, styles.signUpButton]}>
+              Sign Up
+            </Button>
+            <Button style={styles.modalButton}>
               Login
             </Button>
           </Modal.Footer>

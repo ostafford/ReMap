@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -16,7 +16,6 @@ import { useRouter } from 'expo-router';
 
 // imports for the components!
 import { Button } from "../../components/Button";
-
 
 
 // Import backend integration service
