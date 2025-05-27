@@ -18,10 +18,13 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🧭 ReMap Your Journey</Text>
-      <Text style={styles.subtitle}>Discover authentic stories from others</Text>
-      <Text style={styles.status}>✅ Memory discovery features coming soon!</Text>
+      <Text style={styles.title}>ReMap Your Journey</Text>
       
+      <Input
+        placeholder="Search location..."
+        keyboardType="default"
+      />
+
       <View style={styles.globeContainer}>
         <Canvas style={{ flex: 1 }}>
           <ambientLight intensity={3} />
