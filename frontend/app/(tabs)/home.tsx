@@ -1,8 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import React from "react";
 
-import { Canvas } from '@react-three/fiber/native';
+import { signIn, signUp } from '../services/auth';
 
 
 // importing components
@@ -12,8 +12,9 @@ import { Input, TextInput } from "../../components/ui/TextInput";
 import { SpinningGlobe } from "../../components/ui/Globe";
 
 export default function ExploreScreen() {
-
-  const [isModalVisible, setIsModalVisible] = React.useState(false);
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const toggleModal = () => setIsModalVisible(() => !isModalVisible);
 
   return (
@@ -39,17 +40,20 @@ export default function ExploreScreen() {
         Add Pin
       </Button>
       
-
       <Modal isVisible={isModalVisible} onBackdropPress={toggleModal}>
         <Modal.Container>
           <Modal.Header title={`Discover\n Yesterday · Today · Tomorrow`}/>
           <Modal.Body>
               <Input
+                value={email}
+                onChangeText={(value) => setEmail(value)}
                 label="Email"
                 placeholder="Enter your email"
                 keyboardType="email-address"
               />
               <Input
+                value={password}
+                onChangeText={(value) => setPassword(value)}
                 label="Password"
                 placeholder="Enter password"
                 secureTextEntry
@@ -57,19 +61,39 @@ export default function ExploreScreen() {
               />
           </Modal.Body>
           <Modal.Footer>
-            <Button style={[styles.modalButton, styles.signUpButton]}>
+            <Button
+              onPress={async () => {
+                try {
+                  await signUp({ email, password });
+
+                  Alert.alert("Signed up");
+                } catch (e) {
+                  console.error(e);
+                  Alert.alert("Error signing up");
+                }
+              }}
+              style={[styles.modalButton, styles.signUpButton]}
+            >
               Sign Up
             </Button>
-            <Button style={styles.modalButton}>
+            <Button
+                onPress={async () => {
+                try {
+                  await signIn({ email, password });
+
+                  Alert.alert("Signed in");
+                } catch (e) {
+                  console.error(e);
+                  Alert.alert("Error signing in");
+                }
+              }}
+              style={styles.modalButton}
+            >
               Login
             </Button>
           </Modal.Footer>
         </Modal.Container>
       </Modal>
-
-
-
-
     </View>
   );
 }
