@@ -23,6 +23,9 @@ import { SpinningGlobe } from "../../components/Globe";
 import { healthMonitorClient } from '../services/health';
 import { router } from 'expo-router';
 
+
+
+// this is for the responsive dimensions
 const { width, height } = Dimensions.get('window');
 
 /**
@@ -324,6 +327,9 @@ export default function MemoryMapScreen() {
   useEffect(() => {
     initializeLocation();
   }, [initializeLocation]);
+
+
+
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>

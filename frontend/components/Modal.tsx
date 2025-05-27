@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, Text, Button } from "react-native";
+import { StyleSheet, View, Text, Button, Dimensions } from "react-native";
 import RNModal from "react-native-modal";
 
 
@@ -21,6 +21,7 @@ export const Modal = ({
       animationOutTiming={900}
       backdropTransitionInTiming={800}
       backdropTransitionOutTiming={800}
+      style={styles.modal}
       {...props}>
       {children}
     </RNModal>
@@ -45,11 +46,20 @@ const ModalFooter = ({ children }: { children?: React.ReactNode }) => (
   <View style={styles.footer}>{children}</View>
 );
 
+const height = Dimensions.get("window").height;
+const width = Dimensions.get("window").width;
+
 const styles = StyleSheet.create({
+  modal: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     backgroundColor: "#ffffff",
     borderRadius: 40,
-	height: 500,
+	  height: height * 0.7,
+    width: "90%",
+    maxWidth: width,
   },
   header: {
     alignItems: "center",

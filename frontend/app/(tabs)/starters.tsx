@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 
 import EditScreenInfo from '@/components/EditScreenInfo';
 import { Text, View } from '@/components/Themed';
@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 
 // imports for the components!
 import { Button } from "../../components/Button";
+import { IconPressable } from "../../components/IconPressable";
 
 
 
@@ -14,6 +15,10 @@ export default function TabTwoScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Starter Packs here</Text>
+
+      <IconPressable>
+        Food
+      </IconPressable>
 
       {/* implementing custom components */}
       <Button style={[styles.button]} onPress={() => router.navigate('/home')}>

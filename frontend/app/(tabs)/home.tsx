@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import React from "react";
 
@@ -11,6 +11,8 @@ import { Modal } from "../../components/Modal";
 import { Input, TextInput } from "../../components/TextInput";
 import { SpinningGlobe } from "../../components/Globe";
 
+const { width } = Dimensions.get('window');
+
 export default function ExploreScreen() {
 
   const [isModalVisible, setIsModalVisible] = React.useState(false);
@@ -21,6 +23,7 @@ export default function ExploreScreen() {
       <Text style={styles.title}>ReMap Your Journey</Text>
       
       <Input
+        style={styles.search}
         placeholder="Search location..."
         keyboardType="default"
       />
@@ -97,6 +100,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
+
+  search: {
+    width: width * 0.9
+  },
   status: {
     fontSize: 14,
     color: '#10B981',
@@ -104,7 +111,7 @@ const styles = StyleSheet.create({
   },
 
   globeContainer: {
-    height: 200,
+    height: 300,
     width: '100%',
   },
 

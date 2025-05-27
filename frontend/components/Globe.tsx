@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber/native';
 import { TextureLoader } from 'three';
 import { Asset } from 'expo-asset';
 
+
 interface SpinningGlobeProps {
   position?: [number, number, number];
   scale?: number;
@@ -51,7 +52,7 @@ export const SpinningGlobe = ({
       onPointerOut={() => setHover(false)}
     >
       <sphereGeometry args={[1.5, 32, 32]} />
-      <meshStandardMaterial map={colourMap} />
+      <meshStandardMaterial map={colourMap}/>
     </mesh>
   );
 };
