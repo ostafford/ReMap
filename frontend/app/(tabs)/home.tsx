@@ -6,10 +6,10 @@ import { Canvas } from '@react-three/fiber/native';
 
 
 // importing components
-import { Button } from "../../components/Button";
-import { Modal } from "../../components/Modal";
-import { Input, TextInput } from "../../components/TextInput";
-import { SpinningGlobe } from "../../components/Globe";
+import { Button } from "../../components/ui/Button";
+import { Modal } from "../../components/ui/Modal";
+import { Input, TextInput } from "../../components/ui/TextInput";
+import { SpinningGlobe } from "../../components/ui/Globe";
 
 export default function ExploreScreen() {
 

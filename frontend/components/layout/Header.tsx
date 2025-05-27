@@ -1,9 +1,6 @@
-// frontend/components/layout/Header.tsx
-// Your first layout component using ReMap brand colors!
-
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, AppColors } from '../../constants/Colors';
+import { ReMapColors } from '@/constants/Colors';
 
 interface HeaderProps {
   title: string;
@@ -26,7 +23,7 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.primary, // Your brand violet!
+    backgroundColor: ReMapColors.primary.violet, // Your brand violet!
     paddingTop: 50, // Space for status bar
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -37,12 +34,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.white,
+    color: ReMapColors.ui.text,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.white,
+    color: ReMapColors.ui.text,
     textAlign: 'center',
     marginTop: 5,
     opacity: 0.9, // Slightly transparent for hierarchy

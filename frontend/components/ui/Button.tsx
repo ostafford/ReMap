@@ -1,6 +1,6 @@
 import { Pressable, Text, StyleSheet, ViewStyle } from "react-native";
 import { StyleProp, ButtonProps } from "react-native";
-import { ReMapColors, BrandColors } from '../../constants/Colors';
+import { ReMapColors, BrandColors } from '@/constants/Colors';
 
 interface CustomButtonProps {
 	children: React.ReactNode;

@@ -1,33 +1,69 @@
-// frontend/app/(tabs)/index.tsx
-// TEMPORARY TEST - Let's see your Header component in action!
-
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Header } from '../components/layout/Header'; // Import your new Header!
-import { Button } from '../components/ui/Button'; // Anna's Button
-import { Colors } from '../constants/Colors'; // Your brand colors
+import { View, Text, StyleSheet } from 'react-native';
+import { Canvas } from '@react-three/fiber/native';
+import { router } from 'expo-router';
 
-export default function TestScreen() {
+// Import your layout components
+import { Header } from '../components/layout/Header';
+import { MainContent } from '../components/layout/MainContent';
+import { Footer } from '../components/layout/Footer';
+
+// Import components
+import { Button } from '../components/ui/Button';
+import { SpinningGlobe } from '../components/ui/Globe';
+
+// Import your colors
+import { ReMapColors } from '../constants/Colors';
+
+export default function SplashScreen() {
+  const navigateToWorldMap = () => {
+    router.navigate('/worldmap');
+  };
+
+  const navigateToOnboarding = () => {
+    router.navigate('/onboarding');
+  };
+
   return (
     <View style={styles.container}>
-      {/* Your new Header component! */}
+      {/* Header with app name */}
       <Header 
         title="ReMap" 
         subtitle="Your Interactive Memory Atlas" 
       />
       
-      {/* Main content area */}
-      <ScrollView style={styles.content}>
+      {/* Main content with globe */}
+      <MainContent scrollable={false} style={styles.mainContent}>
+        <View style={styles.globeContainer}>
+          <Canvas style={styles.canvas}>
+            <ambientLight intensity={3} />
+            <SpinningGlobe position={[0, 0, 0]} scale={1.8} />
+          </Canvas>
+        </View>
+        
+        <Text style={styles.description}>
+          Transform your experiences into an interactive, personal atlas
+        </Text>
+      </MainContent>
+      
+      {/* Footer with your two buttons */}
+      <Footer>
         <View style={styles.buttonContainer}>
-          <Button onPress={() => console.log('World Map pressed!')}>
+          <Button 
+            style={styles.primaryButton}
+            onPress={navigateToWorldMap}
+          >
             🗺️ Explore World Map
           </Button>
           
-          <Button onPress={() => console.log('Onboarding pressed!')}>
+          <Button 
+            style={styles.secondaryButton}
+            onPress={navigateToOnboarding}
+          >
             🚀 Start Onboarding
           </Button>
         </View>
-      </ScrollView>
+      </Footer>
     </View>
   );
 }
@@ -35,15 +71,37 @@ export default function TestScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: ReMapColors.ui.background,
   },
-  content: {
-    flex: 1,
-  },
-  buttonContainer: {
-    padding: 20,
+  mainContent: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 50, // Give some space from header
+  },
+  globeContainer: {
+    height: 300,
+    width: '100%',
+    marginVertical: 20,
+  },
+  canvas: {
+    flex: 1,
+  },
+  description: {
+    fontSize: 16,
+    color: ReMapColors.ui.textSecondary,
+    textAlign: 'center',
+    marginHorizontal: 20,
+    lineHeight: 24,
+  },
+  buttonContainer: {
+    width: '100%',
+    gap: 10, // Space between buttons
+  },
+  primaryButton: {
+    backgroundColor: ReMapColors.primary.violet,
+    width: '100%',
+  },
+  secondaryButton: {
+    backgroundColor: ReMapColors.primary.blue,
+    width: '100%',
   },
 });

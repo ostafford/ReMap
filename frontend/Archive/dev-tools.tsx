@@ -19,7 +19,7 @@ import {
   runComprehensiveHealthCheck, 
   healthMonitorClient,
   type HealthCheckResult 
-} from '../services/health';
+} from './health';
 
 // Get device dimensions for responsive design
 const { width: screenWidth } = Dimensions.get('window');
