@@ -4,9 +4,12 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { AppState } from 'react-native'
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+
+import { supabase } from '@/lib/supabase';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -20,6 +23,19 @@ export const unstable_settings = {
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+// Tells Supabase Auth to continuously refresh the session automatically if
+// the app is in the foreground. When this is added, you will continue to receive
+// `onAuthStateChange` events with the `TOKEN_REFRESHED` or `SIGNED_OUT` event
+// if the user's session is terminated. This should only be registered once.
+// see https://supabase.com/docs/guides/getting-started/tutorials/with-expo-react-native
+AppState.addEventListener('change', (state) => {
+  if (state === 'active') {
+    supabase.auth.startAutoRefresh()
+  } else {
+    supabase.auth.stopAutoRefresh()
+  }
+})
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
