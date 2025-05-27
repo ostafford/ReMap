@@ -12,10 +12,11 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-
+import { Canvas } from '@react-three/fiber/native';
 
 // imports for the components!
 import { Button } from "../../components/Button";
+import { SpinningGlobe } from "../../components/Globe";
 
 
 // Import backend integration service
@@ -334,6 +335,13 @@ export default function MemoryMapScreen() {
         <Text style={styles.subtitle}>
           Your interactive map of experiences and stories
         </Text>
+      </View>
+
+      <View style={styles.globeContainer}>
+        <Canvas style={{ flex: 1 }}>
+          <ambientLight intensity={3} />
+          <SpinningGlobe position={[0, 0, 0]} scale={1.5} />
+        </Canvas>
       </View>
 
 
@@ -759,4 +767,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 6,
   },
+
+
+  globeContainer: {
+    height: 300,
+    width: '100%',
+    marginVertical: 20,
+  }
 });
