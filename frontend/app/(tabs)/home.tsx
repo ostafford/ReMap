@@ -6,7 +6,7 @@ import React from "react";
 // importing components
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
-
+import { Input, TextInput } from "../../components/TextInput";
 
 export default function ExploreScreen() {
 
@@ -19,6 +19,7 @@ export default function ExploreScreen() {
       <Text style={styles.subtitle}>Discover authentic stories from others</Text>
       <Text style={styles.status}>✅ Memory discovery features coming soon!</Text>
       
+      
       {/* implementing custom components ! ! ! */}
       <Button style={styles.button} onPress={toggleModal}>
         Sign in
@@ -28,12 +29,23 @@ export default function ExploreScreen() {
       <Button style={[styles.button]} onPress={() => router.navigate('/home')}>
         Add Pin
       </Button>
+      
 
       <Modal isVisible={isModalVisible} onBackdropPress={toggleModal}>
         <Modal.Container>
           <Modal.Header title={`Discover\n Yesterday · Today · Tomorrow`}/>
           <Modal.Body>
-            <Text>Form content herrrrrrrrrrrrre</Text>
+              <Input
+                label="Email"
+                placeholder="Enter your email"
+                keyboardType="email-address"
+              />
+              <Input
+                label="Password"
+                placeholder="Enter password"
+                secureTextEntry
+                secureToggle
+              />
           </Modal.Body>
           <Modal.Footer>
             <Button style={[styles.modalButton, styles.signUpButton]}>
@@ -45,6 +57,8 @@ export default function ExploreScreen() {
           </Modal.Footer>
         </Modal.Container>
       </Modal>
+
+
 
 
     </View>
