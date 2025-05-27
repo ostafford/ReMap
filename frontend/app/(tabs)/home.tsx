@@ -2,11 +2,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import React from "react";
 
+import { Canvas } from '@react-three/fiber/native';
+
 
 // importing components
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { Input, TextInput } from "../../components/TextInput";
+import { SpinningGlobe } from "../../components/Globe";
 
 export default function ExploreScreen() {
 
@@ -19,6 +22,12 @@ export default function ExploreScreen() {
       <Text style={styles.subtitle}>Discover authentic stories from others</Text>
       <Text style={styles.status}>✅ Memory discovery features coming soon!</Text>
       
+      <View style={styles.globeContainer}>
+        <Canvas style={{ flex: 1 }}>
+          <ambientLight intensity={3} />
+          <SpinningGlobe position={[0, 0, 0]} scale={1.5} />
+        </Canvas>
+      </View>
       
       {/* implementing custom components ! ! ! */}
       <Button style={styles.button} onPress={toggleModal}>
@@ -91,6 +100,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  globeContainer: {
+    height: 200,
+    width: '100%',
+  },
+
   button: {
     width: 325
   },
@@ -100,6 +114,8 @@ const styles = StyleSheet.create({
   signUpButton: {
     backgroundColor: "#2900E2",
   }
+
+  
 
 
 });

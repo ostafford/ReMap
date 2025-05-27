@@ -7,12 +7,14 @@ interface SpinningGlobeProps {
   position?: [number, number, number];
   scale?: number;
   texture?: any;
+  shouldSpin?: boolean;
 }
 
 export const SpinningGlobe = ({
   position = [0, 0, 0],
   scale = 1.5,
   texture,
+  shouldSpin = true,
 }: SpinningGlobeProps) => {
   const meshRef = useRef<any>(null);
   const [colourMap, setColourMap] = useState<any>(texture || null);
@@ -31,7 +33,7 @@ export const SpinningGlobe = ({
   }, []);
 
   useFrame((state, delta) => {
-    if (meshRef.current) {
+    if (shouldSpin && meshRef.current) {
       meshRef.current.rotation.y += delta ;
     }
   });
