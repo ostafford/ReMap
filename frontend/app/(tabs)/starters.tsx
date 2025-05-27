@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import { router } from 'expo-router';
 
 // imports for the components!
-import { Button } from "../../components/ui/Button";
+import { Button } from "@/components/ui/Button";
 
 
 

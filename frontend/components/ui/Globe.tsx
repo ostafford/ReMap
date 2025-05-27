@@ -23,7 +23,7 @@ export const SpinningGlobe = ({
 
   useEffect(() => {
     const loadTexture = async () => {
-      const asset = Asset.fromModule(require('../../assets/earth_texture.jpg'));
+      const asset = Asset.fromModule(require('@/assets/earth_texture.jpg'));
       await asset.downloadAsync();
       const texture = new TextureLoader().load(asset.localUri || asset.uri);
       setColourMap(texture);

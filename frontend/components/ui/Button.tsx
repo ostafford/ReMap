@@ -5,7 +5,7 @@ import { ReMapColors, BrandColors } from '@/constants/Colors';
 interface CustomButtonProps {
 	children: React.ReactNode;
 	onPress: () => void;
-	style?: StyleProp<ButtonProps>;
+	style?: StyleProp<ViewStyle>;
 }
 
 export const Button = ({ children, onPress, style }: CustomButtonProps) => {

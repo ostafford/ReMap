@@ -23,8 +23,8 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: ReMapColors.primary.violet, // Your brand violet!
-    paddingTop: 50, // Space for status bar
+    backgroundColor: ReMapColors.primary.violet, 
+    paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
@@ -42,6 +42,6 @@ const styles = StyleSheet.create({
     color: ReMapColors.ui.text,
     textAlign: 'center',
     marginTop: 5,
-    opacity: 0.9, // Slightly transparent for hierarchy
+    opacity: 0.9,
   },
 });

@@ -1,6 +1,3 @@
-// frontend/app/(tabs)/_layout.tsx
-// Tab navigation with development toggle
-
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import React from 'react';
 import { Tabs } from 'expo-router';
@@ -52,7 +49,7 @@ export default function TabLayout() {
         headerTintColor: ReMapColors.ui.cardBackground,
       }}>
       
-      {/* Anna's Work - Reference */}
+      {}
       <Tabs.Screen
         name="home"
         options={{

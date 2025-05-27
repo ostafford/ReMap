@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { Canvas } from '@react-three/fiber/native';
 
-import { signIn, signUp } from '../services/auth';
+import { signIn, signUp } from '@/services/auth';
 
 
 // importing components
-import { Button } from "../../components/ui/Button";
-import { Modal } from "../../components/ui/Modal";
-import { Input, TextInput } from "../../components/ui/TextInput";
-import { SpinningGlobe } from "../../components/ui/Globe";
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
+import { Input, TextInput } from "@/components/ui/TextInput";
+import { SpinningGlobe } from "@/components/ui/Globe";
 
 export default function ExploreScreen() {
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);

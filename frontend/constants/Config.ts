@@ -1,6 +1,3 @@
-// frontend/constants/Config.ts
-// Development configuration with toggle system
-
 export const AppConfig = {
     // Development flags
     isDevelopment: __DEV__, // true in development, false in production
@@ -37,3 +34,4 @@ export const AppConfig = {
       }
     },
   };
+// ANNA YOU CAN IGNORE THIS FILE //

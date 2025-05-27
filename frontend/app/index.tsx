@@ -3,16 +3,18 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Canvas } from '@react-three/fiber/native';
 import { router } from 'expo-router';
 
-// Import your layout components
+// Import layout components
 import { Header } from '../components/layout/Header';
 import { MainContent } from '../components/layout/MainContent';
 import { Footer } from '../components/layout/Footer';
 
-// Import components
+// Import UI components
 import { Button } from '../components/ui/Button';
 import { SpinningGlobe } from '../components/ui/Globe';
+import { InfoButton } from '../components/ui/IconButton';
+import { AppConfig } from '../constants/Config';
 
-// Import your colors
+// Import Constants
 import { ReMapColors } from '../constants/Colors';
 
 export default function SplashScreen() {
@@ -24,8 +26,19 @@ export default function SplashScreen() {
     router.navigate('/onboarding');
   };
 
+  const navigateToDevTabs = () => {
+    router.navigate('/(tabs)/home');
+  };
+
   return (
     <View style={styles.container}>
+      {/* Developer access button (only in development) */}
+      {AppConfig.showDevTools && (
+        <View style={styles.devButtonContainer}>
+          <InfoButton onPress={navigateToDevTabs} />
+        </View>
+      )}
+      
       {/* Header with app name */}
       <Header 
         title="ReMap" 
@@ -72,6 +85,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: ReMapColors.ui.background,
+  },
+  devButtonContainer: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1000,
   },
   mainContent: {
     justifyContent: 'center',

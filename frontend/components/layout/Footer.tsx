@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { ReMapColors } from '../../constants/Colors';
+import { ReMapColors } from '@/constants/Colors';
 
 interface FooterProps {
   children: React.ReactNode;
