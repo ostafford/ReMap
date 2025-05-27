@@ -1,12 +1,12 @@
 import { StyleSheet } from 'react-native';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+import EditScreenInfo from '@/Archive/EditScreenInfo';
+import { Text, View } from '@/components/ui/Themed';
 import { useRouter } from 'expo-router';
 import { router } from 'expo-router';
 
 // imports for the components!
-import { Button } from "../../components/Button";
+import { Button } from "../../components/ui/Button";
 
 
 

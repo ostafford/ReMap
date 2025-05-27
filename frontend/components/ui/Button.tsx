@@ -1,5 +1,6 @@
 import { Pressable, Text, StyleSheet, ViewStyle } from "react-native";
 import { StyleProp, ButtonProps } from "react-native";
+import { ReMapColors, BrandColors } from '../../constants/Colors';
 
 interface CustomButtonProps {
 	children: React.ReactNode;
@@ -17,13 +18,13 @@ export const Button = ({ children, onPress, style }: CustomButtonProps) => {
 
 const styles = StyleSheet.create ({
 	button: {
-		backgroundColor: "#1E1E1E",
+		backgroundColor: ReMapColors.primary.cadet,
 		padding: 20,
 		borderRadius: 25,
 		margin: 10,
 		alignItems: 'center',
     	justifyContent: 'center', 
-	},
+	}, 
 	buttonText: {
 		color: "white",
 		fontSize: 20

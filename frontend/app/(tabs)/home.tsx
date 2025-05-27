@@ -4,9 +4,9 @@ import React from "react";
 
 
 // importing components
-import { Button } from "../../components/Button";
-import { Modal } from "../../components/Modal";
-import { Input, TextInput } from "../../components/TextInput";
+import { Button } from "../../components/ui/Button";
+import { Modal } from "../../components/ui/Modal";
+import { Input, TextInput } from "../../components/ui/TextInput";
 
 export default function ExploreScreen() {
 
