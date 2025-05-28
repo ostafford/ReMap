@@ -8,13 +8,17 @@ import {
 	TextStyle,
 	ViewStyle,
 	TextInputProps,
+	TouchableOpacity,
 } from "react-native";
+
 
 interface InputProps extends TextInputProps {
 	label?: string;
 	secureToggle?: boolean; // incase users wanna see their password! 
 	style?: StyleProp<ViewStyle>;
 	inputStyle?: StyleProp<TextStyle>;
+	error?: string;
+	required?: boolean;
 }
 
 export const Input = ({
@@ -23,9 +27,12 @@ export const Input = ({
 	secureToggle = false,
 	style,
 	inputStyle,
+	error,
+	required = false,
 	...props
 }: InputProps) => {
 	const [isSecure, setIsSecure] = useState(secureTextEntry);
+	const [isFocused, setIsFocused] = useState(false);
 
 	const toggleSecure = () => {
 		if (secureToggle) {

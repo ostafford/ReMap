@@ -1,189 +1,328 @@
+// ================
+//   CORE IMPORTS
+// ================
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 
-// Import your layout components
+// =======================
+//   THIRD-PARTY IMPORTS
+// =======================
+import { router } from 'expo-router';
+import { Canvas } from '@react-three/fiber/native';
+
+// ================================
+//   INTERNAL 'LAYOUT' COMPONENTS
+// ================================
 import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
 import { Footer } from '@/components/layout/Footer';
 
-// Import components
+// ============================
+//   INTERNAL 'UI' COMPONENTS
+// ============================
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
-import { Input } from '@/components/ui/TextInput';
+import { SpinningGlobe } from '@/components/ui/Globe';
 
-// Import colors
+// ================================
+//   INTERNAL 'CONSTANTS' IMPORTS
+// ================================
 import { ReMapColors } from '@/constants/Colors';
 
-export default function OnboardingScreen() {
-  const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
-  const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
+// ========================
+//   COMPONENT DEFINITION
+// ========================
+export default function OnboardingWelcomeScreen() {
+	// Goes through the accordion like method
+	const [currentStep, setCurrentStep] = useState(0);
 
-  const toggleLoginModal = () => setIsLoginModalVisible(!isLoginModalVisible);
-  const toggleSignupModal = () => setIsSignupModalVisible(!isSignupModalVisible);
+	// ===============
+	//   STATIC DATA
+	// ===============
+	const welcomeSteps = [
+		{
+			title: '📍 Pin Your Memories',
+			description:
+				'Transform your experiences into an interactive atlas. Every place has a story - yours.',
+			icon: '🗺️',
+		},
+		{
+			title: '🌟 Discover Authentic Stories',
+			description:
+				"Find genuine experiences from real people at places you're visiting or planning to explore.",
+			icon: '👥',
+		},
+		{
+			title: '🔒 Your Privacy, Your Choice',
+			description:
+				'Keep memories private, share with close friends, or contribute to the community - you decide.',
+			icon: '🛡️',
+		},
+	];
 
-  const goBack = () => {
-    router.back();
-  };
+	// ==================
+	//   EVENT HANDLERS
+	// ==================
+	const validRoutes = ['/', '/onboarding/permissions', '/onboarding/account'];
 
-  const navigateToWorldMap = () => {
-    // After login/signup, go to world map
-    router.navigate('/worldmap');
-  };
+	const nextStep = () => {
+		const route = '/onboarding/permissions';
 
-  return (
-    <View style={styles.container}>
-      <Header 
-        title="Welcome to ReMap" 
-        subtitle="Join the community of memory makers" 
-      />
-      
-      <MainContent>
-        <View style={styles.content}>
-          <Text style={styles.description}>
-            Create an account to start pinning your memories and discover 
-            authentic stories from others around the world.
-          </Text>
-          
-          <Text style={styles.orText}>
-            Choose how you'd like to get started:
-          </Text>
-        </View>
-      </MainContent>
-      
-      <Footer>
-        <View style={styles.buttonContainer}>
-          <Button 
-            style={styles.primaryButton}
-            onPress={toggleSignupModal}
-          >
-            🚀 Create Account
-          </Button>
-          
-          <Button 
-            style={styles.secondaryButton}
-            onPress={toggleLoginModal}
-          >
-            🔑 Sign In
-          </Button>
-          
-          <Button 
-            style={styles.tertiaryButton}
-            onPress={goBack}
-          >
-            ← Back to Home
-          </Button>
-        </View>
-      </Footer>
+		if (currentStep < welcomeSteps.length - 1) {
+			setCurrentStep(currentStep + 1);
+		} else {
+			if (!validRoutes.includes(route)) {
+				Alert.alert('Error', 'This page is not available');
+				return;
+			}
 
-      {/* Login Modal */}
-      <Modal isVisible={isLoginModalVisible} onBackdropPress={toggleLoginModal}>
-        <Modal.Container>
-          <Modal.Header title="Welcome Back!" />
-          <Modal.Body>
-            <Input
-              label="Email"
-              placeholder="Enter your email"
-              keyboardType="email-address"
-            />
-            <Input
-              label="Password"
-              placeholder="Enter password"
-              secureTextEntry
-              secureToggle
-            />
-          </Modal.Body>
-          <Modal.Footer>
-            <Button style={styles.modalButton} onPress={navigateToWorldMap}>
-              Sign In
-            </Button>
-            <Button style={[styles.modalButton, styles.cancelButton]} onPress={toggleLoginModal}>
-              Cancel
-            </Button>
-          </Modal.Footer>
-        </Modal.Container>
-      </Modal>
+			try {
+				router.navigate(route);
+			} catch (error) {
+				console.error('Navigation failed:', error);
+			}
+		}
+	};
 
-      {/* Signup Modal */}
-      <Modal isVisible={isSignupModalVisible} onBackdropPress={toggleSignupModal}>
-        <Modal.Container>
-          <Modal.Header title="Join ReMap Community" />
-          <Modal.Body>
-            <Input
-              label="Full Name"
-              placeholder="Enter your full name"
-            />
-            <Input
-              label="Email"
-              placeholder="Enter your email"
-              keyboardType="email-address"
-            />
-            <Input
-              label="Password"
-              placeholder="Create a password"
-              secureTextEntry
-              secureToggle
-            />
-          </Modal.Body>
-          <Modal.Footer>
-            <Button style={[styles.modalButton, styles.signUpButton]} onPress={navigateToWorldMap}>
-              Create Account
-            </Button>
-            <Button style={[styles.modalButton, styles.cancelButton]} onPress={toggleSignupModal}>
-              Cancel
-            </Button>
-          </Modal.Footer>
-        </Modal.Container>
-      </Modal>
-    </View>
-  );
+	const skipToAuth = () => {
+		const route = '/onboarding/account';
+
+		if (!validRoutes.includes(route)) {
+			Alert.alert('Error', 'This page is not available');
+			return;
+		}
+
+		try {
+			router.navigate(route);
+		} catch (error) {
+			console.error('Navigation failed:', error);
+		}
+	};
+
+	const goBack = () => {
+		const route = '/';
+		if (currentStep > 0) {
+			setCurrentStep(currentStep - 1);
+		} else {
+			if (!validRoutes.includes(route)) {
+				Alert.alert('Error', 'This page is not available');
+				return;
+			}
+
+			try {
+				router.navigate(route);
+			} catch (error) {
+				console.error('Navigation failed:', error);
+			}
+		}
+	};
+
+	// NOTE: STEP STATUS FROM ABOVE
+	const currentStepData = welcomeSteps[currentStep];
+
+	// ============================
+	//   COMPONENT RENDER SECTION
+	// ============================
+	return (
+		<View style={styles.container}>
+			<Header title="Welcome to ReMap" />
+
+			<MainContent scrollable={false}>
+				<View style={styles.content}>
+					{/* Progress Indicators */}
+					<View style={styles.progressContainer}>
+						{welcomeSteps.map((_, index) => (
+							<View
+								key={index}
+								style={[
+									styles.progressDot,
+									index === currentStep &&
+										styles.progressDotActive,
+									index < currentStep &&
+										styles.progressDotCompleted,
+								]}
+							/>
+						))}
+					</View>
+
+					{/* Globe Display */}
+					<View style={styles.globeContainer}>
+						<Canvas style={styles.canvas}>
+							<ambientLight intensity={3} />
+							<SpinningGlobe position={[0, 0, 0]} scale={1.2} />
+						</Canvas>
+					</View>
+
+					{/* Current Step Content */}
+					<View style={styles.stepContent}>
+						<Text style={styles.stepIcon}>
+							{currentStepData.icon}
+						</Text>
+						<Text style={styles.stepTitle}>
+							{currentStepData.title}
+						</Text>
+						<Text style={styles.stepDescription}>
+							{currentStepData.description}
+						</Text>
+					</View>
+
+					{/* Features Preview */}
+					<View style={styles.featuresContainer}>
+						<View style={styles.featureItem}>
+							<Text style={styles.featureIcon}>📱</Text>
+							<Text style={styles.featureText}>
+								Mobile-First Design
+							</Text>
+						</View>
+						<View style={styles.featureItem}>
+							<Text style={styles.featureIcon}>🌍</Text>
+							<Text style={styles.featureText}>
+								Global Community
+							</Text>
+						</View>
+						<View style={styles.featureItem}>
+							<Text style={styles.featureIcon}>✨</Text>
+							<Text style={styles.featureText}>
+								Authentic Stories
+							</Text>
+						</View>
+					</View>
+				</View>
+			</MainContent>
+
+			<Footer>
+				<View style={styles.buttonContainer}>
+					{/* Primary Action Button */}
+					<Button style={styles.primaryButton} onPress={nextStep}>
+						{currentStep < welcomeSteps.length - 1
+							? 'Continue'
+							: '🚀 Get Started'}
+					</Button>
+
+					{/* Secondary Actions */}
+					<View style={styles.secondaryActions}>
+						<Button style={styles.secondaryButton} onPress={goBack}>
+							{currentStep > 0 ? '← Previous' : '← Back to Home'}
+						</Button>
+
+						<Button
+							style={styles.tertiaryButton}
+							onPress={skipToAuth}
+						>
+							Skip Intro →
+						</Button>
+					</View>
+				</View>
+			</Footer>
+		</View>
+	);
 }
 
+// =================
+//   STYLE SECTION
+// =================
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: ReMapColors.ui.background,
-  },
-  content: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  description: {
-    fontSize: 16,
-    color: ReMapColors.ui.text,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 30,
-  },
-  orText: {
-    fontSize: 14,
-    color: ReMapColors.ui.textSecondary,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  buttonContainer: {
-    width: '100%',
-    gap: 10,
-  },
-  primaryButton: {
-    backgroundColor: ReMapColors.primary.violet,
-    width: '100%',
-  },
-  secondaryButton: {
-    backgroundColor: ReMapColors.primary.blue,
-    width: '100%',
-  },
-  tertiaryButton: {
-    backgroundColor: ReMapColors.ui.textSecondary,
-    width: '100%',
-  },
-  modalButton: {
-    width: 150,
-  },
-  signUpButton: {
-    backgroundColor: ReMapColors.primary.violet,
-  },
-  cancelButton: {
-    backgroundColor: ReMapColors.ui.textSecondary,
-  },
+	container: {
+		flex: 1,
+		backgroundColor: ReMapColors.ui.background,
+	},
+	content: {
+		flex: 1,
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingVertical: 20,
+	},
+	progressContainer: {
+		flexDirection: 'row',
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginBottom: 20,
+	},
+	progressDot: {
+		width: 12,
+		height: 12,
+		borderRadius: 6,
+		backgroundColor: ReMapColors.ui.border,
+		marginHorizontal: 6,
+	},
+	progressDotActive: {
+		backgroundColor: ReMapColors.primary.violet,
+		width: 16,
+		height: 16,
+		borderRadius: 8,
+	},
+	progressDotCompleted: {
+		backgroundColor: ReMapColors.semantic.success,
+	},
+	globeContainer: {
+		height: 200,
+		width: '80%',
+		marginVertical: 20,
+	},
+	canvas: {
+		flex: 1,
+	},
+	stepContent: {
+		alignItems: 'center',
+		paddingHorizontal: 30,
+		marginVertical: 20,
+	},
+	stepIcon: {
+		fontSize: 48,
+		marginBottom: 16,
+	},
+	stepTitle: {
+		fontSize: 24,
+		fontWeight: 'bold',
+		color: ReMapColors.ui.text,
+		textAlign: 'center',
+		marginBottom: 12,
+	},
+	stepDescription: {
+		fontSize: 16,
+		color: ReMapColors.ui.textSecondary,
+		textAlign: 'center',
+		lineHeight: 24,
+	},
+	featuresContainer: {
+		flexDirection: 'row',
+		justifyContent: 'space-around',
+		width: '100%',
+		paddingHorizontal: 20,
+		marginTop: 20,
+	},
+	featureItem: {
+		alignItems: 'center',
+		flex: 1,
+	},
+	featureIcon: {
+		fontSize: 24,
+		marginBottom: 8,
+	},
+	featureText: {
+		fontSize: 12,
+		color: ReMapColors.ui.textSecondary,
+		textAlign: 'center',
+		fontWeight: '500',
+	},
+	buttonContainer: {
+		width: '100%',
+	},
+	primaryButton: {
+		backgroundColor: ReMapColors.primary.violet,
+		width: '100%',
+		marginBottom: 10,
+	},
+	secondaryActions: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		gap: 10,
+	},
+	secondaryButton: {
+		backgroundColor: ReMapColors.ui.textSecondary,
+		flex: 1,
+	},
+	tertiaryButton: {
+		backgroundColor: ReMapColors.primary.blue,
+		flex: 1,
+	},
 });
