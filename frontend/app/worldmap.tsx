@@ -8,6 +8,7 @@ import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
+import { IconButton } from '@/components/ui/IconButton';
 import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
 import { Footer } from '@/components/layout/Footer';
@@ -61,25 +62,24 @@ export default function WorldMapScreen() {
           <MapView 
             style={styles.map}
             provider={PROVIDER_GOOGLE}  
-            showsUserLocation
             initialRegion={INITIAL_REGION}
+            showsUserLocation
+            showsMyLocationButton
           />
         </View>
 
 
 
-        <Button onPress={navigateToCreatePin}>
-          Add Pin
-        </Button>
 
-        <Button onPress={goBack}>
-          Expand Map
-        </Button>
       </MainContent>
 
 
       <Footer>
         <View style={styles.footerContainer}>
+          <IconButton
+            icon="plus"
+            onPress={navigateToCreatePin}>
+          </IconButton>
           <Button onPress={openLoginModal}>
             Login
           </Button>
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
 
   map: {
       width: '100%',
-      height: 300,
+      height: '100%',
       borderRadius: 12,
   }
 
