@@ -66,7 +66,7 @@ export default function SplashScreen() {
             style={styles.primaryButton}
             onPress={navigateToWorldMap}
           >
-            🗺️ Explore World Map
+            Explore
           </Button>
           
 

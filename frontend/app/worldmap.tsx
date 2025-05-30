@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { ReMapColors } from '@/constants/Colors';
 
+import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';
+
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
@@ -32,6 +34,15 @@ export default function WorldMapScreen() {
   setIsModalVisible(true);
 };
 
+  // Setting up MAP
+  const INITIAL_REGION = {
+    // Holberton coordinates
+    latitude: -37.817979,     
+    longitude: 144.960408,     
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01
+  };
+
 
   return (
     <View style={styles.container}>
@@ -44,6 +55,18 @@ export default function WorldMapScreen() {
           label="Search Location"
           placeholder="Search Location"
         />
+
+
+        <View>
+          <MapView 
+            style={styles.map}
+            provider={PROVIDER_GOOGLE}  
+            showsUserLocation
+            initialRegion={INITIAL_REGION}
+          />
+        </View>
+
+
 
         <Button onPress={navigateToCreatePin}>
           Add Pin
@@ -156,6 +179,12 @@ const styles = StyleSheet.create({
   footerContainer: {
     flexDirection: 'row',
   },
+
+  map: {
+      width: '100%',
+      height: 300,
+      borderRadius: 12,
+  }
 
 
 });
