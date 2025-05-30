@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ReMapColors } from '@/constants/Colors';
+import { router } from 'expo-router';
+import { Button } from '@/components/ui/Button';
 
 interface HeaderProps {
   title: string;
   subtitle?: string; // Optional subtitle
   showBackButton?: boolean; // We'll add this functionality later
 }
+
 
 export const Header = ({ title, subtitle }: HeaderProps) => {
   return (

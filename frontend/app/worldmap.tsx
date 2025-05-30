@@ -3,7 +3,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { ReMapColors } from '@/constants/Colors';
 
-
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
@@ -11,57 +10,59 @@ import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
 import { Footer } from '@/components/layout/Footer';
 
+
 export default function WorldMapScreen() {
+  // Page Navigation
   const goBack = () => {
     router.back();
   };
-
   const navigateToWorldMap = () => {
-    // After login/signup, go to world map
     router.navigate('/worldmap');
   };
+  const navigateToCreatePin = () => {
+    router.navigate('/createPin');
+  };
   
+  // Modals
   const [isModalVisible, setIsModalVisible] = React.useState(false);
   const [modalMode, setModalMode] = React.useState<'login' | 'signup'>('login');
-
 
   const openLoginModal = () => {
   setModalMode('login');
   setIsModalVisible(true);
 };
 
-const openSignupModal = () => {
-  setModalMode('signup');
-  setIsModalVisible(true);
-};
-
-
 
   return (
     <View style={styles.container}>
-      <Header title="World Map" />
+      
+      {/* <Header title="World Map" /> */}
       <MainContent>
         <Text style={styles.title}>🗺️ World Map</Text>
         <Text style={styles.subtitle}>Coming Soon!</Text>
         
+        <Input
+          label="Search Location"
+          placeholder="Search Location"
+        />
+
+        <Button onPress={navigateToCreatePin}>
+          Add Pin
+        </Button>
+
         <Button onPress={goBack}>
           Expand Map
         </Button>
-
-
-
-
-
       </MainContent>
 
+
       <Footer>
-        <View>
-          <Button onPress={openLoginModal} style={styles.backButton}>
+        <View style={styles.footerContainer}>
+          <Button onPress={openLoginModal}>
             Login
           </Button>
-
           <Button onPress={goBack} style={styles.backButton}>
-            ← Back to Home
+            Back
           </Button>
 
           <Modal isVisible={isModalVisible} onBackdropPress={() => setIsModalVisible(false)}>
@@ -89,17 +90,17 @@ const openSignupModal = () => {
               <Modal.Footer>
                 <View style={styles.modalButtonContainer}>
                   <Button
+                    onPress={() => setModalMode(modalMode === 'login' ? 'signup' : 'login')}
+                    style={[styles.modalButton, styles.cancelButton]}
+                  >
+                    {modalMode === 'login' ? 'New User' : 'Back to Login'}
+                  </Button>
+                  <Button
                     style={[styles.modalButton, modalMode === 'signup' && styles.signUpButton]}
                     onPress={navigateToWorldMap}
                   >
                     {modalMode === 'login' ? 'Sign In' : 'Create Account'}
-                </Button>
-                <Button
-                  onPress={() => setModalMode(modalMode === 'login' ? 'signup' : 'login')}
-                  style={[styles.modalButton, styles.cancelButton]}
-                >
-                  {modalMode === 'login' ? 'New User' : 'Back to Login'}
-                </Button>
+                  </Button>
 
                 </View>
                 
@@ -152,7 +153,10 @@ const styles = StyleSheet.create({
   modalButtonContainer: {
     flexDirection: 'column',
     alignItems: 'center',
-  }
+  },
+  footerContainer: {
+    flexDirection: 'row',
+  },
 
 
 });
