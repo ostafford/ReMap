@@ -9,13 +9,14 @@ import { Footer } from '@/components/layout/Footer';
 
 // Import components
 import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/IconButton';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
 
 // Import colors
 import { ReMapColors } from '@/constants/Colors';
 
-export default function OnboardingScreen() {
+export default function createPin() {
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
   const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
 
@@ -46,8 +47,9 @@ export default function OnboardingScreen() {
 			placeholder="Search Location"
 			/>
 
-			<Text>Display location here</Text>
+			<Text>* display location here *</Text>
 
+			<Text>Select visibility</Text>
 			<View style={styles.row}>
 				<Button>Public</Button>
 				<Button>Social</Button>
@@ -66,9 +68,16 @@ export default function OnboardingScreen() {
 					label="Picture it"
 					placeholder="Shtanky bathroom"
 				/>
-				<Text>Camera here</Text>
-				<Text>Audio here</Text>
-
+				<IconButton
+					icon="camera"
+					onPress={goBack}
+				>	
+				</IconButton>
+				<IconButton
+					icon="microphone"
+					onPress={goBack}
+				>	
+				</IconButton>
 			</View>
 
 		</View>
@@ -96,6 +105,7 @@ const styles = StyleSheet.create({
   content: {
 	alignItems: 'center',
 	paddingHorizontal: 20,
+	gap: 12,
   },
   description: {
 	fontSize: 16,

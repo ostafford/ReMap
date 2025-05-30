@@ -39,8 +39,7 @@ export default function WorldMapScreen() {
       {/* <Header title="World Map" /> */}
       <MainContent>
         <Text style={styles.title}>🗺️ World Map</Text>
-        <Text style={styles.subtitle}>Coming Soon!</Text>
-        
+
         <Input
           label="Search Location"
           placeholder="Search Location"
