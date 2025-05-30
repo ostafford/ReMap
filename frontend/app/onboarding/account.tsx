@@ -72,6 +72,7 @@ export default function OnboardingAccountScreen() {
 	// ===========================
 	//   AUTHENTICATION HANDLERS
 	// ===========================
+	// API CALLS
 	const handleSignUp = async () => {
 		if (!email || !password || !fullName) {
 			Alert.alert('Missing Information', 'Please fill in all fields.');
@@ -79,6 +80,7 @@ export default function OnboardingAccountScreen() {
 		}
 
 		setIsLoading(true);
+
 		try {
 			await signUp({ email, password });
 
@@ -91,7 +93,8 @@ export default function OnboardingAccountScreen() {
 			console.error('Signup error:', error);
 			Alert.alert(
 				'Signup Error',
-				'Could not create account. Please check your details and try again.'
+				'Could not create account. Please check your details and try again.',
+				[{ text: 'Ok', style: 'default' }]
 			);
 		} finally {
 			setIsLoading(false);
@@ -108,6 +111,7 @@ export default function OnboardingAccountScreen() {
 		}
 
 		setIsLoading(true);
+
 		try {
 			await signIn({ email, password });
 
@@ -120,7 +124,8 @@ export default function OnboardingAccountScreen() {
 			console.error('Login error:', error);
 			Alert.alert(
 				'Login Error',
-				'Could not sign in. Please check your credentials and try again.'
+				'Could not sign in. Please check your credentials and try again.',
+				[{ text: 'Ok', style: 'default' }]
 			);
 		} finally {
 			setIsLoading(false);

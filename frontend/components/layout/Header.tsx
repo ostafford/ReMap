@@ -1,16 +1,48 @@
+// ================
+//   CORE IMPORTS
+// ================
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// ================================
+//   INTERNAL 'CONSTANTS' IMPORTS
+// ================================
 import { ReMapColors } from '@/constants/Colors';
 
+// ====================
+//   TYPE DEFINITIONS
+// ====================
 interface HeaderProps {
 	title: string;
-	subtitle?: string; // Optional subtitle
-	showBackButton?: boolean; // We'll add this functionality later
+	subtitle?: String;
+	showBackButton?: boolean;
+	style?: any;
+	backgroundColor?: string;
 }
 
-export const Header = ({ title, subtitle }: HeaderProps) => {
+// ========================
+//   COMPONENT DEFINITION
+// ========================
+export const Header = ({
+	title,
+	subtitle,
+	style,
+	backgroundColor = ReMapColors.primary.violet,
+}: HeaderProps) => {
+	const insets = useSafeAreaInsets();
+
 	return (
-		<View style={styles.container}>
+		<View
+			style={[
+				styles.container,
+				{
+					backgroundColor,
+					paddingTop: Math.max(insets.top + 10, 10),
+				},
+				style,
+			]}
+		>
 			<View style={styles.content}>
 				<Text style={styles.title}>{title}</Text>
 				{subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -19,10 +51,11 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
 	);
 };
 
+// ================
+//	STYLE SECTION
+// ================
 const styles = StyleSheet.create({
 	container: {
-		backgroundColor: ReMapColors.primary.violet,
-		paddingTop: 10,
 		paddingBottom: 10,
 		paddingHorizontal: 10,
 	},
