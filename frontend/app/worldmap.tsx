@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
 import { ReMapColors } from '@/constants/Colors';
 
-import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';
+import MapView, {PROVIDER_GOOGLE, Marker} from 'react-native-maps';
 
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -65,7 +65,19 @@ export default function WorldMapScreen() {
             initialRegion={INITIAL_REGION}
             showsUserLocation
             showsMyLocationButton
-          />
+          >
+            <Marker
+              title="Holberton School"
+              description="Holberton Campus - Collins Street"
+              coordinate={{latitude: -37.817979, longitude: 144.960408 }}
+            >
+              <Image
+                source={require('../assets/images/holberton_logo.jpg')}
+                style={{ width: 60, height: 60 }}
+                resizeMode="contain"
+              />
+            </Marker>
+          </MapView>
         </View>
 
 
@@ -160,7 +172,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     backgroundColor: ReMapColors.primary.violet,
-    marginTop: 20,
   },
 
   modalButton: {
@@ -182,7 +193,7 @@ const styles = StyleSheet.create({
 
   map: {
       width: '100%',
-      height: '100%',
+      height: 500,
       borderRadius: 12,
   }
 
