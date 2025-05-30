@@ -38,7 +38,7 @@ export const Header = ({
 				styles.container,
 				{
 					backgroundColor,
-					paddingTop: Math.max(insets.top + 10, 10),
+					paddingTop: 10,
 				},
 				style,
 			]}

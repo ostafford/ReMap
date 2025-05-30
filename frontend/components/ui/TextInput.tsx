@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
 	TextInput,
 	View,
@@ -9,12 +9,11 @@ import {
 	ViewStyle,
 	TextInputProps,
 	TouchableOpacity,
-} from "react-native";
-
+} from 'react-native';
 
 interface InputProps extends TextInputProps {
 	label?: string;
-	secureToggle?: boolean; // incase users wanna see their password! 
+	secureToggle?: boolean; // incase users wanna see their password!
 	style?: StyleProp<ViewStyle>;
 	inputStyle?: StyleProp<TextStyle>;
 	error?: string;
@@ -51,7 +50,7 @@ export const Input = ({
 				/>
 				{secureToggle && (
 					<Text onPress={toggleSecure} style={styles.toggle}>
-						{isSecure ? "Show" : "Hide"}
+						{isSecure ? 'Show' : 'Hide'}
 					</Text>
 				)}
 			</View>
@@ -68,21 +67,21 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 	},
 	inputWrapper: {
-		flexDirection: "row",
-		alignItems: "center",
-		borderColor: "#ccc",
+		flexDirection: 'row',
+		alignItems: 'center',
+		borderColor: '#ccc',
 		borderRadius: 15,
-		backgroundColor: "#D9D9D9",
+		backgroundColor: '#D9D9D9',
 	},
 	input: {
 		borderRadius: 15,
 		flex: 1,
 		fontSize: 12,
-		padding: 12
+		padding: 12,
 	},
 	toggle: {
 		marginLeft: 10,
-		color: "#1E1E1E",
-		fontWeight: "bold",
+		color: '#1E1E1E',
+		fontWeight: 'bold',
 	},
 });
