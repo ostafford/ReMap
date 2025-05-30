@@ -69,12 +69,16 @@ export default function SplashScreen() {
             🗺️ Explore World Map
           </Button>
           
-          <Button 
+
+
+          {/* <Button 
             style={styles.secondaryButton}
             onPress={navigateToOnboarding}
           >
             🚀 Start Onboarding
-          </Button>
+          </Button> */}
+
+          
         </View>
       </Footer>
     </View>
