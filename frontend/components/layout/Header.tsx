@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ReMapColors } from '@/constants/Colors';
-import { router } from 'expo-router';
-import { Button } from '@/components/ui/Button';
 
 interface HeaderProps {
   title: string;
@@ -12,8 +11,9 @@ interface HeaderProps {
 
 
 export const Header = ({ title, subtitle }: HeaderProps) => {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView>
       <View style={styles.container}>
         <View style={styles.content}>
           <Text style={styles.title}>{title}</Text>
@@ -22,17 +22,12 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
           )}
         </View>
       </View>
-    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: ReMapColors.primary.violet,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
   container: {
-    backgroundColor: ReMapColors.primary.violet, 
+    backgroundColor: 'transparent',
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,

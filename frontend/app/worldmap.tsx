@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
 import { ReMapColors } from '@/constants/Colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import MapView, {PROVIDER_GOOGLE, Marker} from 'react-native-maps';
 
+// Components imports
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
@@ -13,8 +14,19 @@ import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
 import { Footer } from '@/components/layout/Footer';
 
+// Map imports
+import MapView, {PROVIDER_GOOGLE, Marker} from 'react-native-maps';
+
+// Fancy schmancy modal library imports 
+import BottomSheet from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 
 export default function WorldMapScreen() {
+  // to make sure page isnt going over status bar region
+  const insets = useSafeAreaInsets();
+
+
   // Page Navigation
   const goBack = () => {
     router.back();
@@ -25,6 +37,7 @@ export default function WorldMapScreen() {
   const navigateToCreatePin = () => {
     router.navigate('/createPin');
   };
+
   
   // Modals
   const [isModalVisible, setIsModalVisible] = React.useState(false);
@@ -34,6 +47,15 @@ export default function WorldMapScreen() {
   setModalMode('login');
   setIsModalVisible(true);
 };
+
+  // BottomSheet 
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ['50%'], []);
+  const [bottomSheetIndex, setBottomSheetIndex] = React.useState(-1);
+
+  const openBottomSheet = () => setBottomSheetIndex(0);
+  const closeBottomSheet = () => setBottomSheetIndex(-1);
+
 
   // Setting up MAP
   const INITIAL_REGION = {
@@ -46,116 +68,129 @@ export default function WorldMapScreen() {
 
 
   return (
-    <View style={styles.container}>
-      
-      {/* <Header title="World Map" /> */}
-      <MainContent>
-        <Text style={styles.title}>🗺️ World Map</Text>
+    //this bottom sheet honestly isn't working and im miserable
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={styles.container}>
 
-        <Input
-          label="Search Location"
-          placeholder="Search Location"
-        />
+        <Header title='World Map'></Header>
+
+        <MainContent>
+
+          <Input
+            label="Search Location"
+            placeholder="Search Location"
+          />
 
 
-        <View>
-          <MapView 
-            style={styles.map}
-            provider={PROVIDER_GOOGLE}  
-            initialRegion={INITIAL_REGION}
-            showsUserLocation
-            showsMyLocationButton
-          >
-            <Marker
-              title="Holberton School"
-              description="Holberton Campus - Collins Street"
-              coordinate={{latitude: -37.817979, longitude: 144.960408 }}
+          <View>
+            <MapView 
+              style={styles.map}
+              provider={PROVIDER_GOOGLE}  
+              initialRegion={INITIAL_REGION}
+              showsUserLocation
+              showsMyLocationButton
             >
-              <Image
-                source={require('../assets/images/holberton_logo.jpg')}
-                style={{ width: 60, height: 60 }}
-                resizeMode="contain"
-              />
-            </Marker>
-          </MapView>
-        </View>
+              <Marker
+                title="Holberton School"
+                description="Holberton Campus - Collins Street"
+                coordinate={{latitude: -37.817979, longitude: 144.960408 }}
+              >
+                <Image
+                  source={require('../assets/images/holberton_logo.jpg')}
+                  style={{ width: 60, height: 60 }}
+                  resizeMode="contain"
+                />
+              </Marker>
+            </MapView>
+          </View>
+        </MainContent>
+
+
+        <Footer>
+          <View style={styles.footerContainer}>
+            <IconButton
+              icon="plus"
+              onPress={navigateToCreatePin}>
+            </IconButton>
+            <Button onPress={openLoginModal}>
+              Login
+            </Button>
+            <Button onPress={goBack} style={styles.backButton}>
+              Back
+            </Button>
+            <Button onPress={openBottomSheet}>
+              open
+            </Button>
 
 
 
-
-      </MainContent>
-
-
-      <Footer>
-        <View style={styles.footerContainer}>
-          <IconButton
-            icon="plus"
-            onPress={navigateToCreatePin}>
-          </IconButton>
-          <Button onPress={openLoginModal}>
-            Login
-          </Button>
-          <Button onPress={goBack} style={styles.backButton}>
-            Back
-          </Button>
-
-          <Modal isVisible={isModalVisible} onBackdropPress={() => setIsModalVisible(false)}>
-            <Modal.Container>
-              <Modal.Header title={modalMode === 'login' ? "Welcome Back!" : "Join ReMap Community"} />
-              <Modal.Body>
-                {modalMode === 'signup' && (
+            {/* this is for the login / sign up modal */}
+            <Modal isVisible={isModalVisible} onBackdropPress={() => setIsModalVisible(false)}>
+              <Modal.Container>
+                <Modal.Header title={modalMode === 'login' ? "Welcome Back!" : "Join ReMap Community"} />
+                <Modal.Body>
+                  {modalMode === 'signup' && (
+                    <Input
+                      label="Full Name"
+                      placeholder="Enter your full name"
+                    />
+                  )}
                   <Input
-                    label="Full Name"
-                    placeholder="Enter your full name"
+                    label="Email"
+                    placeholder="Enter your email"
+                    keyboardType="email-address"
                   />
-                )}
-                <Input
-                  label="Email"
-                  placeholder="Enter your email"
-                  keyboardType="email-address"
-                />
-                <Input
-                  label="Password"
-                  placeholder={modalMode === 'login' ? "Enter password" : "Create a password"}
-                  secureTextEntry
-                  secureToggle
-                />
-              </Modal.Body>
-              <Modal.Footer>
-                <View style={styles.modalButtonContainer}>
-                  <Button
-                    onPress={() => setModalMode(modalMode === 'login' ? 'signup' : 'login')}
-                    style={[styles.modalButton, styles.cancelButton]}
-                  >
-                    {modalMode === 'login' ? 'New User' : 'Back to Login'}
-                  </Button>
-                  <Button
-                    style={[styles.modalButton, modalMode === 'signup' && styles.signUpButton]}
-                    onPress={navigateToWorldMap}
-                  >
-                    {modalMode === 'login' ? 'Sign In' : 'Create Account'}
-                  </Button>
+                  <Input
+                    label="Password"
+                    placeholder={modalMode === 'login' ? "Enter password" : "Create a password"}
+                    secureTextEntry
+                    secureToggle
+                  />
+                </Modal.Body>
+                <Modal.Footer>
+                  <View style={styles.modalButtonContainer}>
+                    <Button
+                      onPress={() => setModalMode(modalMode === 'login' ? 'signup' : 'login')}
+                      style={[styles.modalButton, styles.cancelButton]}
+                    >
+                      {modalMode === 'login' ? 'New User' : 'Back to Login'}
+                    </Button>
+                    <Button
+                      style={[styles.modalButton, modalMode === 'signup' && styles.signUpButton]}
+                      onPress={navigateToWorldMap}
+                    >
+                      {modalMode === 'login' ? 'Sign In' : 'Create Account'}
+                    </Button>
 
-                </View>
-                
-              </Modal.Footer>
-            </Modal.Container>
-          </Modal>
+                  </View>
+                  
+                </Modal.Footer>
+              </Modal.Container>
+            </Modal>
+          </View>
+        </Footer>
 
+        {/* this is for the gorham bottomsheet for location&pin data */}
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={bottomSheetIndex}
+          snapPoints={snapPoints}
+          onChange={(index) => setBottomSheetIndex(index)}
+        >
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, backgroundColor: 'white' }}>
+            <Text>Bottom Sheet Content</Text>
+            <Button onPress={closeBottomSheet}>Close Sheet</Button>
+          </View>
+        </BottomSheet>
 
-        </View>
-      </Footer>
-
-
-
-    </View>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: ReMapColors.ui.background,
   },
   title: {
     fontSize: 24,

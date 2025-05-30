@@ -28,6 +28,10 @@ export const Footer = ({
 
 const styles = StyleSheet.create({
   container: {
+    position:'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     // This ensures footer stays at bottom
     justifyContent: 'center',
     alignItems: 'center',
