@@ -32,12 +32,6 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Developer access button (only in development) */}
-      {AppConfig.showDevTools && (
-        <View style={styles.devButtonContainer}>
-          <InfoButton onPress={navigateToDevTabs} />
-        </View>
-      )}
       
       {/* Header with app name */}
       <Header 
@@ -47,12 +41,12 @@ export default function SplashScreen() {
       
       {/* Main content with globe */}
       <MainContent scrollable={false} style={styles.mainContent}>
-        <View style={styles.globeContainer}>
+        {/* <View style={styles.globeContainer}>
           <Canvas style={styles.canvas}>
             <ambientLight intensity={3} />
             <SpinningGlobe position={[0, 0, 0]} scale={1.8} />
           </Canvas>
-        </View>
+        </View> */}
         
         <Text style={styles.description}>
           Transform your experiences into an interactive, personal atlas
@@ -62,29 +56,30 @@ export default function SplashScreen() {
       {/* Footer with your two buttons */}
       <Footer>
         <View style={styles.buttonContainer}>
-          <Button 
-            style={styles.primaryButton}
-            onPress={navigateToWorldMap}
-          >
-            Explore
-          </Button>
+
+          <View style={styles.loginRow}>
+             <Button 
+                style={styles.secondaryButton}
+                onPress={navigateToOnboarding}
+              >
+                New User
+              </Button>
+                <Button 
+                style={styles.secondaryButton}
+                onPress={navigateToOnboarding}
+              >
+                Login
+              </Button>
+          </View>
+
+          <View>
             <Button 
-            style={styles.secondaryButton}
-            // going to make a function for starter packs onboarding
-            onPress={navigateToOnboarding}
-          >
-            New User
-          </Button>
-          
-
-
-          {/* <Button 
-            style={styles.secondaryButton}
-            onPress={navigateToOnboarding}
-          >
-            🚀 Start Onboarding
-          </Button> */}
-
+              style={styles.primaryButton}
+              onPress={navigateToWorldMap}
+            >
+              Explore
+            </Button>
+          </View> 
           
         </View>
       </Footer>
@@ -97,6 +92,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   devButtonContainer: {
+    
     position: 'absolute',
     top: 50,
     right: 20,
@@ -122,14 +118,27 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   buttonContainer: {
-    width: '100%',
+    flexDirection:'column',
   },
+  
+  loginRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingLeft: 20,
+    paddingRight: 20,
+  },
+
   primaryButton: {
     backgroundColor: ReMapColors.primary.accent,
-    width: '100%',
+    justifyContent: 'center',
+    alignContent: 'center',
+    // width: '100%',
   },
   secondaryButton: {
     backgroundColor: ReMapColors.primary.black,
-    width: '100%',
+    width: '50%',
+    // flex: 1,
+
   },
+
 });

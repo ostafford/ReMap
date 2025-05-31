@@ -76,19 +76,6 @@ export default function WorldMapScreen() {
 
         <MainContent>
 
-          <View style={styles.search}>
-            <Input style={styles.searchInput}
-              label="Search Location"
-              placeholder="Search Location"
-            />
-            <IconButton
-              icon="crosshairs"
-              onPress={navigateToCreatePin}>
-            </IconButton>
-          </View>
-
-
-
           <View>
             <MapView 
               style={styles.map}
@@ -110,24 +97,47 @@ export default function WorldMapScreen() {
               </Marker>
             </MapView>
           </View>
+
+          <View style={styles.search}>
+            <Input style={styles.searchInput}
+              label="Search Location"
+              placeholder="Search Location"
+            />
+          </View>
         </MainContent>
 
 
         <Footer>
           <View style={styles.footerContainer}>
             <IconButton
+              icon="chevron-left"
+              onPress={goBack}>
+            </IconButton>
+            <IconButton
               icon="street-view"
               onPress={navigateToCreatePin}>
             </IconButton>
-            <Button onPress={openLoginModal}>
+
+            <IconButton
+              icon="user"
+              onPress={openLoginModal}>
+            </IconButton>
+
+            {/* <Button onPress={openLoginModal}>
               Login
-            </Button>
-            <Button onPress={goBack} style={styles.backButton}>
+            </Button> */}
+
+            {/* <Button onPress={goBack} style={styles.backButton}>
               Back
-            </Button>
+            </Button> */}
+            <IconButton
+              icon="filter"
+              onPress={navigateToCreatePin}>
+            </IconButton>
             {/* <Button onPress={openBottomSheet}>
               open
             </Button> */}
+
 
 
 
@@ -217,7 +227,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   searchInput: {
-    width: '75%',
+    width: '100%',
   },
   backButton: {
     backgroundColor: ReMapColors.primary.black,
