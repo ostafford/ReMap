@@ -125,9 +125,9 @@ export default function WorldMapScreen() {
             <Button onPress={goBack} style={styles.backButton}>
               Back
             </Button>
-            <Button onPress={openBottomSheet}>
+            {/* <Button onPress={openBottomSheet}>
               open
-            </Button>
+            </Button> */}
 
 
 
@@ -214,13 +214,13 @@ const styles = StyleSheet.create({
   },
   search: {
     flexDirection: 'row',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
   searchInput: {
     width: '75%',
   },
   backButton: {
-    backgroundColor: ReMapColors.primary.accent,
+    backgroundColor: ReMapColors.primary.black,
   },
 
   modalButton: {

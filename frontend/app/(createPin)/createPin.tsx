@@ -42,6 +42,8 @@ export default function createPin() {
 	  <MainContent>
 		<View style={styles.content}>
 		{/* separating using Views to control each section only for development */}
+			
+		
 			<Input
 			label="Search Location"
 			placeholder="Search Location"
@@ -124,29 +126,9 @@ const styles = StyleSheet.create({
 	width: '100%',
 	gap: 10,
   },
-  primaryButton: {
-	backgroundColor: ReMapColors.primary.violet,
-	width: '100%',
-  },
-  secondaryButton: {
-	backgroundColor: ReMapColors.primary.blue,
-	width: '100%',
-  },
-  tertiaryButton: {
-	backgroundColor: ReMapColors.ui.textSecondary,
-	width: '100%',
-  },
   modalButton: {
 	width: 150,
   },
-  signUpButton: {
-	backgroundColor: ReMapColors.primary.violet,
-  },
-  cancelButton: {
-	backgroundColor: ReMapColors.ui.textSecondary,
-  },
-
-
 
   search: {
 	flexDirection: 'row',

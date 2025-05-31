@@ -71,10 +71,10 @@ export const ReMapColors = {
 
 // Quick access to your brand colors
 export const BrandColors = {
-  primary: ReMapColors.primary.violet,
-  secondary: ReMapColors.primary.lavender,
-  accent: ReMapColors.primary.blue,
-  dark: ReMapColors.primary.cadet,
+  // primary: ReMapColors.primary.violet,
+  // secondary: ReMapColors.primary.lavender,
+  // accent: ReMapColors.primary.blue,
+  // dark: ReMapColors.primary.cadet,
   background: ReMapColors.ui.background,
   white: ReMapColors.ui.cardBackground,
   text: ReMapColors.ui.text,

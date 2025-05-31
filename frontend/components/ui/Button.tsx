@@ -10,7 +10,7 @@ interface CustomButtonProps {
 
 export const Button = ({ children, onPress, style }: CustomButtonProps) => {
 	return (
-		<Pressable onPress={onPress} style={[styles.button, style]}> {/* ignore this error - sthen 2nd styles gives us the ability to override the default style here */}
+		<Pressable onPress={onPress} style={[styles.button, style]}>
 			<Text style={styles.buttonText}>{children}</Text>
 		</Pressable>
 	);
