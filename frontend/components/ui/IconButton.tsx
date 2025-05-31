@@ -19,7 +19,7 @@ export const IconButton = ({
   onPress,
   size = 24,
   color = ReMapColors.ui.cardBackground,
-  backgroundColor = ReMapColors.primary.violet,
+  backgroundColor = ReMapColors.primary.accent,
   style,
   disabled = false,
   variant = 'filled',
@@ -133,7 +133,7 @@ export const EditButton = ({ onPress, style }: { onPress: () => void; style?: Vi
     icon="edit"
     onPress={onPress}
     style={style}
-    backgroundColor={ReMapColors.primary.blue}
+    backgroundColor={ReMapColors.primary.accent}
   />
 );
 

@@ -76,10 +76,17 @@ export default function WorldMapScreen() {
 
         <MainContent>
 
-          <Input
-            label="Search Location"
-            placeholder="Search Location"
-          />
+          <View style={styles.search}>
+            <Input style={styles.searchInput}
+              label="Search Location"
+              placeholder="Search Location"
+            />
+            <IconButton
+              icon="crosshairs"
+              onPress={navigateToCreatePin}>
+            </IconButton>
+          </View>
+
 
 
           <View>
@@ -109,7 +116,7 @@ export default function WorldMapScreen() {
         <Footer>
           <View style={styles.footerContainer}>
             <IconButton
-              icon="plus"
+              icon="street-view"
               onPress={navigateToCreatePin}>
             </IconButton>
             <Button onPress={openLoginModal}>
@@ -205,8 +212,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 30,
   },
+  search: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  searchInput: {
+    width: '75%',
+  },
   backButton: {
-    backgroundColor: ReMapColors.primary.violet,
+    backgroundColor: ReMapColors.primary.accent,
   },
 
   modalButton: {
@@ -230,7 +244,9 @@ const styles = StyleSheet.create({
       width: '100%',
       height: 500,
       borderRadius: 12,
-  }
+  },
+
+
 
 
 });

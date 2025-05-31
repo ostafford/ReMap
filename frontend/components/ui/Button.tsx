@@ -18,7 +18,7 @@ export const Button = ({ children, onPress, style }: CustomButtonProps) => {
 
 const styles = StyleSheet.create ({
 	button: {
-		backgroundColor: ReMapColors.primary.cadet,
+		backgroundColor: ReMapColors.primary.accent,
 		padding: 20,
 		borderRadius: 25,
 		margin: 10,

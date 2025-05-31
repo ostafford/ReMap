@@ -116,14 +116,9 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     width: '100%',
-    gap: 10, // Space between buttons
   },
   primaryButton: {
-    backgroundColor: ReMapColors.primary.violet,
-    width: '100%',
-  },
-  secondaryButton: {
-    backgroundColor: ReMapColors.primary.blue,
+    backgroundColor: ReMapColors.primary.accent,
     width: '100%',
   },
 });

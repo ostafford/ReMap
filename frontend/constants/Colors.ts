@@ -41,12 +41,14 @@ export default {
 export const ReMapColors = {
   // Primary Brand Colors
   primary: {
-    violet: '#855988',        // Chinese Violet
-    lavender: '#6B4984',      // Dark Lavender
-    regalia: '#6B4984',       // Regalia
-    blue: '#2B2F77',          // St. Patrick's Blue
-    cadet: '#141852',         // Space Cadet
-    cetacean: '#070B34',      // Cetacean Blue
+    accent: '#4800E2',
+    black: '#1E1E1E',
+    // violet: '#855988',        // Chinese Violet
+    // lavender: '#6B4984',      // Dark Lavender
+    // regalia: '#6B4984',       // Regalia
+    // blue: '#2B2F77',          // St. Patrick's Blue
+    // cadet: '#141852',         // Space Cadet
+    // cetacean: '#070B34',      // Cetacean Blue
   },
 
   // UI Colors
