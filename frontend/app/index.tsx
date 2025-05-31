@@ -68,6 +68,13 @@ export default function SplashScreen() {
           >
             Explore
           </Button>
+            <Button 
+            style={styles.secondaryButton}
+            // going to make a function for starter packs onboarding
+            onPress={navigateToWorldMap}
+          >
+            New User
+          </Button>
           
 
 
@@ -119,6 +126,10 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: ReMapColors.primary.accent,
+    width: '100%',
+  },
+  secondaryButton: {
+    backgroundColor: ReMapColors.primary.black,
     width: '100%',
   },
 });
