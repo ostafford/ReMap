@@ -43,10 +43,11 @@ export default function createPin() {
 		<View style={styles.content}>
 		{/* separating using Views to control each section only for development */}
 			
-		
+
 			<Input
 			label="Search Location"
 			placeholder="Search Location"
+			style={styles.fullWidth}
 			/>
 
 			<Text>* display location here *</Text>
@@ -63,13 +64,17 @@ export default function createPin() {
 			<Input
 				label="Relive it"
 				placeholder="Shtanky bathroom"
+				style={styles.fullWidth}
 			/>
 
 			<View style={styles.row}>
-				<Input
+				<View>
+					<Input
 					label="Picture it"
 					placeholder="Shtanky bathroom"
-				/>
+					style={styles.fullWidth}
+					/>
+				</View>
 				<IconButton
 					icon="camera"
 					onPress={goBack}
@@ -130,8 +135,8 @@ const styles = StyleSheet.create({
 	width: 150,
   },
 
-  search: {
-	flexDirection: 'row',
+  fullWidth: {
+	width: '100%',
   },
   location: {
 

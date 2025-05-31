@@ -43,12 +43,12 @@ export const ReMapColors = {
   primary: {
     accent: '#4800E2',
     black: '#1E1E1E',
-    // violet: '#855988',        // Chinese Violet
-    // lavender: '#6B4984',      // Dark Lavender
-    // regalia: '#6B4984',       // Regalia
-    // blue: '#2B2F77',          // St. Patrick's Blue
-    // cadet: '#141852',         // Space Cadet
-    // cetacean: '#070B34',      // Cetacean Blue
+    violet: '#855988',        // Chinese Violet
+    lavender: '#6B4984',      // Dark Lavender
+    regalia: '#6B4984',       // Regalia
+    blue: '#2B2F77',          // St. Patrick's Blue
+    cadet: '#141852',         // Space Cadet
+    cetacean: '#070B34',      // Cetacean Blue
   },
 
   // UI Colors
@@ -71,10 +71,10 @@ export const ReMapColors = {
 
 // Quick access to your brand colors
 export const BrandColors = {
-  // primary: ReMapColors.primary.violet,
-  // secondary: ReMapColors.primary.lavender,
-  // accent: ReMapColors.primary.blue,
-  // dark: ReMapColors.primary.cadet,
+  primary: ReMapColors.primary.violet,
+  secondary: ReMapColors.primary.lavender,
+  accent: ReMapColors.primary.blue,
+  dark: ReMapColors.primary.cadet,
   background: ReMapColors.ui.background,
   white: ReMapColors.ui.cardBackground,
   text: ReMapColors.ui.text,

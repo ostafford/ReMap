@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/TextInput';
 
 // Import colors
 import { ReMapColors } from '@/constants/Colors';
+import { IconButton } from '@/components/ui/IconButton';
 
 export default function OnboardingScreen() {
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
@@ -48,12 +49,55 @@ export default function OnboardingScreen() {
           <Text style={styles.orText}>
             Choose how you'd like to get started:
           </Text>
+
+          <View style={styles.iconContainer}>
+            <View style={styles.row}>
+              <IconButton
+              icon="github"
+              style={styles.icons}
+              >
+              </IconButton>
+              <IconButton
+                icon="github"
+                style={styles.icons}
+              >
+              </IconButton>
+            </View>
+
+            <View style={styles.row}>
+              <IconButton
+              icon="github"
+              style={styles.icons}
+              >
+              </IconButton>
+              <IconButton
+                icon="github"
+                style={styles.icons}
+              >
+              </IconButton>
+            </View>
+
+            <View style={styles.row}>
+              <IconButton
+              icon="github"
+              style={styles.icons}
+              >
+              </IconButton>
+              <IconButton
+                icon="github"
+                style={styles.icons}
+              >
+              </IconButton>
+            </View>
+          </View>
+
         </View>
       </MainContent>
       
       <Footer>
+
         <View style={styles.buttonContainer}>
-          <Button 
+          {/* <Button 
             style={styles.primaryButton}
             onPress={toggleSignupModal}
           >
@@ -65,7 +109,7 @@ export default function OnboardingScreen() {
             onPress={toggleLoginModal}
           >
             🔑 Sign In
-          </Button>
+          </Button> */}
           
           <Button 
             style={styles.tertiaryButton}
@@ -76,7 +120,7 @@ export default function OnboardingScreen() {
         </View>
       </Footer>
 
-      {/* Login Modal */}
+      {/* Login Modal
       <Modal isVisible={isLoginModalVisible} onBackdropPress={toggleLoginModal}>
         <Modal.Container>
           <Modal.Header title="Welcome Back!" />
@@ -102,9 +146,9 @@ export default function OnboardingScreen() {
             </Button>
           </Modal.Footer>
         </Modal.Container>
-      </Modal>
+      </Modal> */}
 
-      {/* Signup Modal */}
+      {/* Signup Modal
       <Modal isVisible={isSignupModalVisible} onBackdropPress={toggleSignupModal}>
         <Modal.Container>
           <Modal.Header title="Join ReMap Community" />
@@ -134,7 +178,7 @@ export default function OnboardingScreen() {
             </Button>
           </Modal.Footer>
         </Modal.Container>
-      </Modal>
+      </Modal> */}
     </View>
   );
 }
@@ -185,5 +229,17 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: ReMapColors.ui.textSecondary,
+  },
+
+
+  iconContainer: {
+    alignItems: 'center',
+  },
+  row: {
+    flexDirection: 'row',
+  },
+  icons: {
+    width: 120,
+    height: 120,
   },
 });

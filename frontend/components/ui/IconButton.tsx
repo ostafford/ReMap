@@ -5,7 +5,7 @@ import { ReMapColors } from '@/constants/Colors';
 
 interface IconButtonProps {
   icon: React.ComponentProps<typeof FontAwesome>['name'];
-  onPress: () => void;
+  onPress?: () => void;
   size?: number;
   color?: string;
   backgroundColor?: string;

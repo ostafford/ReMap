@@ -71,7 +71,7 @@ export default function SplashScreen() {
             <Button 
             style={styles.secondaryButton}
             // going to make a function for starter packs onboarding
-            onPress={navigateToWorldMap}
+            onPress={navigateToOnboarding}
           >
             New User
           </Button>

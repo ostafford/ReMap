@@ -36,16 +36,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     
-    // borderTopWidth: 1,
-    // borderTopColor: ReMapColors.ui.border,
-    // // Add subtle shadow for depth
-    // shadowColor: '#000',
-    // shadowOffset: {
-    //   width: 0,
-    //   height: -2,
-    // },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 3.84,
-    // elevation: 5,
+    borderTopWidth: 1,
+    borderTopColor: ReMapColors.ui.border,
+    // Add subtle shadow for depth
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });
