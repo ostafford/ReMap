@@ -122,7 +122,7 @@ export default function WorldMapScreen() {
               onPress={goBack}>
             </IconButton>
             <IconButton
-              icon="street-view"
+              icon="map-pin"
               onPress={navigateToCreatePin}>
             </IconButton>
 
@@ -139,7 +139,7 @@ export default function WorldMapScreen() {
               Back
             </Button> */}
             <IconButton
-              icon="filter"
+              icon="list"
               onPress={navigateToCreatePin}>
             </IconButton>
             {/* <Button onPress={openBottomSheet}>
