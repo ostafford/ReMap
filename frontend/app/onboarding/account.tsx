@@ -45,6 +45,13 @@ export default function OnboardingAccountScreen() {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [fullName, setFullName] = useState('');
+	const [emailError, setEmailError] = useState('');
+
+	const validateEmail = (email: string) => {
+		if (!email) return 'Email is required';
+		if (!email.includes('@')) return 'Invalid email format';
+		return '';
+	};
 
 	// LOADING STATE - PREVENTING DOUBLE SUBMISSIONS
 	const [isLoading, setIsLoading] = useState(false);
@@ -276,13 +283,19 @@ export default function OnboardingAccountScreen() {
 							value={fullName}
 							onChangeText={setFullName}
 							label="Full Name"
+							required={true}
 							placeholder="Enter your full name"
 							autoCapitalize="words"
 						/>
 						<Input
-							value={email}
-							onChangeText={setEmail}
 							label="Email"
+							value={email}
+							onChangeText={(text) => {
+								setEmail(text);
+								setEmailError(validateEmail(text));
+							}}
+							error={emailError}
+							required={true}
 							placeholder="Enter your email"
 							keyboardType="email-address"
 							autoCapitalize="none"
@@ -293,7 +306,8 @@ export default function OnboardingAccountScreen() {
 							label="Password"
 							placeholder="Create a secure password"
 							secureTextEntry
-							secureToggle
+							secureToggle={true}
+							required={true}
 						/>
 					</Modal.Body>
 					<Modal.Footer>
