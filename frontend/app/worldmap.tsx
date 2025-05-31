@@ -98,12 +98,20 @@ export default function WorldMapScreen() {
             </MapView>
           </View>
 
-          <View style={styles.search}>
+          {/* =========================================== */}
+          {/* ============= UNDER MAP ================== */}
+          {/* =========================================== */}
+          <View style={styles.scrollContent}>
+            <View style={styles.search}>
             <Input style={styles.searchInput}
               label="Search Location"
               placeholder="Search Location"
             />
           </View>
+
+          </View>
+
+          
         </MainContent>
 
 
@@ -222,6 +230,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 30,
   },
+
+  scrollContent: {
+    padding: 20,
+  },
+
   search: {
     flexDirection: 'row',
     justifyContent: 'space-between',
