@@ -2,7 +2,13 @@
 //   CORE IMPORTS
 // ================
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import {
+	View,
+	StyleSheet,
+	KeyboardAvoidingView,
+	Platform,
+	ScrollView,
+} from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
@@ -151,166 +157,184 @@ export default function CreatePinScreen() {
 	//   COMPONENT RENDER SECTION
 	// ============================
 	return (
-		<View style={styles.container}>
-			<Header
-				title="Create Memory Pin"
-				subtitle="Capture this moment forever"
-			/>
+		<KeyboardAvoidingView
+			style={styles.container}
+			behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+			keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+		>
+			<View style={styles.container}>
+				<Header
+					title="Create Memory Pin"
+					subtitle="Capture this moment forever"
+				/>
 
-			<MainContent>
-				<View style={styles.content}>
-					{/* Location Selection Section */}
-					<View style={styles.section}>
-						<LabelText style={styles.sectionLabel}>
-							Where are you?
-						</LabelText>
-						<Input
-							label="Search Location"
-							placeholder="Search for a location..."
-							value={locationQuery}
-							onChangeText={setLocationQuery}
-							style={styles.fullWidth}
-						/>
-						<CaptionText style={styles.helperText}>
-							We'll pin your memory to this exact location
-						</CaptionText>
-					</View>
-
-					{/* Privacy Selection Section */}
-					<View style={styles.section}>
-						<LabelText style={styles.sectionLabel}>
-							Who can see this memory?
-						</LabelText>
-
-						<View style={styles.visibilityContainer}>
-							{(
-								[
-									'public',
-									'social',
-									'private',
-								] as VisibilityOption[]
-							).map((option) => (
-								<Button
-									key={option}
-									onPress={() =>
-										handleVisibilitySelect(option)
-									}
-									style={[
-										styles.visibilityButton,
-										isVisibilitySelected(option) &&
-											styles.selectedVisibilityButton,
-									]}
-									variant={
-										isVisibilitySelected(option)
-											? 'primary'
-											: 'secondary'
-									}
-								>
-									{getVisibilityIcon(option)}{' '}
-									{option.charAt(0).toUpperCase() +
-										option.slice(1)}
-									{isVisibilitySelected(option) && ' ✓'}
-								</Button>
-							))}
+				<MainContent
+					scrollable={true}
+					keyboardShouldPersistTaps="handled"
+					contentStyle={styles.scrollContent}
+				>
+					<View style={styles.content}>
+						{/* Location Selection Section */}
+						<View style={styles.section}>
+							<LabelText style={styles.sectionLabel}>
+								Where are you?
+							</LabelText>
+							<Input
+								label="Search Location"
+								placeholder="Search for a location..."
+								value={locationQuery}
+								onChangeText={setLocationQuery}
+								style={styles.fullWidth}
+							/>
+							<CaptionText style={styles.helperText}>
+								We'll pin your memory to this exact location
+							</CaptionText>
 						</View>
 
-						<CaptionText style={styles.visibilityDescription}>
-							{getVisibilityDescription()}
-						</CaptionText>
-					</View>
+						{/* Privacy Selection Section */}
+						<View style={styles.section}>
+							<LabelText style={styles.sectionLabel}>
+								Who can see this memory?
+							</LabelText>
 
-					{/* Memory Content Section */}
-					<View style={styles.section}>
-						<LabelText style={styles.sectionLabel}>
-							💭 What happened here?
-						</LabelText>
-
-						<Input
-							label="Memory Title"
-							placeholder="Give this memory a title..."
-							value={memoryTitle}
-							onChangeText={setMemoryTitle}
-							style={styles.fullWidth}
-						/>
-
-						<Input
-							label="Tell the story"
-							placeholder="Describe what made this moment special..."
-							value={memoryDescription}
-							onChangeText={setMemoryDescription}
-							style={styles.fullWidth}
-							multiline={true}
-							numberOfLines={50}
-						/>
-					</View>
-
-					{/* Media Capture Section */}
-					<View style={styles.section}>
-						<LabelText style={styles.sectionLabel}>
-							📸 Add media to your memory
-						</LabelText>
-
-						<View style={styles.mediaRow}>
-							<View style={styles.mediaInputContainer}>
-								<Input
-									label="Photo/Video"
-									placeholder="Add photos or videos..."
-									style={styles.mediaInput}
-									editable={false} // For now, just a placeholder
-								/>
+							<View style={styles.visibilityContainer}>
+								{(
+									[
+										'public',
+										'social',
+										'private',
+									] as VisibilityOption[]
+								).map((option) => (
+									<Button
+										key={option}
+										onPress={() =>
+											handleVisibilitySelect(option)
+										}
+										style={[
+											styles.visibilityButton,
+											isVisibilitySelected(option) &&
+												styles.selectedVisibilityButton,
+										]}
+										variant={
+											isVisibilitySelected(option)
+												? 'primary'
+												: 'secondary'
+										}
+									>
+										{getVisibilityIcon(option)}{' '}
+										{option.charAt(0).toUpperCase() +
+											option.slice(1)}
+										{isVisibilitySelected(option) && ' ✓'}
+									</Button>
+								))}
 							</View>
 
-							<View style={styles.mediaButtons}>
-								<IconButton
-									icon="camera"
-									onPress={() => console.log('Open camera')}
-									label="Camera"
-									variant="filled"
-									backgroundColor={ReMapColors.primary.blue}
-								/>
-								<IconButton
-									icon="microphone"
-									onPress={() => console.log('Record audio')}
-									label="Audio"
-									variant="filled"
-									backgroundColor={ReMapColors.primary.violet}
-								/>
-							</View>
+							<CaptionText style={styles.visibilityDescription}>
+								{getVisibilityDescription()}
+							</CaptionText>
 						</View>
 
-						<CaptionText style={styles.helperText}>
-							Tap camera to take a photo or microphone to record
-							audio
-						</CaptionText>
-					</View>
-				</View>
-			</MainContent>
+						{/* Memory Content Section */}
+						<View style={styles.section}>
+							<LabelText style={styles.sectionLabel}>
+								💭 What happened here?
+							</LabelText>
 
-			<Footer>
-				<View style={styles.buttonContainer}>
-					<View style={styles.navigationRow}>
-						<Button
-							onPress={goBack}
-							style={styles.backButton}
-							variant="secondary"
-						>
-							← Back
-						</Button>
+							<Input
+								label="Memory Title"
+								placeholder="Give this memory a title..."
+								value={memoryTitle}
+								onChangeText={setMemoryTitle}
+								style={styles.fullWidth}
+							/>
 
-						<Button
-							onPress={handleSavePin}
-							style={styles.saveButton}
-							variant="primary"
-							disabled={
-								!memoryTitle.trim() || !locationQuery.trim()
-							}
-						>
-							Save Memory
-						</Button>
+							<Input
+								label="Tell the story"
+								placeholder="Describe what made this moment special..."
+								value={memoryDescription}
+								onChangeText={setMemoryDescription}
+								style={styles.fullWidth}
+								multiline={true}
+								numberOfLines={50}
+							/>
+						</View>
+
+						{/* Media Capture Section */}
+						<View style={styles.section}>
+							<LabelText style={styles.sectionLabel}>
+								📸 Add media to your memory
+							</LabelText>
+
+							<View style={styles.mediaRow}>
+								<View style={styles.mediaInputContainer}>
+									<Input
+										label="Photo/Video"
+										placeholder="Add photos or videos..."
+										style={styles.mediaInput}
+										editable={false} // For now, just a placeholder
+									/>
+								</View>
+
+								<View style={styles.mediaButtons}>
+									<IconButton
+										icon="camera"
+										onPress={() =>
+											console.log('Open camera')
+										}
+										label="Camera"
+										variant="filled"
+										backgroundColor={
+											ReMapColors.primary.blue
+										}
+									/>
+									<IconButton
+										icon="microphone"
+										onPress={() =>
+											console.log('Record audio')
+										}
+										label="Audio"
+										variant="filled"
+										backgroundColor={
+											ReMapColors.primary.violet
+										}
+									/>
+								</View>
+							</View>
+
+							<CaptionText style={styles.helperText}>
+								Tap camera to take a photo or microphone to
+								record audio
+							</CaptionText>
+						</View>
 					</View>
-				</View>
-			</Footer>
-		</View>
+				</MainContent>
+
+				<Footer>
+					<View style={styles.buttonContainer}>
+						<View style={styles.navigationRow}>
+							<Button
+								onPress={goBack}
+								style={styles.backButton}
+								variant="secondary"
+							>
+								← Back
+							</Button>
+
+							<Button
+								onPress={handleSavePin}
+								style={styles.saveButton}
+								variant="primary"
+								disabled={
+									!memoryTitle.trim() || !locationQuery.trim()
+								}
+							>
+								Save Memory
+							</Button>
+						</View>
+					</View>
+				</Footer>
+			</View>
+		</KeyboardAvoidingView>
 	);
 }
 
@@ -335,6 +359,10 @@ const styles = StyleSheet.create({
 		marginBottom: 12,
 		fontSize: 16, // Slightly larger for section headers
 	},
+	scrollContent: {
+		paddingBottom: 10,
+	},
+	footer: {},
 
 	// Form Styling
 	fullWidth: {
