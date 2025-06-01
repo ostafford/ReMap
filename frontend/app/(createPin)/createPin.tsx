@@ -1,19 +1,24 @@
 // ================
 //   CORE IMPORTS
 // ================
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
 	View,
 	StyleSheet,
 	KeyboardAvoidingView,
 	Platform,
 	ScrollView,
+	Keyboard,
+	Dimensions,
 } from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
 // =======================
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+// NOTE: ## RUN THIS command in the frontend directory `npm expo install expo-image-picker expo-av`
+import { Audio } from 'expo-av';
 
 // ================================
 //   INTERNAL 'LAYOUT' COMPONENTS
@@ -29,6 +34,12 @@ import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
+import {
+	SuccessMessage,
+	ErrorMessage,
+	WarningMessage,
+	InfoMessage,
+} from '@/components/ui/Messages';
 
 // ================================
 //   INTERNAL 'TYPOGRAPHY' IMPORTS
@@ -39,6 +50,7 @@ import {
 	BodyText,
 	LabelText,
 	CaptionText,
+	ErrorText,
 } from '@/components/ui/Typography';
 
 // ================================
@@ -51,12 +63,25 @@ import { ReMapColors } from '@/constants/Colors';
 // =========================
 type VisibilityOption = 'public' | 'social' | 'private';
 
+interface ModalState {
+	show: boolean;
+	type: 'error' | 'permission' | 'photoChoice' | 'success' | 'info';
+	title: string;
+	message: string;
+	actions?: Array<{
+		text: string;
+		onPress: () => void;
+		style?: 'primary' | 'secondary' | 'danger';
+	}>;
+}
+
+// ========================
+//   COMPONENT DEFINITION
+// ========================
 export default function CreatePinScreen() {
-	// ==================
+	// ====================
 	//   STATE MANAGEMENT
-	// ==================
-	const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
-	const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
+	// ====================
 	const [selectedVisibility, setSelectedVisibility] = useState<
 		VisibilityOption[]
 	>(['public']);
@@ -64,13 +89,64 @@ export default function CreatePinScreen() {
 	const [memoryTitle, setMemoryTitle] = useState('');
 	const [memoryDescription, setMemoryDescription] = useState('');
 
+	// =================================
+	//   STATE MANAGEMENT [ SCROLLVIEW ]
+	// =================================
+	const scrollViewRef = useRef<ScrollView>(null);
+	const [keyboardHeight, setKeyboardHeight] = useState(0);
+	const [activeInputId, setActiveInputId] = useState<string | null>(null);
+
+	// Input refs for precise scrolling
+	const locationInputRef = useRef<any>(null);
+	const titleInputRef = useRef<any>(null);
+	const descriptionInputRef = useRef<any>(null);
+
+	// ====================================
+	//   STATE MANAGEMENT [ MEDIA ]
+	// ====================================
+	const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
+	const [recording, setRecording] = useState<Audio.Recording | null>(null);
+	const [isRecording, setIsRecording] = useState(false);
+	const [audioUri, setAudioUri] = useState<string | null>(null);
+
+	// ==============================
+	//   STATE MANAGEMENT [ MODAL ]
+	// ==============================
+	const [modalState, setModalState] = useState<ModalState>({
+		show: false,
+		type: 'info',
+		title: '',
+		message: '',
+		actions: [],
+	});
+
+	// ======================
+	//   KEYBOARD LISTENERS
+	// ======================
+	useEffect(() => {
+		const keyboardDidShowListener = Keyboard.addListener(
+			'keyboardDidShow',
+			(event) => {
+				setKeyboardHeight(event.endCoordinates.height);
+			}
+		);
+
+		const keyboardDidHideListener = Keyboard.addListener(
+			'keyboardDidHide',
+			() => {
+				setKeyboardHeight(0);
+			}
+		);
+
+		return () => {
+			keyboardDidShowListener?.remove();
+			keyboardDidHideListener?.remove();
+		};
+	}, []);
+
 	// ==================
 	//   EVENT HANDLERS
 	// ==================
-	const toggleLoginModal = () => setIsLoginModalVisible(!isLoginModalVisible);
-	const toggleSignupModal = () =>
-		setIsSignupModalVisible(!isSignupModalVisible);
-
 	const goBack = () => {
 		router.back();
 	};
@@ -98,14 +174,277 @@ export default function CreatePinScreen() {
 			title: memoryTitle,
 			description: memoryDescription,
 			visibility: selectedVisibility,
+			media: selectedMedia,
+			audio: audioUri,
 		});
 
 		navigateToWorldMap();
 	};
 
 	// ==================
-	//   HELPER FUNCTIONS
+	//   INPUT FOCUS HANDLERS
 	// ==================
+	const handleInputFocus = (inputRef: any, inputId: string) => {
+		setActiveInputId(inputId);
+
+		// Immediate scroll without waiting for keyboard
+		scrollToInput(inputRef, inputId);
+	};
+
+	const handleInputBlur = () => {
+		setActiveInputId(null);
+	};
+
+	// ==================
+	//   SCROLL HELPERS
+	// ==================
+	const scrollToInput = (inputRef: any, inputId: string) => {
+		if (scrollViewRef.current) {
+			// NOTE: Wait for keyboard animation to complete
+			setTimeout(() => {
+				let scrollOffset = 0;
+
+				switch (inputId) {
+					case 'location':
+						scrollOffset = -120;
+						break;
+					case 'title':
+						scrollOffset = 150;
+						break;
+					case 'description':
+						scrollOffset = 300;
+						break;
+					default:
+						scrollOffset = 200;
+				}
+
+				if (keyboardHeight > 0) {
+					scrollOffset += 100;
+				}
+				scrollViewRef.current?.scrollTo({
+					y: scrollOffset,
+					animated: true,
+				});
+			}, 0); // Longer delay to ensure keyboard is fully shown
+		}
+	};
+	// ==================================
+	//   EVENT HANDLERS [ MEDIA ]
+	// ==================================
+	const handleCameraPress = async () => {
+		try {
+			const { status } =
+				await ImagePicker.requestCameraPermissionsAsync();
+
+			if (status !== 'granted') {
+				showModal(
+					'permission',
+					'Camera Permission Required',
+					'Please enable camera access in your device settings to take photos.',
+					[{ text: 'OK', onPress: hideModal, style: 'primary' }]
+				);
+				return;
+			}
+
+			showModal(
+				'photoChoice',
+				'Add Photo',
+				'Choose how you want to add a photo to your memory',
+				[
+					{
+						text: 'Take Photo',
+						onPress: () => {
+							hideModal();
+							openCamera();
+						},
+						style: 'primary',
+					},
+					{
+						text: 'Choose from Library',
+						onPress: () => {
+							hideModal();
+							openImageLibrary();
+						},
+						style: 'secondary',
+					},
+					{
+						text: 'Cancel',
+						onPress: hideModal,
+						style: 'secondary',
+					},
+				]
+			);
+		} catch (error) {
+			console.error('Error accessing camera:', error);
+			showModal(
+				'error',
+				'Camera Error',
+				'Could not access camera. Please try again.'
+			);
+		}
+	};
+
+	const openCamera = async () => {
+		try {
+			const result = await ImagePicker.launchCameraAsync({
+				mediaTypes: ImagePicker.MediaTypeOptions.All,
+				allowsEditing: true,
+				aspect: [4, 3],
+				quality: 0.8,
+			});
+
+			if (!result.canceled && result.assets[0]) {
+				setSelectedMedia((prev) => [...prev, result.assets[0].uri]);
+				showModal(
+					'success',
+					'Photo Added!',
+					'Your photo has been added to this memory.'
+				);
+			}
+		} catch (error) {
+			console.error('Error opening camera:', error);
+			showModal(
+				'error',
+				'Camera Error',
+				'Could not open camera. Please try again.'
+			);
+		}
+	};
+
+	const openImageLibrary = async () => {
+		try {
+			const result = await ImagePicker.launchImageLibraryAsync({
+				mediaTypes: ImagePicker.MediaTypeOptions.All,
+				allowsEditing: true,
+				aspect: [4, 3],
+				quality: 0.8,
+				allowsMultipleSelection: true,
+			});
+
+			if (!result.canceled && result.assets) {
+				const newUris = result.assets.map((asset) => asset.uri);
+				setSelectedMedia((prev) => [...prev, ...newUris]);
+				showModal(
+					'success',
+					'Photos Added!',
+					`${result.assets.length} photo(s) have been added to this memory.`
+				);
+			}
+		} catch (error) {
+			console.error('Error opening image library:', error);
+			showModal(
+				'error',
+				'Library Error',
+				'Could not access photo library. Please try again.'
+			);
+		}
+	};
+
+	const startRecording = async () => {
+		try {
+			const { status } = await Audio.requestPermissionsAsync();
+
+			if (status !== 'granted') {
+				showModal(
+					'permission',
+					'Microphone Permission Required',
+					'Please enable microphone access in your device settings to record audio.'
+				);
+				return;
+			}
+
+			await Audio.setAudioModeAsync({
+				allowsRecordingIOS: true,
+				playsInSilentModeIOS: true,
+			});
+
+			const { recording } = await Audio.Recording.createAsync({
+				android: {
+					extension: '.m4a',
+					outputFormat:
+						Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_MPEG_4,
+					audioEncoder:
+						Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_AAC,
+					sampleRate: 44100,
+					numberOfChannels: 2,
+					bitRate: 128000,
+				},
+				ios: {
+					extension: '.m4a',
+					outputFormat:
+						Audio.RECORDING_OPTION_IOS_OUTPUT_FORMAT_MPEG4AAC,
+					audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
+					sampleRate: 44100,
+					numberOfChannels: 2,
+					bitRate: 128000,
+					linearPCMBitDepth: 16,
+					linearPCMIsBigEndian: false,
+					linearPCMIsFloat: false,
+				},
+			});
+
+			setRecording(recording);
+			setIsRecording(true);
+			console.log('Started recording...');
+		} catch (error) {
+			console.error('Error starting recording:', error);
+			showModal(
+				'error',
+				'Recording Error',
+				'Could not start recording. Please try again.'
+			);
+		}
+	};
+
+	const stopRecording = async () => {
+		try {
+			if (!recording) return;
+
+			console.log('Stopping recording...');
+			setIsRecording(false);
+			await recording.stopAndUnloadAsync();
+
+			const uri = recording.getURI();
+			if (uri) {
+				setAudioUri(uri);
+				showModal(
+					'success',
+					'Recording Complete!',
+					'Your audio memory has been saved.'
+				);
+				console.log('Recording saved to:', uri);
+			}
+
+			setRecording(null);
+		} catch (error) {
+			console.error('Error stopping recording:', error);
+			showModal(
+				'error',
+				'Recording Error',
+				'Could not stop recording. Please try again.'
+			);
+		}
+	};
+
+	const handleAudioPress = async () => {
+		if (isRecording) {
+			await stopRecording();
+		} else {
+			await startRecording();
+		}
+	};
+
+	const removeMedia = (uriToRemove: string) => {
+		setSelectedMedia((prev) => prev.filter((uri) => uri !== uriToRemove));
+	};
+
+	const removeAudio = () => {
+		setAudioUri(null);
+	};
+
+	// ====================
+	//   HELPER FUNCTIONS
+	// ====================
 	const isVisibilitySelected = (option: VisibilityOption) => {
 		return selectedVisibility.includes(option);
 	};
@@ -142,7 +481,6 @@ export default function CreatePinScreen() {
 	};
 
 	const getVisibilityIcon = (option: VisibilityOption) => {
-		// NOTE: Left these empty incase we want to use ICONS instead of text
 		switch (option) {
 			case 'public':
 				return '';
@@ -151,6 +489,110 @@ export default function CreatePinScreen() {
 			case 'private':
 				return '';
 		}
+	};
+
+	// ====================================
+	//   HELPER FUNCTIONS [ MODAL ]
+	// ====================================
+	const showModal = (
+		type: ModalState['type'],
+		title: string,
+		message: string,
+		actions?: ModalState['actions']
+	) => {
+		setModalState({
+			show: true,
+			type,
+			title,
+			message,
+			actions: actions || [
+				{ text: 'OK', onPress: hideModal, style: 'primary' },
+			],
+		});
+	};
+
+	const hideModal = () => {
+		setModalState((prev) => ({ ...prev, show: false }));
+	};
+
+	// ==================
+	//   MODAL COMPONENT
+	// ==================
+	const renderModal = () => {
+		if (!modalState.show) return null;
+
+		return (
+			<Modal isVisible={modalState.show} onBackdropPress={hideModal}>
+				<Modal.Container>
+					<Modal.Header title={modalState.title} />
+					<Modal.Body>
+						{modalState.type === 'success' && (
+							<SuccessMessage
+								title={modalState.title}
+								onDismiss={hideModal}
+							>
+								{modalState.message}
+							</SuccessMessage>
+						)}
+
+						{modalState.type === 'error' && (
+							<ErrorMessage
+								title={modalState.title}
+								onDismiss={hideModal}
+							>
+								{modalState.message}
+							</ErrorMessage>
+						)}
+
+						{modalState.type === 'permission' && (
+							<WarningMessage
+								title={modalState.title}
+								onDismiss={hideModal}
+							>
+								{modalState.message}
+							</WarningMessage>
+						)}
+
+						{(modalState.type === 'photoChoice' ||
+							modalState.type === 'info') && (
+							<InfoMessage
+								title={modalState.title}
+								onDismiss={hideModal}
+							>
+								{modalState.message}
+							</InfoMessage>
+						)}
+					</Modal.Body>
+
+					{modalState.actions && modalState.actions.length > 0 && (
+						<Modal.Footer>
+							{modalState.actions.map((action, index) => (
+								<Button
+									key={index}
+									onPress={action.onPress}
+									style={[
+										styles.modalButton,
+										action.style === 'primary' &&
+											styles.primaryModalButton,
+										action.style === 'secondary' &&
+											styles.secondaryModalButton,
+										action.style === 'danger' &&
+											styles.dangerModalButton,
+									]}
+									variant={
+										action.style === 'primary'
+											? 'primary'
+											: 'secondary'
+									}
+								>
+									{action.text}
+								</Button>
+							))}
+						</Modal.Footer>
+					)}
+				</Modal.Container>
+			</Modal>
+		);
 	};
 
 	// ============================
@@ -168,10 +610,13 @@ export default function CreatePinScreen() {
 					subtitle="Capture this moment forever"
 				/>
 
-				<MainContent
-					scrollable={true}
+				<ScrollView
+					ref={scrollViewRef}
+					style={styles.scrollContainer}
+					contentContainerStyle={styles.scrollContent}
+					showsVerticalScrollIndicator={false}
 					keyboardShouldPersistTaps="handled"
-					contentStyle={styles.scrollContent}
+					keyboardDismissMode="interactive"
 				>
 					<View style={styles.content}>
 						{/* Location Selection Section */}
@@ -180,10 +625,18 @@ export default function CreatePinScreen() {
 								Where are you?
 							</LabelText>
 							<Input
+								ref={locationInputRef}
 								label="Search Location"
 								placeholder="Search for a location..."
 								value={locationQuery}
 								onChangeText={setLocationQuery}
+								onFocus={() =>
+									handleInputFocus(
+										locationInputRef,
+										'location'
+									)
+								}
+								onBlur={handleInputBlur}
 								style={styles.fullWidth}
 							/>
 							<CaptionText style={styles.helperText}>
@@ -237,77 +690,121 @@ export default function CreatePinScreen() {
 						{/* Memory Content Section */}
 						<View style={styles.section}>
 							<LabelText style={styles.sectionLabel}>
-								💭 What happened here?
+								What happened here?
 							</LabelText>
 
 							<Input
+								ref={titleInputRef}
 								label="Memory Title"
 								placeholder="Give this memory a title..."
 								value={memoryTitle}
 								onChangeText={setMemoryTitle}
+								onFocus={() =>
+									handleInputFocus(titleInputRef, 'title')
+								}
+								onBlur={handleInputBlur}
 								style={styles.fullWidth}
 							/>
 
 							<Input
+								ref={descriptionInputRef}
 								label="Tell the story"
 								placeholder="Describe what made this moment special..."
 								value={memoryDescription}
 								onChangeText={setMemoryDescription}
+								onFocus={() =>
+									handleInputFocus(
+										descriptionInputRef,
+										'description'
+									)
+								}
+								onBlur={handleInputBlur}
 								style={styles.fullWidth}
 								multiline={true}
-								numberOfLines={50}
+								numberOfLines={4}
+								textAlignVertical="top"
 							/>
 						</View>
 
 						{/* Media Capture Section */}
 						<View style={styles.section}>
 							<LabelText style={styles.sectionLabel}>
-								📸 Add media to your memory
+								Add media to your memory
 							</LabelText>
 
-							<View style={styles.mediaRow}>
-								<View style={styles.mediaInputContainer}>
-									<Input
-										label="Photo/Video"
-										placeholder="Add photos or videos..."
-										style={styles.mediaInput}
-										editable={false} // For now, just a placeholder
-									/>
-								</View>
+							{/* Media Display */}
+							{(selectedMedia.length > 0 || audioUri) && (
+								<View style={styles.mediaPreview}>
+									{/* Photos/Videos */}
+									{selectedMedia.map((uri, index) => (
+										<View
+											key={index}
+											style={styles.mediaItem}
+										>
+											<CaptionText numberOfLines={1}>
+												📷 Photo {index + 1}
+											</CaptionText>
+											<Button
+												onPress={() => removeMedia(uri)}
+												style={styles.removeButton}
+												size="small"
+												variant="danger"
+											>
+												Remove
+											</Button>
+										</View>
+									))}
 
-								<View style={styles.mediaButtons}>
-									<IconButton
-										icon="camera"
-										onPress={() =>
-											console.log('Open camera')
-										}
-										label="Camera"
-										variant="filled"
-										backgroundColor={
-											ReMapColors.primary.blue
-										}
-									/>
-									<IconButton
-										icon="microphone"
-										onPress={() =>
-											console.log('Record audio')
-										}
-										label="Audio"
-										variant="filled"
-										backgroundColor={
-											ReMapColors.primary.violet
-										}
-									/>
+									{/* Audio */}
+									{audioUri && (
+										<View style={styles.mediaItem}>
+											<CaptionText>
+												🎤 Audio recording
+											</CaptionText>
+											<Button
+												onPress={removeAudio}
+												style={styles.removeButton}
+												size="small"
+												variant="danger"
+											>
+												Remove
+											</Button>
+										</View>
+									)}
 								</View>
+							)}
+
+							<View style={styles.mediaButtons}>
+								<IconButton
+									style={styles.mediaAddButton}
+									icon="camera"
+									onPress={handleCameraPress}
+									label="Camera"
+									variant="filled"
+									backgroundColor={ReMapColors.primary.blue}
+								/>
+								<IconButton
+									style={styles.mediaAddButton}
+									icon="microphone"
+									onPress={handleAudioPress}
+									label={isRecording ? 'Stop' : 'Record'}
+									variant="filled"
+									backgroundColor={
+										isRecording
+											? ReMapColors.semantic.error
+											: ReMapColors.primary.violet
+									}
+								/>
 							</View>
 
 							<CaptionText style={styles.helperText}>
-								Tap camera to take a photo or microphone to
-								record audio
+								{isRecording
+									? '🔴 Recording... Tap microphone to stop'
+									: 'Tap camera to add photos or microphone to record audio'}
 							</CaptionText>
 						</View>
 					</View>
-				</MainContent>
+				</ScrollView>
 
 				<Footer>
 					<View style={styles.buttonContainer}>
@@ -333,6 +830,9 @@ export default function CreatePinScreen() {
 						</View>
 					</View>
 				</Footer>
+
+				{/* NOTE: Custom Modal System Above. NOT IN MODAL COMPONENT */}
+				{renderModal()}
 			</View>
 		</KeyboardAvoidingView>
 	);
@@ -348,7 +848,7 @@ const styles = StyleSheet.create({
 	},
 	content: {
 		paddingHorizontal: 20,
-		paddingVertical: 10,
+		paddingVertical: 20,
 	},
 
 	// Section Styling
@@ -357,12 +857,27 @@ const styles = StyleSheet.create({
 	},
 	sectionLabel: {
 		marginBottom: 12,
-		fontSize: 16, // Slightly larger for section headers
+		fontSize: 16,
 	},
 	scrollContent: {
-		paddingBottom: 10,
+		paddingBottom: 20,
 	},
+	scrollContainer: {},
 	footer: {},
+
+	// Modal Styling
+	modalButton: {
+		width: 150,
+	},
+	primaryModalButton: {
+		backgroundColor: ReMapColors.primary.violet,
+	},
+	secondaryModalButton: {
+		backgroundColor: ReMapColors.ui.textSecondary,
+	},
+	dangerModalButton: {
+		backgroundColor: ReMapColors.semantic.error,
+	},
 
 	// Form Styling
 	fullWidth: {
@@ -410,8 +925,39 @@ const styles = StyleSheet.create({
 	},
 	mediaButtons: {
 		flexDirection: 'row',
-		gap: 8,
+		justifyContent: 'center',
+		gap: 16,
 		paddingBottom: 10,
+		marginBottom: 8,
+	},
+	actionButton: {
+		width: 'auto',
+		padding: 15,
+		height: 'auto',
+	},
+	mediaAddButton: {
+		width: 'auto',
+		height: 'auto',
+		padding: 15,
+	},
+	mediaPreview: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 8,
+		padding: 12,
+		marginBottom: 12,
+		borderLeftWidth: 3,
+		borderLeftColor: ReMapColors.primary.blue,
+	},
+	mediaItem: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		paddingVertical: 8,
+		borderBottomWidth: 1,
+		borderBottomColor: ReMapColors.ui.border,
+	},
+	removeButton: {
+		width: 100,
 	},
 
 	// Footer Styling
