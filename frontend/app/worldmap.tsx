@@ -72,8 +72,15 @@ export default function WorldMapScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
 
-        <Header title='World Map'></Header>
+        <Header
+          title='World Map'
+          subtitle='Click on a pin and see what happens'
+        >
+        </Header>
 
+          {/**********************************************/}
+          {/**************** MAIN CONTENT ****************/}
+          {/* *********************************************/}
         <MainContent>
 
           <View>
@@ -139,7 +146,7 @@ export default function WorldMapScreen() {
               Back
             </Button> */}
             <IconButton
-              icon="list"
+              icon="cog"
               onPress={navigateToCreatePin}>
             </IconButton>
             {/* <Button onPress={openBottomSheet}>

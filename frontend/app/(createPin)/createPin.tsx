@@ -17,11 +17,6 @@ import { Input } from '@/components/ui/TextInput';
 import { ReMapColors } from '@/constants/Colors';
 
 export default function createPin() {
-  const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
-  const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
-
-  const toggleLoginModal = () => setIsLoginModalVisible(!isLoginModalVisible);
-  const toggleSignupModal = () => setIsSignupModalVisible(!isSignupModalVisible);
 
   const goBack = () => {
 	router.back();
@@ -45,12 +40,20 @@ export default function createPin() {
 			
 
 			<Input
-			label="Search Location"
+			label="Search it"
 			placeholder="Search Location"
 			style={styles.fullWidth}
 			/>
 
-			<Text>* display location here *</Text>
+			<View>
+				<IconButton
+					icon="map-pin"
+					onPress={goBack}
+					style={styles.pin}
+				></IconButton>
+				<Text>* display location here *</Text>
+			</View>
+
 
 			<Text>Select visibility</Text>
 			<View style={styles.row}>
@@ -68,23 +71,30 @@ export default function createPin() {
 			/>
 
 			<View style={styles.row}>
-				<View>
+				<View style={styles.imageUpload}>
 					<Input
 					label="Picture it"
 					placeholder="Shtanky bathroom"
 					style={styles.fullWidth}
 					/>
 				</View>
-				<IconButton
-					icon="camera"
-					onPress={goBack}
-				>	
-				</IconButton>
-				<IconButton
-					icon="microphone"
-					onPress={goBack}
-				>	
-				</IconButton>
+				<View style={styles.cameraMicrophone}>
+					<View>
+						<IconButton
+						icon="camera"
+						onPress={goBack}
+						>	
+						</IconButton>
+					</View>
+					<View>
+						<IconButton
+						icon="microphone"
+						onPress={goBack}
+						>	
+						</IconButton>
+					</View>
+				</View>
+
 			</View>
 
 		</View>
@@ -143,5 +153,19 @@ const styles = StyleSheet.create({
   },
   row: {
 	flexDirection: 'row',
-  }
+
+	width: '100%',
+	justifyContent:'space-between',
+  },
+  imageUpload: {
+	width: '65%',
+	justifyContent: 'flex-start',
+  },
+  cameraMicrophone: {
+	flexDirection: 'row',
+	alignItems:'center',
+  },
+  pin: {
+	backgroundColor: 'transparent',
+  },
 });
