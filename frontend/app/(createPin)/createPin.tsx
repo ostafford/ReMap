@@ -16,17 +16,22 @@ import { Input } from '@/components/ui/TextInput';
 // Import colors
 import { ReMapColors } from '@/constants/Colors';
 
+// Import expo Media upload
+import * as ImagePicker from 'expo-image-picker';
+
 
 
 export default function createPin() {
 
+  const pickImageAsync = async () => {
+	let result = await ImagePicker.launchImageLibraryAsync({
+		allowsEditing: true,
+		quality: 1
+	});
+  }
+
   const goBack = () => {
 	router.back();
-  };
-
-  const navigateToWorldMap = () => {
-	// After login/signup, go to world map
-	router.navigate('/worldmap');
   };
 
   return (
@@ -73,11 +78,15 @@ export default function createPin() {
 
 			<View style={styles.row}>
 				<View style={styles.imageUpload}>
-					<Input
+					<Button 
+						onPress={(pickImageAsync)}
+					>Select Image
+					</Button>
+					{/* <Input
 					label="Picture it"
 					placeholder="Shtanky bathroom"
 					style={styles.fullWidth}
-					/>
+					/> */}
 				</View>
 				<View style={styles.cameraMicrophone}>
 					<View>
