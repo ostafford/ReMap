@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
 
 // Import your layout components
@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/TextInput';
 
 // Import colors
 import { ReMapColors } from '@/constants/Colors';
+
+
 
 export default function createPin() {
 
@@ -45,12 +47,11 @@ export default function createPin() {
 			style={styles.fullWidth}
 			/>
 
-			<View>
-				<IconButton
-					icon="map-pin"
-					onPress={goBack}
+			<View style={styles.displayLocationContainer}>
+				<Image
 					style={styles.pin}
-				></IconButton>
+					source={require('../../assets/images/pin.png')}
+				></Image>
 				<Text>* display location here *</Text>
 			</View>
 
@@ -131,6 +132,16 @@ const styles = StyleSheet.create({
 	lineHeight: 24,
 	marginBottom: 30,
   },
+
+  displayLocationContainer: {
+	width: '100%',
+	alignItems:'center',
+  },
+  pin: {
+	width: 60,
+	height: 80,
+  },
+
   orText: {
 	fontSize: 14,
 	color: ReMapColors.ui.textSecondary,
@@ -164,8 +175,5 @@ const styles = StyleSheet.create({
   cameraMicrophone: {
 	flexDirection: 'row',
 	alignItems:'center',
-  },
-  pin: {
-	backgroundColor: 'transparent',
   },
 });
