@@ -12,7 +12,7 @@ import { ReMapColors } from '@/constants/Colors';
 
 interface IconButtonProps {
 	icon: React.ComponentProps<typeof FontAwesome>['name'];
-	onPress: () => void;
+	onPress?: () => void;
 	size?: number;
 	color?: string;
 	backgroundColor?: string;
@@ -22,14 +22,14 @@ interface IconButtonProps {
 }
 
 export const IconButton = ({
-	icon,
-	onPress,
-	size = 24,
-	color = ReMapColors.ui.cardBackground,
-	backgroundColor = ReMapColors.primary.violet,
-	style,
-	disabled = false,
-	variant = 'filled',
+  icon,
+  onPress,
+  size = 24,
+  color = ReMapColors.ui.cardBackground,
+  backgroundColor = ReMapColors.primary.accent,
+  style,
+  disabled = false,
+  variant = 'filled',
 }: IconButtonProps) => {
 	const getButtonStyle = () => {
 		const baseStyle = [styles.button, style];

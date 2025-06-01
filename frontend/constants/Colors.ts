@@ -41,6 +41,8 @@ export default {
 export const ReMapColors = {
   // Primary Brand Colors
   primary: {
+    accent: '#4800E2',
+    black: '#1E1E1E',
     violet: '#855988',        // Chinese Violet
     lavender: '#6B4984',      // Dark Lavender
     regalia: '#6B4984',       // Regalia

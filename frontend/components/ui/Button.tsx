@@ -25,7 +25,7 @@ import { ReMapColors } from '@/constants/Colors';
 // =========================
 interface CustomButtonProps {
 	children: React.ReactNode;
-	onPress: () => void;
+	onPress?: () => void;
 	style?: StyleProp<ViewStyle>;
 	disabled?: boolean;
 	loading?: boolean;
