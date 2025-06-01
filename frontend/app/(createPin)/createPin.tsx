@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
 
@@ -18,17 +18,106 @@ import { ReMapColors } from '@/constants/Colors';
 
 // Import expo Media upload
 import * as ImagePicker from 'expo-image-picker';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { Audio } from 'expo-av';
+import { setAudioModeAsync } from 'expo-av/build/Audio';
 
 
 
 export default function createPin() {
 
-  const pickImageAsync = async () => {
+
+// ==============================================
+// =========== MEDIA UPLOAD METHODS =============
+// ==============================================
+
+  const uploadImageAsync = async () => {
 	let result = await ImagePicker.launchImageLibraryAsync({
 		allowsEditing: true,
-		quality: 1
+		quality: 0.75
 	});
   }
+
+  const useCameraAsync = async () => {
+	await ImagePicker.requestCameraPermissionsAsync();
+	let result = await ImagePicker.launchCameraAsync({
+		allowsEditing: true,
+		quality: 0.75
+	})
+  }
+
+  
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [uri, setUri] = useState<string | null>(null);
+
+  const handleMicPress = () => {
+	if (recording) {
+		stopRecording();
+	} else {
+		startRecording();
+	}
+  };
+
+  const startRecording = async () => {
+	try {
+		const permission = await Audio.requestPermissionsAsync();
+		if (permission.status !== 'granted') {
+			alert('Micrphone permission required');
+			return;
+		}
+
+		await Audio.setAudioModeAsync({
+			allowsRecordingIOS: true,
+			playsInSilentModeIOS: true,
+		});
+
+		const { recording } = await Audio.Recording.createAsync (
+			Audio.RecordingOptionsPresets.LOW_QUALITY
+		);
+		setRecording(recording);
+	} 
+	catch (error) {
+		console.error('Error starting recording:', error);
+		}
+	};
+
+	const stopRecording = async () => {
+		if (recording != null) {
+			try {
+				await recording.stopAndUnloadAsync();
+				const uri = recording.getURI();
+				setUri(uri);
+				setRecording(null);
+				console.log('Recording saved at:', uri);
+			} 
+			catch (error) {
+				console.error('Error stopping recording:', error);
+			}
+		};
+	}
+		
+	const playRecording = async () => {
+		if (!uri) return;
+		const { sound } = await Audio.Sound.createAsync({ uri });
+		await sound.playAsync();
+	};
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+  // ==============================================
+  // =============== PAGE ROUTING  ================
+  // ==============================================
 
   const goBack = () => {
 	router.back();
@@ -45,7 +134,6 @@ export default function createPin() {
 		<View style={styles.content}>
 		{/* separating using Views to control each section only for development */}
 			
-
 			<Input
 			label="Search it"
 			placeholder="Search Location"
@@ -79,27 +167,28 @@ export default function createPin() {
 			<View style={styles.row}>
 				<View style={styles.imageUpload}>
 					<Button 
-						onPress={(pickImageAsync)}
-					>Select Image
+						onPress={(uploadImageAsync)}
+						style={styles.selectImage}
+					>
+						<Text 
+							style={styles.imageUploadText}>
+							Picture it
+						</Text>
 					</Button>
-					{/* <Input
-					label="Picture it"
-					placeholder="Shtanky bathroom"
-					style={styles.fullWidth}
-					/> */}
 				</View>
+
 				<View style={styles.cameraMicrophone}>
 					<View>
 						<IconButton
 						icon="camera"
-						onPress={goBack}
+						onPress={useCameraAsync}
 						>	
-						</IconButton>
+						</IconButton>r
 					</View>
 					<View>
 						<IconButton
-						icon="microphone"
-						onPress={goBack}
+						icon={recording ? "stop": "microphone"}
+						onPress={handleMicPress}
 						>	
 						</IconButton>
 					</View>
@@ -151,6 +240,27 @@ const styles = StyleSheet.create({
 	height: 80,
   },
 
+  imageUpload: {
+	width: '65%',
+	justifyContent: 'flex-start',
+	// backgroundColor:'yellow',
+},
+  cameraMicrophone: {
+	flexDirection: 'row',
+	alignItems:'center',
+  },
+
+  selectImage: {
+	borderRadius: 15,
+	backgroundColor: "#D9D9D9",
+	height: 'auto',
+	alignItems: 'flex-start',
+  },
+  imageUploadText: {
+	color: ReMapColors.primary.black,
+	fontSize: 14,
+  },
+
   orText: {
 	fontSize: 14,
 	color: ReMapColors.ui.textSecondary,
@@ -177,12 +287,5 @@ const styles = StyleSheet.create({
 	width: '100%',
 	justifyContent:'space-between',
   },
-  imageUpload: {
-	width: '65%',
-	justifyContent: 'flex-start',
-  },
-  cameraMicrophone: {
-	flexDirection: 'row',
-	alignItems:'center',
-  },
+
 });
