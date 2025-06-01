@@ -2,7 +2,7 @@
 //   CORE IMPORTS
 // ================
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
@@ -22,6 +22,22 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
+import {
+	SuccessMessage,
+	ErrorMessage,
+	WarningMessage,
+} from '@/components/ui/Messages';
+
+// ================================
+//   INTERNAL 'TYPOGRAPHY' IMPORTS
+// ================================
+import {
+	HeaderText,
+	BodyText,
+	SubheaderText,
+	BodySmallText,
+	LabelText,
+} from '@/components/ui/Typography';
 
 // ================================
 //   INTERNAL 'CONSTANTS' IMPORTS
@@ -33,28 +49,73 @@ import { ReMapColors } from '@/constants/Colors';
 // =============================
 import { signIn, signUp } from '@/services/auth';
 
+// =========================
+//   TYPE DEFINITIONS
+// =========================
+interface MessageState {
+	show: boolean;
+	message: string;
+	type?: 'success' | 'error' | 'warning' | 'info';
+}
+
 // ========================
 //   COMPONENT DEFINITION
 // ========================
 export default function OnboardingAccountScreen() {
-	// MODAL VISIBILITY
+	// ==================
+	//   MODAL STATE
+	// ==================
 	const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
 	const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
+	const [isSkipModalVisible, setIsSkipModalVisible] = useState(false);
 
-	// FORM INPUT STATE
+	// ==================
+	//   FORM STATE
+	// ==================
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [fullName, setFullName] = useState('');
 	const [emailError, setEmailError] = useState('');
+	const [isLoading, setIsLoading] = useState(false);
 
+	// ==================
+	//   MESSAGE STATE
+	// ==================
+	const [messageState, setMessageState] = useState<MessageState>({
+		show: false,
+		message: '',
+		type: 'info',
+	});
+
+	// ==================
+	//   HELPER FUNCTIONS
+	// ==================
 	const validateEmail = (email: string) => {
 		if (!email) return 'Email is required';
 		if (!email.includes('@')) return 'Invalid email format';
+		if (email.length < 5) return 'Email too short';
 		return '';
 	};
 
-	// LOADING STATE - PREVENTING DOUBLE SUBMISSIONS
-	const [isLoading, setIsLoading] = useState(false);
+	const showMessage = (
+		message: string,
+		type: MessageState['type'] = 'info'
+	) => {
+		setMessageState({ show: true, message, type });
+	};
+
+	const hideMessage = () => {
+		setMessageState((prev) => ({ ...prev, show: false }));
+	};
+
+	const resetForm = () => {
+		setEmail('');
+		setPassword('');
+		setFullName('');
+		setEmailError('');
+		setIsLoading(false);
+		hideMessage();
+	};
 
 	// ==================
 	//   MODAL CONTROLS
@@ -69,20 +130,24 @@ export default function OnboardingAccountScreen() {
 		resetForm();
 	};
 
-	const resetForm = () => {
-		setEmail('');
-		setPassword('');
-		setFullName('');
-		setIsLoading(false);
-	};
-
 	// ===========================
 	//   AUTHENTICATION HANDLERS
 	// ===========================
-	// API CALLS
 	const handleSignUp = async () => {
 		if (!email || !password || !fullName) {
-			Alert.alert('Missing Information', 'Please fill in all fields.');
+			showMessage('Please fill out all required fields', 'warning');
+			return;
+		}
+
+		const emailValidation = validateEmail(email);
+		if (emailValidation) {
+			setEmailError(emailValidation);
+			showMessage('Please fix the email format', 'error');
+			return;
+		}
+
+		if (password.length < 6) {
+			showMessage('Password must be at least 6 characters', 'error');
 			return;
 		}
 
@@ -91,18 +156,19 @@ export default function OnboardingAccountScreen() {
 		try {
 			await signUp({ email, password });
 
-			Alert.alert(
-				'Welcome to ReMap!',
-				'Account created successfully. Welcome to your interactive memory atlas!',
-				[{ text: 'Start Exploring', onPress: navigateToWorldMap }]
+			showMessage(
+				'Welcome to ReMap! Account created successfully.',
+				'success'
 			);
-		} catch (error) {
+
+			setTimeout(() => {
+				navigateToWorldMap();
+			}, 2000);
+		} catch (error: any) {
 			console.error('Signup error:', error);
-			Alert.alert(
-				'Signup Error',
-				'Could not create account. Please check your details and try again.',
-				[{ text: 'Ok', style: 'default' }]
-			);
+			const errorMessage =
+				error?.message || 'Could not create account. Please try again.';
+			showMessage(errorMessage, 'error');
 		} finally {
 			setIsLoading(false);
 		}
@@ -110,10 +176,14 @@ export default function OnboardingAccountScreen() {
 
 	const handleSignIn = async () => {
 		if (!email || !password) {
-			Alert.alert(
-				'Missing Information',
-				'Please enter your email and password.'
-			);
+			showMessage('Please fill out all required fields', 'warning');
+			return;
+		}
+
+		const emailValidation = validateEmail(email);
+		if (emailValidation) {
+			setEmailError(emailValidation);
+			showMessage('Please check your email format', 'error');
 			return;
 		}
 
@@ -121,19 +191,17 @@ export default function OnboardingAccountScreen() {
 
 		try {
 			await signIn({ email, password });
+			showMessage('Welcome back! Successfully signed in.', 'success');
 
-			Alert.alert(
-				'Welcome Back!',
-				'Successfully signed in to your ReMap account.',
-				[{ text: 'Continue', onPress: navigateToWorldMap }]
-			);
-		} catch (error) {
+			setTimeout(() => {
+				navigateToWorldMap();
+			}, 1500);
+		} catch (error: any) {
 			console.error('Login error:', error);
-			Alert.alert(
-				'Login Error',
-				'Could not sign in. Please check your credentials and try again.',
-				[{ text: 'Ok', style: 'default' }]
-			);
+			const errorMessage =
+				error?.message ||
+				'Could not sign in. Please check your credentials.';
+			showMessage(errorMessage, 'error');
 		} finally {
 			setIsLoading(false);
 		}
@@ -146,21 +214,20 @@ export default function OnboardingAccountScreen() {
 		resetForm();
 		setIsLoginModalVisible(false);
 		setIsSignupModalVisible(false);
-		router.replace('/worldmap'); // Use replace to prevent going back to onboarding
+		router.replace('/worldmap');
 	};
 
 	const skipAuth = () => {
-		Alert.alert(
-			'Skip Account Setup?',
-			"You can create an account later, but you'll miss out on saving and sharing your memories.",
-			[
-				{ text: 'Go Back', style: 'cancel' },
-				{
-					text: 'Skip for Now',
-					onPress: () => router.replace('/worldmap'),
-				},
-			]
-		);
+		setIsSkipModalVisible(true);
+	};
+
+	const confirmSkip = () => {
+		setIsSkipModalVisible(false);
+		router.replace('/worldmap');
+	};
+
+	const cancelSkip = () => {
+		setIsSkipModalVisible(false);
 	};
 
 	const goBack = () => {
@@ -179,71 +246,78 @@ export default function OnboardingAccountScreen() {
 
 			<MainContent>
 				<View style={styles.content}>
-					{/* Welcome Message */}
 					<View style={styles.welcomeSection}>
-						<Text style={styles.welcomeIcon}>🎉</Text>
-						<Text style={styles.welcomeTitle}>
+						<BodyText style={styles.welcomeIcon}>🎉</BodyText>
+						<HeaderText align="center" style={styles.welcomeTitle}>
 							You're Almost Ready!
-						</Text>
-						<Text style={styles.welcomeDescription}>
+						</HeaderText>
+						<BodyText
+							align="center"
+							style={styles.welcomeDescription}
+						>
 							Create your ReMap account to start building your
 							interactive memory atlas and connect with the
 							community.
-						</Text>
+						</BodyText>
 					</View>
 
-					{/* Benefits of Creating Account */}
 					<View style={styles.benefitsContainer}>
-						<Text style={styles.benefitsTitle}>
+						<SubheaderText style={styles.benefitsTitle}>
 							With a ReMap account:
-						</Text>
+						</SubheaderText>
 
 						<View style={styles.benefitsList}>
 							<View style={styles.benefitItem}>
-								<Text style={styles.benefitIcon}>💾</Text>
-								<Text style={styles.benefitText}>
+								<BodyText style={styles.benefitIcon}>
+									💾
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
 									Save and sync your memories across devices
-								</Text>
+								</BodySmallText>
 							</View>
 
 							<View style={styles.benefitItem}>
-								<Text style={styles.benefitIcon}>🤝</Text>
-								<Text style={styles.benefitText}>
+								<BodyText style={styles.benefitIcon}>
+									🤝
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
 									Share special moments with friends and
 									family
-								</Text>
+								</BodySmallText>
 							</View>
 
 							<View style={styles.benefitItem}>
-								<Text style={styles.benefitIcon}>🌍</Text>
-								<Text style={styles.benefitText}>
+								<BodyText style={styles.benefitIcon}>
+									🌍
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
 									Discover and contribute to the global memory
 									map
-								</Text>
+								</BodySmallText>
 							</View>
 
 							<View style={styles.benefitItem}>
-								<Text style={styles.benefitIcon}>🔒</Text>
-								<Text style={styles.benefitText}>
+								<BodyText style={styles.benefitIcon}>
+									🔒
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
 									Full control over your privacy and sharing
 									settings
-								</Text>
+								</BodySmallText>
 							</View>
 						</View>
 					</View>
 
-					{/* Account Options */}
 					<View style={styles.accountOptions}>
-						<Text style={styles.optionsTitle}>
+						<LabelText align="center" style={styles.optionsTitle}>
 							How would you like to proceed?
-						</Text>
+						</LabelText>
 					</View>
 				</View>
 			</MainContent>
 
 			<Footer>
 				<View style={styles.buttonContainer}>
-					{/* Primary Actions */}
 					<Button
 						style={styles.primaryButton}
 						onPress={toggleSignupModal}
@@ -258,7 +332,6 @@ export default function OnboardingAccountScreen() {
 						🔑 I Already Have an Account
 					</Button>
 
-					{/* Navigation Actions */}
 					<View style={styles.navigationActions}>
 						<Button style={styles.backButton} onPress={goBack}>
 							← Previous
@@ -271,7 +344,9 @@ export default function OnboardingAccountScreen() {
 				</View>
 			</Footer>
 
-			{/* Signup Modal - Using Anna's Modal Component */}
+			{/* ================
+			      SIGNUP MODAL
+			    ================ */}
 			<Modal
 				isVisible={isSignupModalVisible}
 				onBackdropPress={toggleSignupModal}
@@ -279,10 +354,35 @@ export default function OnboardingAccountScreen() {
 				<Modal.Container>
 					<Modal.Header title="Join ReMap Community" />
 					<Modal.Body>
+						{/* Message Display */}
+						{messageState.show &&
+							messageState.type === 'success' && (
+								<SuccessMessage
+									title="Welcome to ReMap!"
+									onDismiss={hideMessage}
+								>
+									{messageState.message}
+								</SuccessMessage>
+							)}
+
+						{messageState.show && messageState.type === 'error' && (
+							<ErrorMessage onDismiss={hideMessage}>
+								{messageState.message}
+							</ErrorMessage>
+						)}
+
+						{messageState.show &&
+							messageState.type === 'warning' && (
+								<WarningMessage onDismiss={hideMessage}>
+									{messageState.message}
+								</WarningMessage>
+							)}
+
+						{/* Form Inputs */}
 						<Input
+							label="Full Name"
 							value={fullName}
 							onChangeText={setFullName}
-							label="Full Name"
 							required={true}
 							placeholder="Enter your full name"
 							autoCapitalize="words"
@@ -301,27 +401,28 @@ export default function OnboardingAccountScreen() {
 							autoCapitalize="none"
 						/>
 						<Input
+							label="Password"
 							value={password}
 							onChangeText={setPassword}
-							label="Password"
-							placeholder="Create a secure password"
+							required={true}
+							placeholder="Password (min 6 characters)"
 							secureTextEntry
 							secureToggle={true}
-							required={true}
 						/>
 					</Modal.Body>
+
 					<Modal.Footer>
 						<Button
 							onPress={handleSignUp}
 							style={[styles.modalButton, styles.signUpButton]}
-							// disabled={isLoading}
+							disabled={isLoading}
 						>
-							{isLoading ? 'Creating...' : 'Create Account'}
+							{isLoading ? 'Creating...' : 'Create'}
 						</Button>
 						<Button
 							onPress={toggleSignupModal}
 							style={[styles.modalButton, styles.cancelButton]}
-							// disabled={isLoading}
+							disabled={isLoading}
 						>
 							Cancel
 						</Button>
@@ -329,7 +430,9 @@ export default function OnboardingAccountScreen() {
 				</Modal.Container>
 			</Modal>
 
-			{/* Login Modal - Using Anna's Modal Component */}
+			{/* ===============
+			      LOGIN MODAL
+			    =============== */}
 			<Modal
 				isVisible={isLoginModalVisible}
 				onBackdropPress={toggleLoginModal}
@@ -337,9 +440,38 @@ export default function OnboardingAccountScreen() {
 				<Modal.Container>
 					<Modal.Header title="Welcome Back!" />
 					<Modal.Body>
+						{/* Message Display */}
+						{messageState.show &&
+							messageState.type === 'success' && (
+								<SuccessMessage
+									title="Welcome Back!"
+									onDismiss={hideMessage}
+								>
+									{messageState.message}
+								</SuccessMessage>
+							)}
+
+						{messageState.show && messageState.type === 'error' && (
+							<ErrorMessage onDismiss={hideMessage}>
+								{messageState.message}
+							</ErrorMessage>
+						)}
+
+						{messageState.show &&
+							messageState.type === 'warning' && (
+								<WarningMessage onDismiss={hideMessage}>
+									{messageState.message}
+								</WarningMessage>
+							)}
+
+						{/* Form Inputs */}
 						<Input
 							value={email}
-							onChangeText={setEmail}
+							onChangeText={(text) => {
+								setEmail(text);
+								setEmailError(validateEmail(text));
+							}}
+							error={emailError}
 							label="Email"
 							placeholder="Enter your email"
 							keyboardType="email-address"
@@ -354,20 +486,58 @@ export default function OnboardingAccountScreen() {
 							secureToggle
 						/>
 					</Modal.Body>
+
 					<Modal.Footer>
 						<Button
 							onPress={handleSignIn}
 							style={[styles.modalButton, styles.loginButton]}
-							// disabled={isLoading}
+							disabled={isLoading}
 						>
 							{isLoading ? 'Signing In...' : 'Sign In'}
 						</Button>
 						<Button
 							onPress={toggleLoginModal}
 							style={[styles.modalButton, styles.cancelButton]}
-							// disabled={isLoading}
+							disabled={isLoading}
 						>
 							Cancel
+						</Button>
+					</Modal.Footer>
+				</Modal.Container>
+			</Modal>
+
+			{/* ==============
+			      SKIP MODAL
+			    ============== */}
+			<Modal isVisible={isSkipModalVisible} onBackdropPress={cancelSkip}>
+				<Modal.Container>
+					<Modal.Header title="Skip Account Setup?" />
+					<Modal.Body>
+						<WarningMessage title="Consider the Benefits">
+							You can create an account later, but you'll miss out
+							on:
+							{'\n'}• Saving memories across devices
+							{'\n'}• Sharing with friends and family
+							{'\n'}• Contributing to the global memory map
+							{'\n'}• Privacy controls for your content
+						</WarningMessage>
+					</Modal.Body>
+
+					<Modal.Footer>
+						<Button
+							onPress={confirmSkip}
+							style={[
+								styles.modalButton,
+								styles.skipConfirmButton,
+							]}
+						>
+							Skip for Now
+						</Button>
+						<Button
+							onPress={cancelSkip}
+							style={[styles.modalButton, styles.cancelButton]}
+						>
+							Go Back
 						</Button>
 					</Modal.Footer>
 				</Modal.Container>
@@ -391,33 +561,21 @@ const styles = StyleSheet.create({
 	},
 	welcomeSection: {
 		alignItems: 'center',
-		marginBottom: 30,
 	},
 	welcomeIcon: {
-		fontSize: 60,
-		marginBottom: 16,
+		fontSize: 50,
+		padding: 40,
 	},
 	welcomeTitle: {
-		fontSize: 24,
-		fontWeight: 'bold',
-		color: ReMapColors.ui.text,
-		textAlign: 'center',
 		marginBottom: 12,
 	},
 	welcomeDescription: {
-		fontSize: 16,
-		color: ReMapColors.ui.textSecondary,
-		textAlign: 'center',
-		lineHeight: 24,
 		paddingHorizontal: 10,
 	},
 	benefitsContainer: {
 		marginBottom: 30,
 	},
 	benefitsTitle: {
-		fontSize: 18,
-		fontWeight: '600',
-		color: ReMapColors.ui.text,
 		marginBottom: 16,
 	},
 	benefitsList: {
@@ -436,21 +594,13 @@ const styles = StyleSheet.create({
 		width: 25,
 	},
 	benefitText: {
-		fontSize: 14,
-		color: ReMapColors.ui.text,
 		flex: 1,
-		lineHeight: 20,
 	},
 	accountOptions: {
 		alignItems: 'center',
 		marginBottom: 20,
 	},
-	optionsTitle: {
-		fontSize: 16,
-		fontWeight: '500',
-		color: ReMapColors.ui.text,
-		textAlign: 'center',
-	},
+	optionsTitle: {},
 	buttonContainer: {
 		width: '100%',
 	},
@@ -488,5 +638,34 @@ const styles = StyleSheet.create({
 	},
 	cancelButton: {
 		backgroundColor: ReMapColors.ui.textSecondary,
+	},
+	skipConfirmButton: {
+		backgroundColor: ReMapColors.semantic.warning,
+	},
+
+	// Add to your existing styles
+	navIconButton: {
+		backgroundColor: ReMapColors.ui.textSecondary,
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+	},
+
+	secondaryIconButton: {
+		backgroundColor: ReMapColors.ui.textSecondary,
+		flex: 0, // Don't grow like text buttons
+	},
+
+	// Optional: Icon + text combination
+	backGroup: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		flex: 1,
+	},
+
+	navLabel: {
+		color: ReMapColors.ui.text,
+		fontSize: 14,
 	},
 });

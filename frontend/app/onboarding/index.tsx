@@ -2,7 +2,7 @@
 //   CORE IMPORTS
 // ================
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
@@ -22,18 +22,39 @@ import { Footer } from '@/components/layout/Footer';
 // ============================
 import { Button } from '@/components/ui/Button';
 import { SpinningGlobe } from '@/components/ui/Globe';
+import { ErrorMessage, WarningMessage } from '@/components/ui/Messages';
+
+// ================================
+//   INTERNAL 'TYPOGRAPHY' IMPORTS
+// ================================
+import { HeaderText, BodyText, CaptionText } from '@/components/ui/Typography';
 
 // ================================
 //   INTERNAL 'CONSTANTS' IMPORTS
 // ================================
 import { ReMapColors } from '@/constants/Colors';
 
+// =========================
+//   TYPE DEFINITIONS
+// =========================
+interface MessageState {
+	show: boolean;
+	message: string;
+	type?: 'success' | 'error' | 'warning' | 'info';
+}
+
 // ========================
 //   COMPONENT DEFINITION
 // ========================
 export default function OnboardingWelcomeScreen() {
-	// Goes through the accordion like method
+	// ==================
+	//   STATE MANAGEMENT
+	// ==================
 	const [currentStep, setCurrentStep] = useState(0);
+	const [messageState, setMessageState] = useState<MessageState>({
+		show: false,
+		message: '',
+	});
 
 	// ===============
 	//   STATIC DATA
@@ -59,35 +80,62 @@ export default function OnboardingWelcomeScreen() {
 		},
 	];
 
+	// ====================
+	//   MESSAGE HELPERS
+	// ====================
+	const showMessage = (
+		message: string,
+		type: MessageState['type'] = 'info'
+	) => {
+		setMessageState({ show: true, message, type });
+	};
+
+	const hideMessage = () => {
+		setMessageState((prev) => ({ ...prev, show: false }));
+	};
+
 	// ==================
 	//   EVENT HANDLERS
 	// ==================
-	const validRoutes = ['/', '/onboarding/permissions', '/onboarding/account'];
+	const validRoutes = [
+		'/',
+		'/onboarding',
+		'/onboarding/permissions',
+		'/onboarding/account',
+	];
 
 	const nextStep = () => {
-		const route = '/onboarding/permissions';
-
 		if (currentStep < welcomeSteps.length - 1) {
-			setCurrentStep(currentStep + 1);
+			const newStep = currentStep + 1;
+			setCurrentStep(newStep);
 		} else {
-			if (!validRoutes.includes(route)) {
-				Alert.alert('Error', 'This page is not available');
-				return;
-			}
-
-			try {
-				router.navigate(route);
-			} catch (error) {
-				console.error('Navigation failed:', error);
-			}
+			// Navigate to permissions
+			navigateToRoute('/onboarding/permissions');
 		}
 	};
 
 	const skipToAuth = () => {
-		const route = '/onboarding/account';
+		navigateToRoute('/onboarding/account');
+	};
 
+	const goBack = () => {
+		if (currentStep > 0) {
+			const newStep = currentStep - 1;
+			setCurrentStep(newStep);
+		} else {
+			navigateToRoute('/');
+		}
+	};
+
+	// ===========================
+	//   NAVIGATION HELPER
+	// ===========================
+	const navigateToRoute = (route: string) => {
 		if (!validRoutes.includes(route)) {
-			Alert.alert('Error', 'This page is not available');
+			showMessage(
+				`Navigation error: The page "${route}" is not available. Please try again or contact support.`,
+				'error'
+			);
 			return;
 		}
 
@@ -95,29 +143,18 @@ export default function OnboardingWelcomeScreen() {
 			router.navigate(route);
 		} catch (error) {
 			console.error('Navigation failed:', error);
+			showMessage(
+				'Could not navigate to the next page. Please try again.',
+				'error'
+			);
 		}
 	};
 
-	const goBack = () => {
-		const route = '/';
-		if (currentStep > 0) {
-			setCurrentStep(currentStep - 1);
-		} else {
-			if (!validRoutes.includes(route)) {
-				Alert.alert('Error', 'This page is not available');
-				return;
-			}
-
-			try {
-				router.navigate(route);
-			} catch (error) {
-				console.error('Navigation failed:', error);
-			}
-		}
-	};
-
-	// NOTE: STEP STATUS FROM ABOVE
+	// ==================
+	//   COMPUTED VALUES
+	// ==================
 	const currentStepData = welcomeSteps[currentStep];
+	const isLastStep = currentStep === welcomeSteps.length - 1;
 
 	// ============================
 	//   COMPONENT RENDER SECTION
@@ -128,7 +165,25 @@ export default function OnboardingWelcomeScreen() {
 
 			<MainContent scrollable={false}>
 				<View style={styles.content}>
-					{/* Progress Indicators */}
+					{messageState.show && (
+						<View style={styles.messageContainer}>
+							{messageState.type === 'error' && (
+								<ErrorMessage onDismiss={hideMessage}>
+									{messageState.message}
+								</ErrorMessage>
+							)}
+
+							{messageState.type === 'warning' && (
+								<WarningMessage
+									title="Skip Introduction?"
+									onDismiss={hideMessage}
+								>
+									{messageState.message}
+								</WarningMessage>
+							)}
+						</View>
+					)}
+
 					<View style={styles.progressContainer}>
 						{welcomeSteps.map((_, index) => (
 							<View
@@ -152,38 +207,48 @@ export default function OnboardingWelcomeScreen() {
 						</Canvas>
 					</View>
 
-					{/* Current Step Content */}
 					<View style={styles.stepContent}>
-						<Text style={styles.stepIcon}>
+						<BodyText style={styles.stepIcon}>
 							{currentStepData.icon}
-						</Text>
-						<Text style={styles.stepTitle}>
+						</BodyText>
+
+						<HeaderText align="center" style={styles.stepTitle}>
 							{currentStepData.title}
-						</Text>
-						<Text style={styles.stepDescription}>
+						</HeaderText>
+
+						<BodyText align="center" style={styles.stepDescription}>
 							{currentStepData.description}
-						</Text>
+						</BodyText>
 					</View>
 
-					{/* Features Preview */}
 					<View style={styles.featuresContainer}>
 						<View style={styles.featureItem}>
-							<Text style={styles.featureIcon}>📱</Text>
-							<Text style={styles.featureText}>
+							<BodyText style={styles.featureIcon}>📱</BodyText>
+
+							<CaptionText
+								align="center"
+								style={styles.featureText}
+							>
 								Mobile-First Design
-							</Text>
+							</CaptionText>
 						</View>
 						<View style={styles.featureItem}>
-							<Text style={styles.featureIcon}>🌍</Text>
-							<Text style={styles.featureText}>
+							<BodyText style={styles.featureIcon}>🌍</BodyText>
+							<CaptionText
+								align="center"
+								style={styles.featureText}
+							>
 								Global Community
-							</Text>
+							</CaptionText>
 						</View>
 						<View style={styles.featureItem}>
-							<Text style={styles.featureIcon}>✨</Text>
-							<Text style={styles.featureText}>
+							<BodyText style={styles.featureIcon}>✨</BodyText>
+							<CaptionText
+								align="center"
+								style={styles.featureText}
+							>
 								Authentic Stories
-							</Text>
+							</CaptionText>
 						</View>
 					</View>
 				</View>
@@ -191,14 +256,10 @@ export default function OnboardingWelcomeScreen() {
 
 			<Footer>
 				<View style={styles.buttonContainer}>
-					{/* Primary Action Button */}
 					<Button style={styles.primaryButton} onPress={nextStep}>
-						{currentStep < welcomeSteps.length - 1
-							? 'Continue'
-							: '🚀 Get Started'}
+						{isLastStep ? '🚀 Get Started' : 'Continue'}
 					</Button>
 
-					{/* Secondary Actions */}
 					<View style={styles.secondaryActions}>
 						<Button style={styles.secondaryButton} onPress={goBack}>
 							{currentStep > 0 ? '← Previous' : '← Back to Home'}
@@ -231,6 +292,11 @@ const styles = StyleSheet.create({
 		justifyContent: 'space-between',
 		paddingVertical: 20,
 	},
+	messageContainer: {
+		width: '100%',
+		paddingHorizontal: 20,
+		marginBottom: 16,
+	},
 	progressContainer: {
 		flexDirection: 'row',
 		justifyContent: 'center',
@@ -254,35 +320,27 @@ const styles = StyleSheet.create({
 		backgroundColor: ReMapColors.semantic.success,
 	},
 	globeContainer: {
-		height: 200,
-		width: '80%',
-		marginVertical: 20,
+		// height: 200,
+		width: '100%',
+		// marginVertical: 20,
 	},
 	canvas: {
 		flex: 1,
 	},
 	stepContent: {
 		alignItems: 'center',
-		paddingHorizontal: 30,
+		// paddingHorizontal: 30,
 		marginVertical: 20,
 	},
 	stepIcon: {
 		fontSize: 48,
-		marginBottom: 16,
+		// marginBottom: 16,
+		padding: 25,
 	},
 	stepTitle: {
-		fontSize: 24,
-		fontWeight: 'bold',
-		color: ReMapColors.ui.text,
-		textAlign: 'center',
 		marginBottom: 12,
 	},
-	stepDescription: {
-		fontSize: 16,
-		color: ReMapColors.ui.textSecondary,
-		textAlign: 'center',
-		lineHeight: 24,
-	},
+	stepDescription: {},
 	featuresContainer: {
 		flexDirection: 'row',
 		justifyContent: 'space-around',
@@ -298,12 +356,7 @@ const styles = StyleSheet.create({
 		fontSize: 24,
 		marginBottom: 8,
 	},
-	featureText: {
-		fontSize: 12,
-		color: ReMapColors.ui.textSecondary,
-		textAlign: 'center',
-		fontWeight: '500',
-	},
+	featureText: {},
 	buttonContainer: {
 		width: '100%',
 	},

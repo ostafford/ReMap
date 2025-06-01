@@ -51,12 +51,10 @@ export const Footer = ({
 
 const styles = StyleSheet.create({
 	container: {
-		// This ensures footer stays at bottom
 		justifyContent: 'center',
 		alignItems: 'center',
 		borderTopWidth: 1,
 		borderTopColor: ReMapColors.ui.border,
-		// Add subtle shadow for depth
 		shadowColor: '#000',
 		shadowOffset: {
 			width: 0,

@@ -1,8 +1,8 @@
 // ================
 //   CORE IMPORTS
 // ================
-import React from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
@@ -22,29 +22,67 @@ import { Footer } from '@/components/layout/Footer';
 // ============================
 import { Button } from '@/components/ui/Button';
 import { SpinningGlobe } from '@/components/ui/Globe';
+import { ErrorMessage } from '@/components/ui/Messages';
+
+// ================================
+//   INTERNAL 'TYPOGRAPHY' IMPORTS
+// ================================
+import { BodyText } from '@/components/ui/Typography';
 
 // ================================
 //   INTERNAL 'CONSTANTS' IMPORTS
 // ================================
 import { ReMapColors } from '@/constants/Colors';
 
+// =========================
+//   TYPE DEFINITIONS
+// =========================
+interface MessageState {
+	show: boolean;
+	message: string;
+	type?: 'success' | 'error' | 'warning' | 'info';
+}
+
 // ========================
 //   COMPONENT DEFINITION
 // ========================
-// Function to run the page essentially
 export default function SplashScreen() {
+	// ==================
+	//   STATE MANAGEMENT
+	// ==================
+	const [messageState, setMessageState] = useState<MessageState>({
+		show: false,
+		message: '',
+		type: 'info',
+	});
+
+	// ====================
+	//   MESSAGE HELPERS
+	// ====================
+	const showMessage = (
+		message: string,
+		type: MessageState['type'] = 'info'
+	) => {
+		setMessageState({ show: true, message, type });
+	};
+
+	const hideMessage = () => {
+		setMessageState((prev) => ({ ...prev, show: false }));
+	};
+
 	// ==================
 	//   EVENT HANDLERS
 	// ==================
-	// Expo-router navigating what pages can be accessed
-	// Added Error handling for both us and users
 	const validRoutes = ['/worldmap', '/onboarding'];
 
 	const navigateToWorldMap = () => {
 		const route = '/worldmap';
 
 		if (!validRoutes.includes(route)) {
-			Alert.alert('Error', 'This page is not available');
+			showMessage(
+				'Navigation error: This page is not available',
+				'error'
+			);
 			return;
 		}
 
@@ -52,13 +90,21 @@ export default function SplashScreen() {
 			router.navigate(route);
 		} catch (error) {
 			console.error('Navigation failed:', error);
+			showMessage(
+				'Could not navigate to world map. Please try again.',
+				'error'
+			);
 		}
 	};
+
 	const navigateToOnboarding = () => {
 		const route = '/onboarding';
 
 		if (!validRoutes.includes(route)) {
-			Alert.alert('Error', 'This page is not available');
+			showMessage(
+				'Navigation error: This page is not available',
+				'error'
+			);
 			return;
 		}
 
@@ -66,21 +112,30 @@ export default function SplashScreen() {
 			router.navigate(route);
 		} catch (error) {
 			console.error('Navigation failed:', error);
+			showMessage(
+				'Could not start onboarding. Please try again.',
+				'error'
+			);
 		}
 	};
 
 	// ============================
 	//   COMPONENT RENDER SECTION
 	// ============================
-	// Where we put the components together and link the 'handlers' above together.
-	// STRUCTURE: HEADER -> MAIN -> FOOTER
 	return (
 		<View style={styles.container}>
-			{/* Header with app name */}
 			<Header title="ReMap" subtitle="Your Interactive Memory Atlas" />
 
 			{/* Main content with globe */}
 			<MainContent scrollable={false} style={styles.mainContent}>
+				{messageState.show && messageState.type === 'error' && (
+					<View style={styles.messageContainer}>
+						<ErrorMessage onDismiss={hideMessage}>
+							{messageState.message}
+						</ErrorMessage>
+					</View>
+				)}
+
 				<View style={styles.globeContainer}>
 					<Canvas style={styles.canvas}>
 						<ambientLight intensity={3} />
@@ -88,13 +143,12 @@ export default function SplashScreen() {
 					</Canvas>
 				</View>
 
-				<Text style={styles.description}>
+				<BodyText align="center" style={styles.description}>
 					Transform your experiences into an interactive, personal
 					atlas
-				</Text>
+				</BodyText>
 			</MainContent>
 
-			{/* Footer with your two buttons */}
 			<Footer>
 				<View style={styles.buttonContainer}>
 					<Button
@@ -128,6 +182,11 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
+	messageContainer: {
+		width: '100%',
+		paddingHorizontal: 20,
+		marginBottom: 16,
+	},
 	globeContainer: {
 		height: 300,
 		width: '100%',
@@ -137,11 +196,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	description: {
-		fontSize: 16,
-		color: ReMapColors.ui.textSecondary,
-		textAlign: 'center',
 		marginHorizontal: 20,
-		lineHeight: 24,
 	},
 	buttonContainer: {
 		width: '100%',

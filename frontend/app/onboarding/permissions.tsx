@@ -2,7 +2,7 @@
 //   CORE IMPORTS
 // ================
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
@@ -21,6 +21,23 @@ import { Footer } from '@/components/layout/Footer';
 //   INTERNAL 'UI' COMPONENTS
 // ============================
 import { Button } from '@/components/ui/Button';
+import {
+	SuccessMessage,
+	ErrorMessage,
+	WarningMessage,
+	InfoMessage,
+} from '@/components/ui/Messages';
+
+// ================================
+//   INTERNAL 'TYPOGRAPHY' IMPORTS
+// ================================
+import {
+	HeaderText,
+	BodyText,
+	SubheaderText,
+	BodySmallText,
+	CaptionText,
+} from '@/components/ui/Typography';
 
 // ================================
 //   INTERNAL 'CONSTANTS' IMPORTS
@@ -30,53 +47,116 @@ import { ReMapColors } from '@/constants/Colors';
 // =========================
 //   TYPE DEFINITIONS
 // =========================
-// Type safety:
 type LocationStatus = 'checking' | 'granted' | 'denied' | 'not_requested';
+
+interface MessageState {
+	show: boolean;
+	message: string;
+	type?: 'success' | 'error' | 'warning' | 'info';
+	title?: string;
+	duration?: number;
+}
 
 // ========================
 //   COMPONENT DEFINITION
 // ========================
 export default function OnboardingPermissionsScreen() {
 	// ====================
-	//   STATE & EVENT MANAGEMENT
+	//   STATE MANAGEMENT
 	// ====================
 	const [locationStatus, setLocationStatus] =
 		useState<LocationStatus>('not_requested');
 	const [isRequesting, setIsRequesting] = useState(false);
+	const [messageState, setMessageState] = useState<MessageState>({
+		show: false,
+		message: '',
+		type: 'info',
+	});
+	const [ToastMessage, setToastMessage] = useState<MessageState>({
+		show: false,
+		message: '',
+		type: 'info',
+	});
 
+	// ====================
+	//   MESSAGE HELPERS
+	// ====================
+	const showMessage = (
+		message: string,
+		type: MessageState['type'] = 'info',
+		title?: string
+	) => {
+		setMessageState({ show: true, message, type, title });
+	};
+
+	const hideMessage = () => {
+		setMessageState((prev) => ({ ...prev, show: false }));
+	};
+
+	// ====================
+	//   LIFECYCLE EFFECTS
+	// ====================
 	useEffect(() => {
 		checkCurrentPermissions();
 	}, []);
 
+	// NOTE: Auto-hide (moves on) success messages and navigate
+	useEffect(() => {
+		if (locationStatus === 'granted' && messageState.type === 'success') {
+			const timer = setTimeout(() => {
+				hideMessage();
+				continueToAccount();
+			}, 8000);
+
+			return () => clearTimeout(timer);
+		}
+	}, [locationStatus, messageState.type]);
+
+	// ====================
+	//   PERMISSION LOGIC
+	// ====================
 	const checkCurrentPermissions = async () => {
 		setLocationStatus('checking');
+		showMessage('Checking your current location permissions...', 'info');
 
 		try {
 			const { status } = await Location.getForegroundPermissionsAsync();
 
 			if (status === 'granted') {
 				setLocationStatus('granted');
+				showMessage(
+					"Great! Location access is already enabled. You're all set to pin memories to specific places.",
+					'success',
+					'Location Already Enabled'
+				);
 			} else {
 				setLocationStatus('not_requested');
+				hideMessage(); // NOTE: Clear the checking message
 			}
 		} catch (error) {
 			console.error('Error checking permissions:', error);
-
 			setLocationStatus('not_requested');
+			showMessage(
+				'Could not check current permissions. Please try requesting location access.',
+				'error',
+				'Permission Check Failed'
+			);
 		}
 	};
 
 	const requestLocationPermission = async () => {
 		setIsRequesting(true);
+		showMessage('Requesting location permission...', 'info');
 
 		try {
-			// First check if location services are enabled
+			// NOTE: Statement to check if location services are enabled on device
 			const serviceEnabled = await Location.hasServicesEnabledAsync();
 			if (!serviceEnabled) {
-				Alert.alert(
-					'Location Services Disabled',
-					"Please enable location services in your device settings to use ReMap's location-based features.",
-					[{ text: 'OK', style: 'default' }]
+				setLocationStatus('denied');
+				showMessage(
+					"Location services are disabled on your device. Please enable them in Settings to use ReMap's location features.",
+					'warning',
+					'Location Services Disabled'
 				);
 				setIsRequesting(false);
 				return;
@@ -88,80 +168,46 @@ export default function OnboardingPermissionsScreen() {
 
 			if (status === 'granted') {
 				setLocationStatus('granted');
-
-				// Show success and auto-continue after a moment
-				setTimeout(() => {
-					continueToAccount();
-				}, 1500);
+				showMessage(
+					'Perfect! Location access granted. ReMap can now help you pin memories to specific places and discover stories around you.',
+					'success',
+					'Location Access Granted!'
+				);
+				// Navigation happens automatically via useEffect
 			} else {
 				setLocationStatus('denied');
+				showMessage(
+					'Location access was denied. You can still use ReMap, but some features will be limited. You can enable this later in your device Settings.',
+					'warning',
+					'Location Access Denied'
+				);
 			}
 		} catch (error) {
 			console.error('Error requesting location permission:', error);
-
-			Alert.alert(
-				'Permission Error',
+			setLocationStatus('not_requested');
+			showMessage(
 				'Failed to request location permission. Please try again or continue without location access.',
-				[
-					{
-						text: 'Try Again',
-						onPress: () => requestLocationPermission(),
-					},
-					{
-						text: 'Continue Anyway',
-						onPress: () => continueToAccount(),
-					},
-				]
+				'error',
+				'Permission Request Failed'
 			);
 		} finally {
 			setIsRequesting(false);
 		}
 	};
 
-	const validroute = ['/', '/onboarding/account'];
+	// ====================
+	//   NAVIGATION LOGIC
+	// ====================
+	const validRoutes = ['/onboarding', '/onboarding/account'];
 
 	const continueToAccount = () => {
 		const route = '/onboarding/account';
 
-		if (!validroute.includes(route)) {
-			Alert.alert('Error', 'This page is not available');
-			return;
-		}
-
-		try {
-			router.navigate(route);
-		} catch (error) {
-			console.error('Navigate failed:', error);
-		}
-	};
-
-	const skipPermissions = () => {
-		const route = '/onboarding/account';
-
-		if (!validroute.includes(route)) {
-			Alert.alert(
-				'Skip Location?',
-				"You can enable location services later in Settings, but you'll miss out on ReMap's core location-based features.",
-				[
-					{ text: 'Go Back', style: 'cancel' },
-					{ text: 'Skip Anyway', onPress: continueToAccount },
-				]
+		if (!validRoutes.includes(route)) {
+			showMessage(
+				'Navigation error: Account setup page is not available.',
+				'error'
 			);
-			return;
-		}
-
-		try {
-			router.navigate(route);
-		} catch (error) {
-			console.error('Navigate Failed:', error);
-		}
-	};
-
-	const goBack = () => {
-		const route = '/';
-
-		if (!validroute.includes(route)) {
-			Alert.alert('Error', 'This page is not available');
 			return;
 		}
 
@@ -169,13 +215,48 @@ export default function OnboardingPermissionsScreen() {
 			router.navigate(route);
 		} catch (error) {
 			console.error('Navigation failed:', error);
+			showMessage(
+				'Could not navigate to account setup. Please try again.',
+				'error'
+			);
+		}
+	};
+
+	const skipPermissions = () => {
+		showMessage(
+			"You can enable location services later in Settings, but you'll miss out on ReMap's core location-based features like automatic memory pinning and discovering nearby stories.",
+			'warning',
+			'Skip Location Access?'
+		);
+
+		// Auto-continue after warning is shown
+		setTimeout(() => {
+			continueToAccount();
+		}, 8000);
+	};
+
+	const goBack = () => {
+		const route = '/onboarding';
+
+		if (!validRoutes.includes(route)) {
+			showMessage(
+				'Navigation error: Previous page is not available.',
+				'error'
+			);
+			return;
+		}
+
+		try {
+			router.navigate(route);
+		} catch (error) {
+			console.error('Navigation failed:', error);
+			showMessage('Could not go back. Please try again.', 'error');
 		}
 	};
 
 	// ==================
 	//   COMPUTED VALUES
 	// ==================
-	// Dynamic content based on permission status
 	const getStatusInfo = () => {
 		switch (locationStatus) {
 			case 'checking':
@@ -199,10 +280,10 @@ export default function OnboardingPermissionsScreen() {
 			case 'denied':
 				return {
 					icon: '❌',
-					title: 'Location Access Denied',
+					title: 'Enable Location Later',
 					description:
-						'ReMap works best with location access, but you can still use the app. You can enable this later in Settings.',
-					buttonText: 'Continue Anyway →',
+						'You can still use ReMap without location access. Enable it later in Settings to unlock all features.',
+					buttonText: 'Continue to Account Setup →',
 					buttonDisabled: false,
 				};
 			default:
@@ -228,67 +309,112 @@ export default function OnboardingPermissionsScreen() {
 
 			<MainContent>
 				<View style={styles.content}>
-					{/* Status Icon */}
+					{messageState.show && (
+						<View style={styles.messageContainer}>
+							{messageState.type === 'success' && (
+								<SuccessMessage
+									title={messageState.title}
+									onDismiss={hideMessage}
+								>
+									{messageState.message}
+								</SuccessMessage>
+							)}
+
+							{messageState.type === 'error' && (
+								<ErrorMessage
+									title={messageState.title}
+									onDismiss={hideMessage}
+								>
+									{messageState.message}
+								</ErrorMessage>
+							)}
+
+							{messageState.type === 'warning' && (
+								<WarningMessage
+									title={messageState.title}
+									onDismiss={hideMessage}
+								>
+									{messageState.message}
+								</WarningMessage>
+							)}
+
+							{messageState.type === 'info' && (
+								<InfoMessage
+									title={messageState.title}
+									onDismiss={hideMessage}
+								>
+									{messageState.message}
+								</InfoMessage>
+							)}
+						</View>
+					)}
+
 					<View style={styles.iconContainer}>
-						<Text style={styles.statusIcon}>{statusInfo.icon}</Text>
+						<BodyText style={styles.statusIcon}>
+							{statusInfo.icon}
+						</BodyText>
 					</View>
 
-					{/* Title and Description */}
 					<View style={styles.textContent}>
-						<Text style={styles.title}>{statusInfo.title}</Text>
-						<Text style={styles.description}>
+						<HeaderText align="center" style={styles.title}>
+							{statusInfo.title}
+						</HeaderText>
+
+						<BodyText align="center" style={styles.description}>
 							{statusInfo.description}
-						</Text>
+						</BodyText>
 					</View>
 
-					{/* Permission Benefits */}
 					<View style={styles.benefitsContainer}>
-						<Text style={styles.benefitsTitle}>
+						<SubheaderText
+							align="center"
+							style={styles.benefitsTitle}
+						>
 							With location access, you can:
-						</Text>
+						</SubheaderText>
 
 						<View style={styles.benefitItem}>
-							<Text style={styles.benefitIcon}>🗺️</Text>
-							<Text style={styles.benefitText}>
+							<BodyText style={styles.benefitIcon}>🗺️</BodyText>
+
+							<BodySmallText style={styles.benefitText}>
 								Automatically pin memories to your exact
 								location
-							</Text>
+							</BodySmallText>
 						</View>
 
 						<View style={styles.benefitItem}>
-							<Text style={styles.benefitIcon}>🌟</Text>
-							<Text style={styles.benefitText}>
+							<BodyText style={styles.benefitIcon}>🌟</BodyText>
+							<BodySmallText style={styles.benefitText}>
 								Discover authentic stories from people nearby
-							</Text>
+							</BodySmallText>
 						</View>
 
 						<View style={styles.benefitItem}>
-							<Text style={styles.benefitIcon}>🎯</Text>
-							<Text style={styles.benefitText}>
+							<BodyText style={styles.benefitIcon}>🎯</BodyText>
+							<BodySmallText style={styles.benefitText}>
 								Find relevant memories when visiting new places
-							</Text>
+							</BodySmallText>
 						</View>
 					</View>
 
-					{/* Privacy Note */}
 					<View style={styles.privacyNote}>
-						<Text style={styles.privacyIcon}>🔒</Text>
-						<Text style={styles.privacyText}>
+						<BodyText style={styles.privacyIcon}>🔒</BodyText>
+
+						<CaptionText style={styles.privacyText}>
 							Your location is only used to enhance your
 							experience. You control what gets shared.
-						</Text>
+						</CaptionText>
 					</View>
 				</View>
 			</MainContent>
 
 			<Footer>
 				<View style={styles.buttonContainer}>
-					{/* Primary Action */}
 					{locationStatus === 'not_requested' && (
 						<Button
 							style={styles.primaryButton}
 							onPress={requestLocationPermission}
-							// disabled={isRequesting}
+							disabled={isRequesting}
 						>
 							{isRequesting
 								? 'Requesting...'
@@ -306,7 +432,6 @@ export default function OnboardingPermissionsScreen() {
 						</Button>
 					)}
 
-					{/* Secondary Actions */}
 					<View style={styles.secondaryActions}>
 						<Button style={styles.secondaryButton} onPress={goBack}>
 							← Previous
@@ -342,29 +467,26 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		paddingVertical: 30,
 	},
+	messageContainer: {
+		width: '100%',
+		marginBottom: 20,
+	},
 	iconContainer: {
 		marginBottom: 30,
 	},
 	statusIcon: {
 		fontSize: 80,
 		textAlign: 'center',
+		paddingTop: 80,
 	},
 	textContent: {
 		alignItems: 'center',
 		marginBottom: 30,
 	},
 	title: {
-		fontSize: 24,
-		fontWeight: 'bold',
-		color: ReMapColors.ui.text,
-		textAlign: 'center',
 		marginBottom: 16,
 	},
 	description: {
-		fontSize: 16,
-		color: ReMapColors.ui.textSecondary,
-		textAlign: 'center',
-		lineHeight: 24,
 		paddingHorizontal: 10,
 	},
 	benefitsContainer: {
@@ -372,11 +494,7 @@ const styles = StyleSheet.create({
 		marginBottom: 30,
 	},
 	benefitsTitle: {
-		fontSize: 18,
-		fontWeight: '600',
-		color: ReMapColors.ui.text,
 		marginBottom: 16,
-		textAlign: 'center',
 	},
 	benefitItem: {
 		flexDirection: 'row',
@@ -390,10 +508,7 @@ const styles = StyleSheet.create({
 		width: 30,
 	},
 	benefitText: {
-		fontSize: 14,
-		color: ReMapColors.ui.text,
 		flex: 1,
-		lineHeight: 20,
 	},
 	privacyNote: {
 		flexDirection: 'row',
@@ -410,10 +525,7 @@ const styles = StyleSheet.create({
 		marginRight: 8,
 	},
 	privacyText: {
-		fontSize: 12,
-		color: ReMapColors.ui.textSecondary,
 		flex: 1,
-		lineHeight: 18,
 	},
 	buttonContainer: {
 		width: '100%',

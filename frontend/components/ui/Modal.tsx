@@ -5,11 +5,18 @@ import React from 'react';
 import {
 	StyleSheet,
 	View,
-	Text,
 	TouchableOpacity,
 	ViewStyle,
+	ScrollView,
+	KeyboardAvoidingView,
+	Platform,
 } from 'react-native';
 import RNModal from 'react-native-modal';
+
+// ================================
+//   INTERNAL 'TYPOGRAPHY' IMPORTS
+// ================================
+import { HeaderText, CaptionText } from './Typography';
 
 // ================================
 //   INTERNAL 'CONSTANTS' IMPORTS
@@ -28,6 +35,9 @@ type ModalProps = {
 	avoidKeyboard?: boolean;
 	animationIn?: string;
 	animationOut?: string;
+	scrollable?: boolean;
+	maxHeight?: number;
+	autoScrollable?: boolean;
 };
 
 // ========================
@@ -41,6 +51,8 @@ export const Modal = ({
 	avoidKeyboard = true,
 	animationIn = 'slideInUp',
 	animationOut = 'slideOutDown',
+	scrollable = true,
+	maxHeight,
 	...props
 }: ModalProps) => {
 	return (
@@ -59,7 +71,13 @@ export const Modal = ({
 			backdropOpacity={1.2}
 			{...props}
 		>
-			{children}
+			<KeyboardAvoidingView
+				style={styles.keyboardAvoidingView}
+				behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+				keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+			>
+				{children}
+			</KeyboardAvoidingView>
 		</RNModal>
 	);
 };
@@ -70,10 +88,45 @@ export const Modal = ({
 const ModalContainer = ({
 	children,
 	style,
+	scrollable = true,
+	maxHeight,
+	autoScrollable = false,
 }: {
 	children: React.ReactNode;
 	style?: ViewStyle | ViewStyle[];
-}) => <View style={[styles.container, style]}>{children}</View>;
+	scrollable?: boolean;
+	maxHeight?: number;
+	autoScrollable?: boolean;
+}) => {
+	const scrollViewStyle = [
+		styles.containerScrollView,
+		maxHeight && { maxHeight },
+		style,
+	];
+
+	const contentContainerStyle = [styles.container, styles.scrollContent];
+
+	if (scrollable) {
+		return (
+			<ScrollView
+				style={scrollViewStyle}
+				contentContainerStyle={contentContainerStyle}
+				showsVerticalScrollIndicator={false}
+				keyboardShouldPersistTaps="handled"
+			>
+				{children}
+			</ScrollView>
+		);
+	}
+
+	const containerStyle = [
+		styles.container,
+		maxHeight && { maxHeight },
+		style,
+	];
+
+	return <View style={containerStyle}>{children}</View>;
+};
 
 // ================
 //   MODAL HEADER
@@ -82,13 +135,24 @@ const ModalHeader = ({
 	title,
 	onClose,
 	showCloseButton = false,
+	sticky = false,
 }: {
 	title: string;
 	onClose?: () => void;
-	showClosedButton?: boolean;
+	showCloseButton?: boolean;
+	testID?: string;
+	sticky?: boolean;
 }) => (
-	<View style={styles.header}>
-		<Text style={styles.headerText}>{title}</Text>
+	<View style={[styles.header, sticky && styles.stickyHeader]}>
+		<HeaderText align="center" style={styles.headerText}>
+			{title}
+		</HeaderText>
+
+		{showCloseButton && onClose && (
+			<TouchableOpacity style={styles.closeButton} onPress={onClose}>
+				<CaptionText style={styles.closeButtonText}>✕</CaptionText>
+			</TouchableOpacity>
+		)}
 	</View>
 );
 
@@ -98,10 +162,42 @@ const ModalHeader = ({
 const ModalBody = ({
 	children,
 	style,
+	scrollable = true,
+	contentPadding = true,
 }: {
 	children?: React.ReactNode;
 	style?: ViewStyle | ViewStyle[];
-}) => <View style={[styles.body, style]}>{children}</View>;
+	scrollable?: boolean;
+	contentPadding?: boolean;
+}) => {
+	const scrollViewStyle = [styles.bodyScrollView, style];
+
+	const contentContainerStyle = [
+		contentPadding ? styles.body : styles.bodyNoPadding,
+		styles.bodyScrollContent,
+	];
+
+	if (scrollable) {
+		return (
+			<ScrollView
+				style={scrollViewStyle}
+				contentContainerStyle={contentContainerStyle}
+				showsVerticalScrollIndicator={false}
+				keyboardShouldPersistTaps="handled"
+				nestedScrollEnabled={true}
+			>
+				{children}
+			</ScrollView>
+		);
+	}
+
+	const bodyStyle = [
+		contentPadding ? styles.body : styles.bodyNoPadding,
+		style,
+	];
+
+	return <View style={bodyStyle}>{children}</View>;
+};
 
 // ================
 //   MODAL FOOTER
@@ -109,23 +205,45 @@ const ModalBody = ({
 const ModalFooter = ({
 	children,
 	style,
+	sticky = false,
 }: {
 	children?: React.ReactNode;
 	style?: ViewStyle | ViewStyle[];
-}) => <View style={[styles.footer, style]}>{children}</View>;
+	sticky?: boolean;
+}) => (
+	<View style={[styles.footer, sticky && styles.stickyFooter, style]}>
+		{children}
+	</View>
+);
 
+// =================
+//   STYLE SECTION
+// =================
 const styles = StyleSheet.create({
+	keyboardAvoidingView: {
+		// NOTE: Keyboard avoiding container
+		flex: 1,
+		justifyContent: 'center',
+	},
+	containerScrollView: {
+		// NOTE: This is the scrollable window (The modal sits infront of this allowing it to be scrollable)
+		maxHeight: '95%',
+		flexGrow: 0,
+	},
 	container: {
+		// NOTE: #contentContainerStyle)
 		backgroundColor: ReMapColors.ui.background,
 		borderRadius: 20,
-		// height: 500,
-		maxHeight: '90%',
-		minHeight: 200,
+		minHeight: 100,
 		shadowColor: '#000',
 		shadowOffset: { width: 0, height: 4 },
 		shadowOpacity: 10,
-		shadowRadius: 20,
+		shadowRadius: 50,
 		elevation: 20,
+	},
+	scrollContent: {
+		// flexGrow: 1,
+		justifyContent: 'center',
 	},
 	closeButton: {
 		position: 'absolute',
@@ -137,52 +255,87 @@ const styles = StyleSheet.create({
 		backgroundColor: ReMapColors.ui.background,
 		alignItems: 'center',
 		justifyContent: 'center',
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.1,
+		shadowRadius: 2,
+		elevation: 2,
 	},
 	closeButtonText: {
-		fontSize: 16,
-		color: ReMapColors.ui.textSecondary,
-		fontWeight: '500',
+		// NOTE: Typography handled by CaptionText
 	},
 	header: {
 		alignItems: 'center',
 		justifyContent: 'center',
 		position: 'relative',
-		// borderBottomWidth: 0,
 		borderBottomColor: ReMapColors.ui.border,
 		paddingVertical: 10,
 		paddingHorizontal: 10,
+		borderBottomWidth: 1,
+	},
+	stickyHeader: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		zIndex: 10,
+		backgroundColor: ReMapColors.ui.background,
+		borderTopLeftRadius: 20,
+		borderTopRightRadius: 20,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+		elevation: 5,
 	},
 	headerText: {
-		textAlign: 'center',
-		fontSize: 25,
-		fontWeight: '600',
-		color: ReMapColors.ui.text,
+		// NOTE: Typography handled by HeaderText
 	},
-	text: {
-		paddingTop: 10,
-		textAlign: 'center',
-		fontSize: 24,
+	bodyScrollView: {
+		flex: 1,
 	},
 	body: {
-		justifyContent: 'center',
 		paddingHorizontal: 25,
 		paddingVertical: 15,
-		// flex: 1,
-		// minHeight: 100,
+		minHeight: 100,
+	},
+	bodyNoPadding: {
+		minHeight: 100,
+	},
+	bodyScrollContent: {
+		paddingBottom: 20,
+		// flexGrow: 1,
 	},
 	footer: {
 		justifyContent: 'center',
 		alignItems: 'center',
 		paddingHorizontal: 20,
 		paddingVertical: 25,
-		// padding: 10,
 		flexDirection: 'row',
-		// borderTopWidth: 1,
 		borderTopColor: ReMapColors.ui.border,
+		borderTopWidth: 1,
 		gap: 30,
+		backgroundColor: ReMapColors.ui.background,
+		borderBottomLeftRadius: 20,
+		borderBottomRightRadius: 20,
+	},
+	stickyFooter: {
+		position: 'absolute',
+		bottom: 0,
+		left: 0,
+		right: 0,
+		zIndex: 10,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: -2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+		elevation: 5,
 	},
 });
 
+// ===================
+//   COMPOUND EXPORTS
+// ===================
 Modal.Header = ModalHeader;
 Modal.Container = ModalContainer;
 Modal.Body = ModalBody;
