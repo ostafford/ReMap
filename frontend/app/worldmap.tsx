@@ -138,23 +138,10 @@ export default function WorldMapScreen() {
               onPress={openLoginModal}>
             </IconButton>
 
-            {/* <Button onPress={openLoginModal}>
-              Login
-            </Button> */}
-
-            {/* <Button onPress={goBack} style={styles.backButton}>
-              Back
-            </Button> */}
             <IconButton
-              icon="cog"
+              icon="sliders"
               onPress={navigateToCreatePin}>
             </IconButton>
-            {/* <Button onPress={openBottomSheet}>
-              open
-            </Button> */}
-
-
-
 
             {/* this is for the login / sign up modal */}
             <Modal isVisible={isModalVisible} onBackdropPress={() => setIsModalVisible(false)}>

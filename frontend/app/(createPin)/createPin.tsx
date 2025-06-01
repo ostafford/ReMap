@@ -103,18 +103,6 @@ export default function createPin() {
 	};
 
 
-	
-
-
-
-
-
-
-
-
-
-
-
   // ==============================================
   // =============== PAGE ROUTING  ================
   // ==============================================
@@ -132,7 +120,6 @@ export default function createPin() {
 	  
 	  <MainContent>
 		<View style={styles.content}>
-		{/* separating using Views to control each section only for development */}
 			
 			<Input
 			label="Search it"
@@ -193,8 +180,12 @@ export default function createPin() {
 						</IconButton>
 					</View>
 				</View>
-
 			</View>
+
+			<IconButton
+				icon='play'
+				onPress={playRecording}
+			></IconButton>
 
 		</View>
 	  </MainContent>
@@ -243,7 +234,6 @@ const styles = StyleSheet.create({
   imageUpload: {
 	width: '65%',
 	justifyContent: 'flex-start',
-	// backgroundColor:'yellow',
 },
   cameraMicrophone: {
 	flexDirection: 'row',
@@ -283,7 +273,6 @@ const styles = StyleSheet.create({
   },
   row: {
 	flexDirection: 'row',
-
 	width: '100%',
 	justifyContent:'space-between',
   },
