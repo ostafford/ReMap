@@ -2,8 +2,13 @@
 //   CORE IMPORTS
 // ================
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// ================================
+//   INTERNAL 'TYPOGRAPHY' IMPORTS
+// ================================
+import { HeaderText, CaptionText } from '@/components/ui/Typography';
 
 // ================================
 //   INTERNAL 'CONSTANTS' IMPORTS
@@ -15,10 +20,12 @@ import { ReMapColors } from '@/constants/Colors';
 // ====================
 interface HeaderProps {
 	title: string;
-	subtitle?: String;
+	subtitle?: string;
 	showBackButton?: boolean;
 	style?: any;
 	backgroundColor?: string;
+	titleColor?: string;
+	subtitleColor?: string;
 }
 
 // ========================
@@ -29,6 +36,8 @@ export const Header = ({
 	subtitle,
 	style,
 	backgroundColor = ReMapColors.primary.violet,
+	titleColor = ReMapColors.ui.cardBackground, // NOTE: White text on colored background
+	subtitleColor = ReMapColors.ui.cardBackground,
 }: HeaderProps) => {
 	const insets = useSafeAreaInsets();
 
@@ -38,14 +47,29 @@ export const Header = ({
 				styles.container,
 				{
 					backgroundColor,
-					paddingTop: 10,
+					paddingTop: Math.max(insets.top, 50), // Respect safe area
 				},
 				style,
 			]}
 		>
 			<View style={styles.content}>
-				<Text style={styles.title}>{title}</Text>
-				{subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+				<HeaderText
+					align="center"
+					style={styles.title}
+					color={titleColor}
+				>
+					{title}
+				</HeaderText>
+
+				{subtitle && (
+					<CaptionText
+						align="center"
+						style={styles.subtitle}
+						color={subtitleColor}
+					>
+						{subtitle}
+					</CaptionText>
+				)}
 			</View>
 		</View>
 	);
@@ -56,23 +80,27 @@ export const Header = ({
 // ================
 const styles = StyleSheet.create({
 	container: {
-		paddingBottom: 10,
-		paddingHorizontal: 10,
+		paddingBottom: 15,
+		paddingHorizontal: 20,
+		shadowColor: '#000',
+		shadowOffset: {
+			width: 0,
+			height: 2,
+		},
+		shadowOpacity: 0.1,
+		shadowRadius: 3.84,
+		elevation: 5,
 	},
 	content: {
 		alignItems: 'center',
 	},
 	title: {
-		fontSize: 16,
-		fontWeight: 'bold',
-		color: ReMapColors.ui.text,
-		textAlign: 'center',
+		// Typography component handles all text styling
+		opacity: 0.95,
 	},
 	subtitle: {
-		fontSize: 14,
-		color: ReMapColors.ui.text,
-		textAlign: 'center',
-		marginTop: 5,
+		// Typography component handles all text styling
+		marginTop: 4,
 		opacity: 0.9,
 	},
 });

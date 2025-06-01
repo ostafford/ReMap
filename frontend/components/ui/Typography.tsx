@@ -71,7 +71,7 @@ const typographySystem: Record<string, TextVariant> = {
 		marginBottom: 2,
 	},
 	button: {
-		fontSize: 16,
+		fontSize: 15,
 		fontWeight: '600',
 		lineHeight: 20,
 	},
@@ -89,7 +89,7 @@ const typographySystem: Record<string, TextVariant> = {
 	label: {
 		fontSize: 14,
 		fontWeight: '500',
-		lineHeight: 18,
+		lineHeight: 0,
 		marginBottom: 4,
 	},
 };
