@@ -57,9 +57,7 @@ export default function WorldMapScreen() {
 	//   MODAL STATE
 	// ==================
 	const [isModalVisible, setIsModalVisible] = React.useState(false);
-	const [modalMode, setModalMode] = React.useState<'login' | 'signup'>(
-		'login'
-	);
+	const [modalMode, setModalMode] = React.useState<'login' | 'signup'>('login');
 
 	const openLoginModal = () => {
 		setModalMode('login');
@@ -228,6 +226,10 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 		marginBottom: 30,
 	},
+	map: {
+		width: '100%',
+		height: 550,
+	},
 	scrollContent: {
 		padding: 8,
 	},
@@ -250,15 +252,11 @@ const styles = StyleSheet.create({
 	cancelButton: {
 		backgroundColor: ReMapColors.ui.textSecondary,
 	},
-	modalButtonContainer: {
-		flexDirection: 'column',
-		alignItems: 'center',
-	},
 	footerContainer: {
 		flexDirection: 'row',
 	},
-	map: {
-		width: '100%',
-		height: 550,
+	modalButtonContainer: {
+		flexDirection: 'column',
+		alignItems: 'center',
 	},
 });
