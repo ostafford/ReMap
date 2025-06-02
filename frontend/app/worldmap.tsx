@@ -1,14 +1,30 @@
+// ================
+//   CORE IMPORTS
+// ================
 import React, { useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Alert, Image } from 'react-native';
+
+// =======================
+//   THIRD-PARTY IMPORTS
+// =======================
 import { router } from 'expo-router';
 import { ReMapColors } from '@/constants/Colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-// Components imports
+// ================================
+//   INTERNAL 'UI' COMPONENTS
+// ================================
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
 import { IconButton } from '@/components/ui/IconButton';
+
+// ============================
+//   INTERNAL 'LAYOUT' COMPONENTS
+// ============================
 import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
 import { Footer } from '@/components/layout/Footer';
@@ -26,7 +42,7 @@ export default function WorldMapScreen() {
 	//   EVENT HANDLERS
 	// ==================
 	const goBack = () => {
-		router.back();
+		router.navigate('/onboarding/account');
 	};
 	const navigateToWorldMap = () => {
 		router.navigate('/worldmap');
@@ -35,7 +51,9 @@ export default function WorldMapScreen() {
 		router.navigate('/createPin');
 	};
 
-	// Modals
+	// ==================
+	//   MODAL STATE
+	// ==================
 	const [isModalVisible, setIsModalVisible] = React.useState(false);
 	const [modalMode, setModalMode] = React.useState<'login' | 'signup'>(
 		'login'
@@ -46,17 +64,10 @@ export default function WorldMapScreen() {
 		setIsModalVisible(true);
 	};
 
-	// BottomSheet
-	const bottomSheetRef = useRef<BottomSheet>(null);
-	const snapPoints = useMemo(() => ['50%'], []);
-	const [bottomSheetIndex, setBottomSheetIndex] = React.useState(-1);
-
-	const openBottomSheet = () => setBottomSheetIndex(0);
-	const closeBottomSheet = () => setBottomSheetIndex(-1);
-
-	// Setting up MAP
+	// ================
+	//   MAP SETTINGS
+	// ================
 	const INITIAL_REGION = {
-		// Holberton coordinates
 		latitude: -37.817979,
 		longitude: 144.960408,
 		latitudeDelta: 0.01,
@@ -232,9 +243,8 @@ const styles = StyleSheet.create({
 		height: 550,
 	},
 	scrollContent: {
-		padding: 20,
+		padding: 8,
 	},
-
 	search: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
@@ -245,9 +255,8 @@ const styles = StyleSheet.create({
 	backButton: {
 		backgroundColor: ReMapColors.primary.black,
 	},
-
 	modalButton: {
-		width: 150,
+		width: 'auto',
 	},
 	signUpButton: {
 		backgroundColor: '#2900E2',
