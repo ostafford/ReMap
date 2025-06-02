@@ -205,7 +205,7 @@ export default function CreatePinScreen() {
 	//   NAVIGATION HANDLERS
 	// =======================
 	const goBack = () => {
-		router.back();
+		router.replace('/worldmap');
 	};
 
 	const navigateToWorldMap = () => {

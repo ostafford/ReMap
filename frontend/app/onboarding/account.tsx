@@ -56,15 +56,6 @@ import {
 	isSignedIn,
 } from '@/services/auth';
 
-// =========================
-//   TYPE DEFINITIONS
-// =========================
-// interface MessageState {
-// 	show: boolean;
-// 	message: string;
-// 	type?: 'success' | 'error' | 'warning' | 'info';
-// }
-
 // ========================
 //   COMPONENT DEFINITION
 // ========================
