@@ -39,7 +39,7 @@ export const Footer = ({
 				{
 					backgroundColor,
 					padding,
-					// paddingBottom: Math.max(insets.bottom, padding),
+					paddingBottom: Math.max(insets.bottom, padding),
 				},
 				style,
 			]}

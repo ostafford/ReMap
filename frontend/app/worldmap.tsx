@@ -56,7 +56,7 @@ export default function WorldMapScreen() {
 	//   EVENT HANDLERS
 	// ==================
 	const goBack = () => {
-		router.back();
+		router.navigate('/onboarding/account');
 	};
 	const navigateToWorldMap = () => {
 		router.navigate('/worldmap');
@@ -147,7 +147,7 @@ export default function WorldMapScreen() {
 							onPress={navigateToCreatePin}
 						></IconButton>
 
-						{/* Login/Signup Modal
+						{/* Login/Signup Modal */}
 						<Modal
 							isVisible={isModalVisible}
 							onBackdropPress={() => setIsModalVisible(false)}
@@ -217,7 +217,7 @@ export default function WorldMapScreen() {
 									</View>
 								</Modal.Footer>
 							</Modal.Container>
-						</Modal> */}
+						</Modal>
 					</View>
 				</Footer>
 

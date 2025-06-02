@@ -1,8 +1,8 @@
 // ================
 //   CORE IMPORTS
 // ================
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Alert } from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
@@ -26,6 +26,7 @@ import {
 	SuccessMessage,
 	ErrorMessage,
 	WarningMessage,
+	InfoMessage,
 } from '@/components/ui/Messages';
 
 // ================================
@@ -47,16 +48,22 @@ import { ReMapColors } from '@/constants/Colors';
 // =============================
 //   INTERNAL 'SERVICES' IMPORTS
 // =============================
-import { signIn, signUp } from '@/services/auth';
+import {
+	signIn,
+	signUp,
+	signOut,
+	getCurrentUser,
+	isSignedIn,
+} from '@/services/auth';
 
 // =========================
 //   TYPE DEFINITIONS
 // =========================
-interface MessageState {
-	show: boolean;
-	message: string;
-	type?: 'success' | 'error' | 'warning' | 'info';
-}
+// interface MessageState {
+// 	show: boolean;
+// 	message: string;
+// 	type?: 'success' | 'error' | 'warning' | 'info';
+// }
 
 // ========================
 //   COMPONENT DEFINITION
@@ -81,11 +88,24 @@ export default function OnboardingAccountScreen() {
 	// ==================
 	//   MESSAGE STATE
 	// ==================
-	const [messageState, setMessageState] = useState<MessageState>({
+	const [messageState, setMessageState] = useState({
 		show: false,
 		message: '',
-		type: 'info',
+		type: 'info' as 'success' | 'error' | 'warning' | 'info',
 	});
+
+	// ==================
+	//   AUTH STATE
+	// ==================
+	const [currentUser, setCurrentUser] = useState<any>(null);
+	const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+	// ====================
+	//   AUTH DEFINITIONS
+	// ====================
+	useEffect(() => {
+		checkCurrentUser();
+	}, []);
 
 	// ==================
 	//   HELPER FUNCTIONS
@@ -99,7 +119,7 @@ export default function OnboardingAccountScreen() {
 
 	const showMessage = (
 		message: string,
-		type: MessageState['type'] = 'info'
+		type: typeof messageState.type = 'info'
 	) => {
 		setMessageState({ show: true, message, type });
 	};
@@ -117,25 +137,21 @@ export default function OnboardingAccountScreen() {
 		hideMessage();
 	};
 
-	// ==================
-	//   MODAL CONTROLS
-	// ==================
-	const toggleLoginModal = () => {
-		setIsLoginModalVisible(!isLoginModalVisible);
-		resetForm();
-	};
-
-	const toggleSignupModal = () => {
-		setIsSignupModalVisible(!isSignupModalVisible);
-		resetForm();
-	};
-
 	// ===========================
 	//   AUTHENTICATION HANDLERS
 	// ===========================
 	const handleSignUp = async () => {
 		if (!email || !password || !fullName) {
 			showMessage('Please fill out all required fields', 'warning');
+			return;
+		}
+
+		// Check if user is already signed in
+		if (currentUser) {
+			showMessage(
+				'You are already signed in. Please sign out first to create a new account.',
+				'warning'
+			);
 			return;
 		}
 
@@ -155,15 +171,17 @@ export default function OnboardingAccountScreen() {
 
 		try {
 			await signUp({ email, password });
-
 			showMessage(
 				'Welcome to ReMap! Account created successfully.',
 				'success'
 			);
 
+			// Refresh current user info
+			await checkCurrentUser();
+
 			setTimeout(() => {
 				navigateToWorldMap();
-			}, 2000);
+			}, 10000);
 		} catch (error: any) {
 			console.error('Signup error:', error);
 			const errorMessage =
@@ -193,6 +211,9 @@ export default function OnboardingAccountScreen() {
 			await signIn({ email, password });
 			showMessage('Welcome back! Successfully signed in.', 'success');
 
+			// Refresh current user info
+			await checkCurrentUser();
+
 			setTimeout(() => {
 				navigateToWorldMap();
 			}, 1500);
@@ -204,6 +225,50 @@ export default function OnboardingAccountScreen() {
 			showMessage(errorMessage, 'error');
 		} finally {
 			setIsLoading(false);
+		}
+	};
+
+	const handleSignOut = async () => {
+		Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+			{ text: 'Cancel', style: 'cancel' },
+			{
+				text: 'Sign Out',
+				style: 'destructive',
+				onPress: async () => {
+					setIsLoading(true);
+					try {
+						await signOut();
+						setCurrentUser(null);
+						showMessage('Successfully signed out', 'success');
+					} catch (error: any) {
+						console.error('Sign out error:', error);
+						showMessage(
+							error.message || 'Failed to sign out',
+							'error'
+						);
+					} finally {
+						setIsLoading(false);
+					}
+				},
+			},
+		]);
+	};
+
+	const checkCurrentUser = async () => {
+		setIsCheckingAuth(true);
+		try {
+			const userInfo = await getCurrentUser();
+			setCurrentUser(userInfo.user);
+
+			if (userInfo.user) {
+				console.log('👤 Current user found:', userInfo.user.email);
+			} else {
+				console.log('👤 No current user session');
+			}
+		} catch (error) {
+			console.error('Error checking current user:', error);
+		} finally {
+			setIsCheckingAuth(false);
 		}
 	};
 
@@ -234,113 +299,210 @@ export default function OnboardingAccountScreen() {
 		router.back();
 	};
 
+	const toggleLoginModal = () => {
+		setIsLoginModalVisible(!isLoginModalVisible);
+		resetForm();
+	};
+
+	const toggleSignupModal = () => {
+		setIsSignupModalVisible(!isSignupModalVisible);
+		resetForm();
+	};
+
+	if (isCheckingAuth) {
+		return (
+			<View style={styles.container}>
+				<Header
+					title="Loading..."
+					subtitle="Checking authentication status"
+				/>
+				<MainContent>
+					<View style={styles.loadingContainer}>
+						<BodyText align="center">
+							Checking your authentication status...
+						</BodyText>
+					</View>
+				</MainContent>
+			</View>
+		);
+	}
+
 	// ============================
 	//   COMPONENT RENDER SECTION
 	// ============================
 	return (
 		<View style={styles.container}>
-			<Header
-				title="Create Your Account"
-				subtitle="Step 3 of 3 - Almost there!"
-			/>
+			<Header title="Create Your Account" />
 
 			<MainContent>
 				<View style={styles.content}>
-					<View style={styles.welcomeSection}>
-						<BodyText style={styles.welcomeIcon}>🎉</BodyText>
-						<HeaderText align="center" style={styles.welcomeTitle}>
-							You're Almost Ready!
-						</HeaderText>
-						<BodyText
-							align="center"
-							style={styles.welcomeDescription}
-						>
-							Create your ReMap account to start building your
-							interactive memory atlas and connect with the
-							community.
-						</BodyText>
-					</View>
+					{/* NEW: Current User Status */}
+					{currentUser && (
+						<View style={styles.currentUserContainer}>
+							<InfoMessage title="Already Signed In">
+								You are currently signed in as:{' '}
+								{currentUser.email}
+								{'\n'}
+								To create a new account, please sign out first.
+							</InfoMessage>
 
-					<View style={styles.benefitsContainer}>
-						<SubheaderText style={styles.benefitsTitle}>
-							With a ReMap account:
-						</SubheaderText>
-
-						<View style={styles.benefitsList}>
-							<View style={styles.benefitItem}>
-								<BodyText style={styles.benefitIcon}>
-									💾
-								</BodyText>
-								<BodySmallText style={styles.benefitText}>
-									Save and sync your memories across devices
-								</BodySmallText>
-							</View>
-
-							<View style={styles.benefitItem}>
-								<BodyText style={styles.benefitIcon}>
-									🤝
-								</BodyText>
-								<BodySmallText style={styles.benefitText}>
-									Share special moments with friends and
-									family
-								</BodySmallText>
-							</View>
-
-							<View style={styles.benefitItem}>
-								<BodyText style={styles.benefitIcon}>
-									🌍
-								</BodyText>
-								<BodySmallText style={styles.benefitText}>
-									Discover and contribute to the global memory
-									map
-								</BodySmallText>
-							</View>
-
-							<View style={styles.benefitItem}>
-								<BodyText style={styles.benefitIcon}>
-									🔒
-								</BodyText>
-								<BodySmallText style={styles.benefitText}>
-									Full control over your privacy and sharing
-									settings
-								</BodySmallText>
-							</View>
+							<Button
+								style={styles.signOutButton}
+								onPress={handleSignOut}
+								disabled={isLoading}
+								variant="danger"
+							>
+								🚪 Sign Out
+							</Button>
 						</View>
-					</View>
+					)}
 
-					<View style={styles.accountOptions}>
-						<LabelText align="center" style={styles.optionsTitle}>
-							How would you like to proceed?
-						</LabelText>
-					</View>
+					{/* Existing welcome section - only show if not signed in */}
+					{!currentUser && (
+						<>
+							<View style={styles.welcomeSection}>
+								<BodyText style={styles.welcomeIcon}>
+									🎉
+								</BodyText>
+								<HeaderText
+									align="center"
+									style={styles.welcomeTitle}
+								>
+									You're Almost Ready!
+								</HeaderText>
+								<BodyText
+									align="center"
+									style={styles.welcomeDescription}
+								>
+									Create your ReMap account to start building
+									your interactive memory atlas and connect
+									with the community.
+								</BodyText>
+							</View>
+
+							<View style={styles.benefitsContainer}>
+								<SubheaderText style={styles.benefitsTitle}>
+									With a ReMap account:
+								</SubheaderText>
+
+								<View style={styles.benefitsList}>
+									<View style={styles.benefitItem}>
+										<BodyText style={styles.benefitIcon}>
+											💾
+										</BodyText>
+										<BodySmallText
+											style={styles.benefitText}
+										>
+											Save and sync your memories across
+											devices
+										</BodySmallText>
+									</View>
+
+									<View style={styles.benefitItem}>
+										<BodyText style={styles.benefitIcon}>
+											🤝
+										</BodyText>
+										<BodySmallText
+											style={styles.benefitText}
+										>
+											Share special moments with friends
+											and family
+										</BodySmallText>
+									</View>
+
+									<View style={styles.benefitItem}>
+										<BodyText style={styles.benefitIcon}>
+											🌍
+										</BodyText>
+										<BodySmallText
+											style={styles.benefitText}
+										>
+											Discover and contribute to the
+											global memory map
+										</BodySmallText>
+									</View>
+
+									<View style={styles.benefitItem}>
+										<BodyText style={styles.benefitIcon}>
+											🔒
+										</BodyText>
+										<BodySmallText
+											style={styles.benefitText}
+										>
+											Full control over your privacy and
+											sharing settings
+										</BodySmallText>
+									</View>
+								</View>
+							</View>
+
+							<View style={styles.accountOptions}>
+								<LabelText
+									align="center"
+									style={styles.optionsTitle}
+								>
+									How would you like to proceed?
+								</LabelText>
+							</View>
+						</>
+					)}
 				</View>
 			</MainContent>
 
 			<Footer>
 				<View style={styles.buttonContainer}>
-					<Button
-						style={styles.primaryButton}
-						onPress={toggleSignupModal}
-					>
-						🚀 Create New Account
-					</Button>
+					{/* Show different buttons based on auth state */}
+					{currentUser ? (
+						<>
+							<Button
+								style={styles.primaryButton}
+								onPress={navigateToWorldMap}
+							>
+								🗺️ Continue to World Map
+							</Button>
 
-					<Button
-						style={styles.secondaryButton}
-						onPress={toggleLoginModal}
-					>
-						🔑 I Already Have an Account
-					</Button>
+							<View style={styles.navigationActions}>
+								<Button
+									style={styles.backButton}
+									onPress={goBack}
+								>
+									← Previous
+								</Button>
+							</View>
+						</>
+					) : (
+						<>
+							<Button
+								style={styles.primaryButton}
+								onPress={toggleSignupModal}
+							>
+								Create New Account
+							</Button>
 
-					<View style={styles.navigationActions}>
-						<Button style={styles.backButton} onPress={goBack}>
-							← Previous
-						</Button>
+							<Button
+								style={styles.secondaryButton}
+								onPress={toggleLoginModal}
+							>
+								Sign In
+							</Button>
 
-						<Button style={styles.skipButton} onPress={skipAuth}>
-							Skip for Now
-						</Button>
-					</View>
+							<View style={styles.navigationActions}>
+								<Button
+									style={styles.backButton}
+									onPress={goBack}
+								>
+									← Previous
+								</Button>
+
+								<Button
+									style={styles.skipButton}
+									onPress={skipAuth}
+								>
+									Skip for Now
+								</Button>
+							</View>
+						</>
+					)}
 				</View>
 			</Footer>
 
@@ -554,10 +716,23 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: ReMapColors.ui.background,
 	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		padding: 40,
+	},
 	content: {
 		flex: 1,
 		paddingHorizontal: 20,
 		paddingVertical: 20,
+	},
+	currentUserContainer: {
+		marginBottom: 30,
+	},
+	signOutButton: {
+		marginTop: 15,
+		backgroundColor: ReMapColors.semantic.error,
 	},
 	welcomeSection: {
 		alignItems: 'center',
