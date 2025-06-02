@@ -169,16 +169,7 @@ export const ToastMessage = ({
 	// ==========================================
 	//   AUTO-DISMISS FUNCTIONALITY
 	// ==========================================
-	useEffect(() => {
-		if (autoHide && onDismiss && duration > 0) {
-			const timer = setTimeout(() => {
-				onDismiss();
-			}, duration * 1000);
-
-			// NOTE: Cleanup timer on unmount or dependency change
-			return () => clearTimeout(timer);
-		}
-	}, [autoHide, onDismiss, duration]);
+	useEffect(() => {}, [autoHide, onDismiss, duration]);
 
 	// ==========================================
 	//   DYNAMIC STYLING BASED ON TYPE

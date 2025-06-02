@@ -49,7 +49,6 @@ import {
 	BodyText,
 	LabelText,
 	CaptionText,
-	ErrorText,
 } from '@/components/ui/Typography';
 
 // ================================
@@ -206,11 +205,11 @@ export default function CreatePinScreen() {
 	//   NAVIGATION HANDLERS
 	// =======================
 	const goBack = () => {
-		router.back();
+		router.replace('/worldmap');
 	};
 
 	const navigateToWorldMap = () => {
-		router.navigate('/worldmap');
+		router.replace('/worldmap');
 	};
 
 	// ==================
@@ -279,32 +278,29 @@ export default function CreatePinScreen() {
 
 	const scrollToInput = (inputRef: any, inputId: string) => {
 		if (scrollViewRef.current) {
-			// NOTE: Wait for keyboard animation to complete
-			setTimeout(() => {
-				let scrollOffset = 0;
+			let scrollOffset = 0;
 
-				switch (inputId) {
-					case 'location':
-						scrollOffset = -120;
-						break;
-					case 'title':
-						scrollOffset = 150;
-						break;
-					case 'description':
-						scrollOffset = 300;
-						break;
-					default:
-						scrollOffset = 200;
-				}
+			switch (inputId) {
+				case 'location':
+					scrollOffset = -120;
+					break;
+				case 'title':
+					scrollOffset = 150;
+					break;
+				case 'description':
+					scrollOffset = 300;
+					break;
+				default:
+					scrollOffset = 200;
+			}
 
-				if (keyboardHeight > 0) {
-					scrollOffset += 100;
-				}
-				scrollViewRef.current?.scrollTo({
-					y: scrollOffset,
-					animated: true,
-				});
-			}, 0); // Longer delay to ensure keyboard is fully shown
+			if (keyboardHeight > 0) {
+				scrollOffset += 100;
+			}
+			scrollViewRef.current?.scrollTo({
+				y: scrollOffset,
+				animated: true,
+			});
 		}
 	};
 
@@ -670,46 +666,55 @@ export default function CreatePinScreen() {
 	};
 
 	const handleConfirmSave = () => {
-		if (!previewData) return;
+		console.log('DEBUG: previewData exists?', !!previewData);
+		console.log('DEBUG: previewData title:', previewData?.content?.title);
+		const currentMemoryData = createMemoryData();
 
-		// NOTE: Log the memory data (in production, this would be sent to your backend)
+		if (
+			!currentMemoryData.content.title.trim() ||
+			!currentMemoryData.location.query.trim()
+		) {
+			console.error('Missing required data for saving');
+			return;
+		}
+
+		// Log the memory data (in production, this would be sent to your backend)
 		console.log('Saving memory pin with data:');
-		console.log(JSON.stringify(previewData, null, 2));
+		console.log(JSON.stringify(currentMemoryData, null, 2));
 
-		// ATTN: Hide preview modal and show success
+		// Hide preview modal and show success
 		hideModal();
 
-		setTimeout(() => {
-			showModal(
-				'success',
-				'Memory Posted!',
-				`Your memory "${previewData.content.title}" has been successfully posted to ${previewData.location.query}.`,
-				[
-					{
-						text: 'View on Map',
-						onPress: () => {
-							hideModal();
-							navigateToWorldMap();
-						},
-						style: 'primary',
+		showModal(
+			'success',
+			'Memory Posted!',
+			`Your memory "${currentMemoryData.content.title}" has been successfully posted to ${currentMemoryData.location.query}.`,
+			[
+				{
+					text: 'View on Map',
+					onPress: () => {
+						hideModal();
+						navigateToWorldMap();
 					},
-					{
-						text: 'Create Another',
-						onPress: () => {
-							hideModal();
-							// Reset form
-							setMemoryTitle('');
-							setMemoryDescription('');
-							setLocationQuery('');
-							setSelectedMedia([]);
-							setAudioUri(null);
-							setSelectedVisibility(['public']);
-						},
-						style: 'secondary',
+					style: 'primary',
+				},
+				{
+					text: 'Create Another',
+					onPress: () => {
+						hideModal();
+						// Reset form
+						setMemoryTitle('');
+						setMemoryDescription('');
+						setLocationQuery('');
+						setSelectedMedia([]);
+						setAudioUri(null);
+						setSelectedVisibility(['public']);
+						setPreviewData(null); // IMPORTANT: Clear preview data
 					},
-				]
-			);
-		}, 0);
+					style: 'secondary',
+				},
+			]
+		);
 	};
 
 	// ====================

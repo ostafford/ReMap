@@ -45,10 +45,10 @@ export default function WorldMapScreen() {
 		router.navigate('/onboarding/account');
 	};
 	const navigateToWorldMap = () => {
-		router.navigate('/worldmap');
+		router.replace('/worldmap');
 	};
 	const navigateToCreatePin = () => {
-		router.navigate('/createPin');
+		router.replace('/createPin');
 	};
 
 	// ==================

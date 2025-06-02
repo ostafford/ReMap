@@ -33,7 +33,7 @@ COPY frontend/package*.json ./frontend/
 
 # Install all dependencies
 RUN cd backend && npm install && npm cache clean --force
-RUN cd frontend && npm install && npm cache clean --force
+RUN cd frontend && npm install && npx expo install --fix && npm cache clean --force
 
 # Copy the complete project
 COPY . .
