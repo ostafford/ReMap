@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
 import { ReMapColors } from '@/constants/Colors';
@@ -12,6 +12,8 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
 import { Footer } from '@/components/layout/Footer';
+import { getCurrentUser } from '@/services/auth';
+import { signOut } from '@/services/auth';
 
 // Map imports
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
@@ -19,6 +21,7 @@ import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 // Fancy schmancy modal library imports
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BodyText, CaptionText } from '@/components/ui/Typography';
 
 export default function WorldMapScreen() {
 	// to make sure page isnt going over status bar region
@@ -61,6 +64,45 @@ export default function WorldMapScreen() {
 		longitude: 144.960408,
 		latitudeDelta: 0.01,
 		longitudeDelta: 0.01,
+	};
+
+	// ===========================
+	//   OKKY DOING SOME TESTING
+	// ===========================
+	// Auth Checks
+	const [currentUser, setCurrentUser] = useState<any>(null);
+	const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+	useEffect(() => {
+		const checkUserAuth = async () => {
+			try {
+				const userInfo = await getCurrentUser();
+				setCurrentUser(userInfo.user);
+			} catch (error) {
+				console.error('Error checking user auth:', error);
+			} finally {
+				setIsCheckingAuth(false);
+			}
+		};
+
+		checkUserAuth();
+	}, []);
+
+	// Profile Modal
+	const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
+
+	const openProfileModal = () => setIsProfileModalVisible(true);
+	const closeProfileModal = () => setIsProfileModalVisible(false);
+
+	const handleSignOut = async () => {
+		try {
+			await signOut();
+			setCurrentUser(null);
+			closeProfileModal();
+			router.replace('/'); // Navigate back to splash
+		} catch (error) {
+			console.error('Sign out error:', error);
+		}
 	};
 
 	return (
@@ -117,10 +159,12 @@ export default function WorldMapScreen() {
 
 				<Footer>
 					<View style={styles.footerContainer}>
-						<IconButton
-							icon="chevron-left"
-							onPress={goBack}
-						></IconButton>
+						{!currentUser && (
+							<IconButton
+								icon="chevron-left"
+								onPress={goBack}
+							></IconButton>
+						)}
 						<IconButton
 							icon="map-pin"
 							onPress={navigateToCreatePin}
@@ -128,7 +172,9 @@ export default function WorldMapScreen() {
 
 						<IconButton
 							icon="user"
-							onPress={openLoginModal}
+							onPress={
+								currentUser ? openProfileModal : openLoginModal
+							}
 						></IconButton>
 
 						<IconButton
@@ -210,6 +256,59 @@ export default function WorldMapScreen() {
 					</View>
 				</Footer>
 
+				{/* ATTN OKKY: Profile Modal fof signed in users to sign out */}
+				<Modal
+					isVisible={isProfileModalVisible}
+					onBackdropPress={closeProfileModal}
+				>
+					<Modal.Container>
+						<Modal.Header
+							title={`Hello, ${
+								currentUser?.email?.split('@')[0] || 'User'
+							}! 👋`}
+						/>
+						<Modal.Body>
+							<View style={styles.profileContent}>
+								<BodyText style={styles.profileEmail}>
+									📧 {currentUser?.email}
+								</BodyText>
+								<CaptionText style={styles.profileMeta}>
+									Member since{' '}
+									{currentUser
+										? new Date(
+												currentUser.created_at
+										  ).toLocaleDateString()
+										: ''}
+								</CaptionText>
+								<BodyText style={styles.profileMessage}>
+									Full profile page coming soon! For now, you
+									can sign out if needed.
+								</BodyText>
+							</View>
+						</Modal.Body>
+						<Modal.Footer>
+							<Button
+								onPress={handleSignOut}
+								style={[
+									styles.modalButton,
+									styles.signOutButton,
+								]}
+							>
+								🚪 Sign Out
+							</Button>
+							<Button
+								onPress={closeProfileModal}
+								style={[
+									styles.modalButton,
+									styles.cancelButton,
+								]}
+							>
+								Stay Signed In
+							</Button>
+						</Modal.Footer>
+					</Modal.Container>
+				</Modal>
+
 				{/* this is for the gorham bottomsheet for location&pin data */}
 				<BottomSheet
 					ref={bottomSheetRef}
@@ -289,5 +388,27 @@ const styles = StyleSheet.create({
 		width: '100%',
 		height: 500,
 		borderRadius: 12,
+	},
+
+	// Okky's Sign Out Testing Modal
+	profileContent: {
+		alignItems: 'center',
+		padding: 10,
+	},
+	profileEmail: {
+		marginBottom: 4,
+		fontSize: 16,
+	},
+	profileMeta: {
+		marginBottom: 20,
+		color: ReMapColors.ui.textSecondary,
+	},
+	profileMessage: {
+		textAlign: 'center',
+		color: ReMapColors.ui.textSecondary,
+		lineHeight: 22,
+	},
+	signOutButton: {
+		backgroundColor: ReMapColors.semantic.error,
 	},
 });
