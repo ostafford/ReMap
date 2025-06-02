@@ -58,6 +58,14 @@ import {
 // ================================
 import { ReMapColors } from '@/constants/Colors';
 
+// Import expo Media upload
+import * as ImagePicker from 'expo-image-picker';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { Audio } from 'expo-av';
+import { setAudioModeAsync } from 'expo-av/build/Audio';
+
+
+
 // =========================
 //   TYPE DEFINITIONS
 // =========================
@@ -154,6 +162,92 @@ export default function CreatePinScreen() {
 	const navigateToWorldMap = () => {
 		router.navigate('/worldmap');
 	};
+export default function createPin() {
+
+
+// ==============================================
+// =========== MEDIA UPLOAD METHODS =============
+// ==============================================
+
+  const uploadImageAsync = async () => {
+	let result = await ImagePicker.launchImageLibraryAsync({
+		allowsEditing: true,
+		quality: 0.75
+	});
+  }
+
+  const useCameraAsync = async () => {
+	await ImagePicker.requestCameraPermissionsAsync();
+	let result = await ImagePicker.launchCameraAsync({
+		allowsEditing: true,
+		quality: 0.75
+	})
+  }
+
+  
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [uri, setUri] = useState<string | null>(null);
+
+  const handleMicPress = () => {
+	if (recording) {
+		stopRecording();
+	} else {
+		startRecording();
+	}
+  };
+
+  const startRecording = async () => {
+	try {
+		const permission = await Audio.requestPermissionsAsync();
+		if (permission.status !== 'granted') {
+			alert('Micrphone permission required');
+			return;
+		}
+
+		await Audio.setAudioModeAsync({
+			allowsRecordingIOS: true,
+			playsInSilentModeIOS: true,
+		});
+
+		const { recording } = await Audio.Recording.createAsync (
+			Audio.RecordingOptionsPresets.LOW_QUALITY
+		);
+		setRecording(recording);
+	} 
+	catch (error) {
+		console.error('Error starting recording:', error);
+		}
+	};
+
+	const stopRecording = async () => {
+		if (recording != null) {
+			try {
+				await recording.stopAndUnloadAsync();
+				const uri = recording.getURI();
+				setUri(uri);
+				setRecording(null);
+				console.log('Recording saved at:', uri);
+			} 
+			catch (error) {
+				console.error('Error stopping recording:', error);
+			}
+		};
+	}
+		
+	const playRecording = async () => {
+		if (!uri) return;
+		const { sound } = await Audio.Sound.createAsync({ uri });
+		await sound.playAsync();
+	};
+
+
+  // ==============================================
+  // =============== PAGE ROUTING  ================
+  // ==============================================
+
+  const goBack = () => {
+	router.back();
+  };
 
 	const handleVisibilitySelect = (option: VisibilityOption) => {
 		setSelectedVisibility((prev) => {
@@ -797,6 +891,11 @@ export default function CreatePinScreen() {
 								/>
 							</View>
 
+			<IconButton
+				icon='play'
+				onPress={playRecording}
+			></IconButton>
+
 							<CaptionText style={styles.helperText}>
 								{isRecording
 									? '🔴 Recording... Tap microphone to stop'
@@ -975,4 +1074,76 @@ const styles = StyleSheet.create({
 	saveButton: {
 		flex: 4,
 	},
+  container: {
+	flex: 1,
+	backgroundColor: ReMapColors.ui.background,
+  },
+  content: {
+	alignItems: 'center',
+	paddingHorizontal: 20,
+	gap: 12,
+  },
+  description: {
+	fontSize: 16,
+	color: ReMapColors.ui.text,
+	textAlign: 'center',
+	lineHeight: 24,
+	marginBottom: 30,
+  },
+
+  displayLocationContainer: {
+	width: '100%',
+	alignItems:'center',
+  },
+  pin: {
+	width: 60,
+	height: 80,
+  },
+
+  imageUpload: {
+	width: '65%',
+	justifyContent: 'flex-start',
+},
+  cameraMicrophone: {
+	flexDirection: 'row',
+	alignItems:'center',
+  },
+
+  selectImage: {
+	borderRadius: 15,
+	backgroundColor: "#D9D9D9",
+	height: 'auto',
+	alignItems: 'flex-start',
+  },
+  imageUploadText: {
+	color: ReMapColors.primary.black,
+	fontSize: 14,
+  },
+
+  orText: {
+	fontSize: 14,
+	color: ReMapColors.ui.textSecondary,
+	textAlign: 'center',
+	marginBottom: 20,
+  },
+  buttonContainer: {
+	width: '100%',
+	gap: 10,
+  },
+  modalButton: {
+	width: 150,
+  },
+
+  fullWidth: {
+	width: '100%',
+  },
+  location: {
+
+  },
+  row: {
+	flexDirection: 'row',
+	width: '100%',
+	justifyContent:'space-between',
+  },
+
 });

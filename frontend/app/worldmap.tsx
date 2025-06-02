@@ -88,6 +88,43 @@ export default function WorldMapScreen() {
 		longitudeDelta: 0.01,
 	};
 
+  return (
+    //this bottom sheet honestly isn't working and im miserable
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={styles.container}>
+
+        <Header
+          title='World Map'
+          subtitle='Click on a pin and see what happens'
+        >
+        </Header>
+
+          {/**********************************************/}
+          {/**************** MAIN CONTENT ****************/}
+          {/* *********************************************/}
+        <MainContent>
+
+          <View>
+            <MapView 
+              style={styles.map}
+              provider={PROVIDER_GOOGLE}  
+              initialRegion={INITIAL_REGION}
+              showsUserLocation
+              showsMyLocationButton
+            >
+              <Marker
+                title="Holberton School"
+                description="Holberton Campus - Collins Street"
+                coordinate={{latitude: -37.817979, longitude: 144.960408 }}
+              >
+                <Image
+                  source={require('../assets/images/holberton_logo.jpg')}
+                  style={{ width: 60, height: 60 }}
+                  resizeMode="contain"
+                />
+              </Marker>
+            </MapView>
+          </View>
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<View style={styles.container}>
