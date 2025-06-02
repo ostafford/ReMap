@@ -9,7 +9,7 @@ import {
 	Platform,
 	ScrollView,
 	Keyboard,
-	Dimensions,
+	Alert,
 } from 'react-native';
 
 // =======================
@@ -17,7 +17,6 @@ import {
 // =======================
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-// NOTE: ## RUN THIS command in the frontend directory `npm expo install expo-image-picker expo-av`
 import { Audio } from 'expo-av';
 
 // ================================
@@ -58,14 +57,6 @@ import {
 // ================================
 import { ReMapColors } from '@/constants/Colors';
 
-// Import expo Media upload
-import * as ImagePicker from 'expo-image-picker';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Audio } from 'expo-av';
-import { setAudioModeAsync } from 'expo-av/build/Audio';
-
-
-
 // =========================
 //   TYPE DEFINITIONS
 // =========================
@@ -73,7 +64,13 @@ type VisibilityOption = 'public' | 'social' | 'private';
 
 interface ModalState {
 	show: boolean;
-	type: 'error' | 'permission' | 'photoChoice' | 'success' | 'info';
+	type:
+		| 'error'
+		| 'permission'
+		| 'photoChoice'
+		| 'success'
+		| 'info'
+		| 'preview';
 	title: string;
 	message: string;
 	actions?: Array<{
@@ -81,6 +78,38 @@ interface ModalState {
 		onPress: () => void;
 		style?: 'primary' | 'secondary' | 'danger';
 	}>;
+}
+
+interface MediaItem {
+	uri: string;
+	type: 'photo' | 'video';
+	name: string;
+}
+
+interface MemoryData {
+	id: string;
+	timestamp: string;
+	location: {
+		query: string;
+	};
+	content: {
+		title: string;
+		description: string;
+	};
+	visibility: VisibilityOption[];
+	media: {
+		photos: MediaItem[];
+		videos: MediaItem[];
+		audio: {
+			uri: string;
+			recorded: string;
+		} | null;
+	};
+	metadata: {
+		totalMediaItems: number;
+		hasDescription: boolean;
+		createdAt: string;
+	};
 }
 
 // ========================
@@ -116,6 +145,8 @@ export default function CreatePinScreen() {
 	const [recording, setRecording] = useState<Audio.Recording | null>(null);
 	const [isRecording, setIsRecording] = useState(false);
 	const [audioUri, setAudioUri] = useState<string | null>(null);
+	const [sound, setSound] = useState<Audio.Sound | null>(null);
+	const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
 	// ==============================
 	//   STATE MANAGEMENT [ MODAL ]
@@ -127,6 +158,11 @@ export default function CreatePinScreen() {
 		message: '',
 		actions: [],
 	});
+
+	// =================================
+	//   STATE MANAGEMENT [ PREVIEW ]
+	// =================================
+	const [previewData, setPreviewData] = useState<MemoryData | null>(null);
 
 	// ======================
 	//   KEYBOARD LISTENERS
@@ -152,9 +188,23 @@ export default function CreatePinScreen() {
 		};
 	}, []);
 
-	// ==================
-	//   EVENT HANDLERS
-	// ==================
+	// ============================
+	//   CLEANUP AUDIO ON UNMOUNT
+	// ============================
+	useEffect(() => {
+		return () => {
+			if (sound) {
+				sound.unloadAsync();
+			}
+			if (recording) {
+				recording.stopAndUnloadAsync();
+			}
+		};
+	}, [sound, recording]);
+
+	// =======================
+	//   NAVIGATION HANDLERS
+	// =======================
 	const goBack = () => {
 		router.back();
 	};
@@ -162,93 +212,10 @@ export default function CreatePinScreen() {
 	const navigateToWorldMap = () => {
 		router.navigate('/worldmap');
 	};
-export default function createPin() {
 
-
-// ==============================================
-// =========== MEDIA UPLOAD METHODS =============
-// ==============================================
-
-  const uploadImageAsync = async () => {
-	let result = await ImagePicker.launchImageLibraryAsync({
-		allowsEditing: true,
-		quality: 0.75
-	});
-  }
-
-  const useCameraAsync = async () => {
-	await ImagePicker.requestCameraPermissionsAsync();
-	let result = await ImagePicker.launchCameraAsync({
-		allowsEditing: true,
-		quality: 0.75
-	})
-  }
-
-  
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [uri, setUri] = useState<string | null>(null);
-
-  const handleMicPress = () => {
-	if (recording) {
-		stopRecording();
-	} else {
-		startRecording();
-	}
-  };
-
-  const startRecording = async () => {
-	try {
-		const permission = await Audio.requestPermissionsAsync();
-		if (permission.status !== 'granted') {
-			alert('Micrphone permission required');
-			return;
-		}
-
-		await Audio.setAudioModeAsync({
-			allowsRecordingIOS: true,
-			playsInSilentModeIOS: true,
-		});
-
-		const { recording } = await Audio.Recording.createAsync (
-			Audio.RecordingOptionsPresets.LOW_QUALITY
-		);
-		setRecording(recording);
-	} 
-	catch (error) {
-		console.error('Error starting recording:', error);
-		}
-	};
-
-	const stopRecording = async () => {
-		if (recording != null) {
-			try {
-				await recording.stopAndUnloadAsync();
-				const uri = recording.getURI();
-				setUri(uri);
-				setRecording(null);
-				console.log('Recording saved at:', uri);
-			} 
-			catch (error) {
-				console.error('Error stopping recording:', error);
-			}
-		};
-	}
-		
-	const playRecording = async () => {
-		if (!uri) return;
-		const { sound } = await Audio.Sound.createAsync({ uri });
-		await sound.playAsync();
-	};
-
-
-  // ==============================================
-  // =============== PAGE ROUTING  ================
-  // ==============================================
-
-  const goBack = () => {
-	router.back();
-  };
-
+	// ==================
+	//   VISIBILITY HANDLERS
+	// ==================
 	const handleVisibilitySelect = (option: VisibilityOption) => {
 		setSelectedVisibility((prev) => {
 			if (prev.includes(option)) {
@@ -262,283 +229,6 @@ export default function createPin() {
 		});
 	};
 
-	const handleSavePin = () => {
-		console.log('Saving pin with data:', {
-			location: locationQuery,
-			title: memoryTitle,
-			description: memoryDescription,
-			visibility: selectedVisibility,
-			media: selectedMedia,
-			audio: audioUri,
-		});
-
-		navigateToWorldMap();
-	};
-
-	// ==================
-	//   INPUT FOCUS HANDLERS
-	// ==================
-	const handleInputFocus = (inputRef: any, inputId: string) => {
-		setActiveInputId(inputId);
-
-		// Immediate scroll without waiting for keyboard
-		scrollToInput(inputRef, inputId);
-	};
-
-	const handleInputBlur = () => {
-		setActiveInputId(null);
-	};
-
-	// ==================
-	//   SCROLL HELPERS
-	// ==================
-	const scrollToInput = (inputRef: any, inputId: string) => {
-		if (scrollViewRef.current) {
-			// NOTE: Wait for keyboard animation to complete
-			setTimeout(() => {
-				let scrollOffset = 0;
-
-				switch (inputId) {
-					case 'location':
-						scrollOffset = -120;
-						break;
-					case 'title':
-						scrollOffset = 150;
-						break;
-					case 'description':
-						scrollOffset = 300;
-						break;
-					default:
-						scrollOffset = 200;
-				}
-
-				if (keyboardHeight > 0) {
-					scrollOffset += 100;
-				}
-				scrollViewRef.current?.scrollTo({
-					y: scrollOffset,
-					animated: true,
-				});
-			}, 0); // Longer delay to ensure keyboard is fully shown
-		}
-	};
-	// ==================================
-	//   EVENT HANDLERS [ MEDIA ]
-	// ==================================
-	const handleCameraPress = async () => {
-		try {
-			const { status } =
-				await ImagePicker.requestCameraPermissionsAsync();
-
-			if (status !== 'granted') {
-				showModal(
-					'permission',
-					'Camera Permission Required',
-					'Please enable camera access in your device settings to take photos.',
-					[{ text: 'OK', onPress: hideModal, style: 'primary' }]
-				);
-				return;
-			}
-
-			showModal(
-				'photoChoice',
-				'Add Photo',
-				'Choose how you want to add a photo to your memory',
-				[
-					{
-						text: 'Take Photo',
-						onPress: () => {
-							hideModal();
-							openCamera();
-						},
-						style: 'primary',
-					},
-					{
-						text: 'Choose from Library',
-						onPress: () => {
-							hideModal();
-							openImageLibrary();
-						},
-						style: 'secondary',
-					},
-					{
-						text: 'Cancel',
-						onPress: hideModal,
-						style: 'secondary',
-					},
-				]
-			);
-		} catch (error) {
-			console.error('Error accessing camera:', error);
-			showModal(
-				'error',
-				'Camera Error',
-				'Could not access camera. Please try again.'
-			);
-		}
-	};
-
-	const openCamera = async () => {
-		try {
-			const result = await ImagePicker.launchCameraAsync({
-				mediaTypes: ImagePicker.MediaTypeOptions.All,
-				allowsEditing: true,
-				aspect: [4, 3],
-				quality: 0.8,
-			});
-
-			if (!result.canceled && result.assets[0]) {
-				setSelectedMedia((prev) => [...prev, result.assets[0].uri]);
-				showModal(
-					'success',
-					'Photo Added!',
-					'Your photo has been added to this memory.'
-				);
-			}
-		} catch (error) {
-			console.error('Error opening camera:', error);
-			showModal(
-				'error',
-				'Camera Error',
-				'Could not open camera. Please try again.'
-			);
-		}
-	};
-
-	const openImageLibrary = async () => {
-		try {
-			const result = await ImagePicker.launchImageLibraryAsync({
-				mediaTypes: ImagePicker.MediaTypeOptions.All,
-				allowsEditing: true,
-				aspect: [4, 3],
-				quality: 0.8,
-				allowsMultipleSelection: true,
-			});
-
-			if (!result.canceled && result.assets) {
-				const newUris = result.assets.map((asset) => asset.uri);
-				setSelectedMedia((prev) => [...prev, ...newUris]);
-				showModal(
-					'success',
-					'Photos Added!',
-					`${result.assets.length} photo(s) have been added to this memory.`
-				);
-			}
-		} catch (error) {
-			console.error('Error opening image library:', error);
-			showModal(
-				'error',
-				'Library Error',
-				'Could not access photo library. Please try again.'
-			);
-		}
-	};
-
-	const startRecording = async () => {
-		try {
-			const { status } = await Audio.requestPermissionsAsync();
-
-			if (status !== 'granted') {
-				showModal(
-					'permission',
-					'Microphone Permission Required',
-					'Please enable microphone access in your device settings to record audio.'
-				);
-				return;
-			}
-
-			await Audio.setAudioModeAsync({
-				allowsRecordingIOS: true,
-				playsInSilentModeIOS: true,
-			});
-
-			const { recording } = await Audio.Recording.createAsync({
-				android: {
-					extension: '.m4a',
-					outputFormat:
-						Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_MPEG_4,
-					audioEncoder:
-						Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_AAC,
-					sampleRate: 44100,
-					numberOfChannels: 2,
-					bitRate: 128000,
-				},
-				ios: {
-					extension: '.m4a',
-					outputFormat:
-						Audio.RECORDING_OPTION_IOS_OUTPUT_FORMAT_MPEG4AAC,
-					audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
-					sampleRate: 44100,
-					numberOfChannels: 2,
-					bitRate: 128000,
-					linearPCMBitDepth: 16,
-					linearPCMIsBigEndian: false,
-					linearPCMIsFloat: false,
-				},
-			});
-
-			setRecording(recording);
-			setIsRecording(true);
-			console.log('Started recording...');
-		} catch (error) {
-			console.error('Error starting recording:', error);
-			showModal(
-				'error',
-				'Recording Error',
-				'Could not start recording. Please try again.'
-			);
-		}
-	};
-
-	const stopRecording = async () => {
-		try {
-			if (!recording) return;
-
-			console.log('Stopping recording...');
-			setIsRecording(false);
-			await recording.stopAndUnloadAsync();
-
-			const uri = recording.getURI();
-			if (uri) {
-				setAudioUri(uri);
-				showModal(
-					'success',
-					'Recording Complete!',
-					'Your audio memory has been saved.'
-				);
-				console.log('Recording saved to:', uri);
-			}
-
-			setRecording(null);
-		} catch (error) {
-			console.error('Error stopping recording:', error);
-			showModal(
-				'error',
-				'Recording Error',
-				'Could not stop recording. Please try again.'
-			);
-		}
-	};
-
-	const handleAudioPress = async () => {
-		if (isRecording) {
-			await stopRecording();
-		} else {
-			await startRecording();
-		}
-	};
-
-	const removeMedia = (uriToRemove: string) => {
-		setSelectedMedia((prev) => prev.filter((uri) => uri !== uriToRemove));
-	};
-
-	const removeAudio = () => {
-		setAudioUri(null);
-	};
-
-	// ====================
-	//   HELPER FUNCTIONS
-	// ====================
 	const isVisibilitySelected = (option: VisibilityOption) => {
 		return selectedVisibility.includes(option);
 	};
@@ -574,20 +264,53 @@ export default function createPin() {
 		return 'Select your visibility preferences';
 	};
 
-	const getVisibilityIcon = (option: VisibilityOption) => {
-		switch (option) {
-			case 'public':
-				return '';
-			case 'social':
-				return '';
-			case 'private':
-				return '';
+	// ========================
+	//   INPUT FOCUS HANDLERS
+	// ========================
+	const handleInputFocus = (inputRef: any, inputId: string) => {
+		setActiveInputId(inputId);
+		// Immediate scroll without waiting for keyboard
+		scrollToInput(inputRef, inputId);
+	};
+
+	const handleInputBlur = () => {
+		setActiveInputId(null);
+	};
+
+	const scrollToInput = (inputRef: any, inputId: string) => {
+		if (scrollViewRef.current) {
+			// NOTE: Wait for keyboard animation to complete
+			setTimeout(() => {
+				let scrollOffset = 0;
+
+				switch (inputId) {
+					case 'location':
+						scrollOffset = -120;
+						break;
+					case 'title':
+						scrollOffset = 150;
+						break;
+					case 'description':
+						scrollOffset = 300;
+						break;
+					default:
+						scrollOffset = 200;
+				}
+
+				if (keyboardHeight > 0) {
+					scrollOffset += 100;
+				}
+				scrollViewRef.current?.scrollTo({
+					y: scrollOffset,
+					animated: true,
+				});
+			}, 0); // Longer delay to ensure keyboard is fully shown
 		}
 	};
 
-	// ====================================
-	//   HELPER FUNCTIONS [ MODAL ]
-	// ====================================
+	// ==================================
+	//   MODAL HELPER FUNCTIONS
+	// ==================================
 	const showModal = (
 		type: ModalState['type'],
 		title: string,
@@ -606,12 +329,509 @@ export default function createPin() {
 	};
 
 	const hideModal = () => {
+		const currentType = modalState.type;
 		setModalState((prev) => ({ ...prev, show: false }));
+		if (currentType === 'preview') {
+			setPreviewData(null);
+		}
 	};
 
-	// ==================
-	//   MODAL COMPONENT
-	// ==================
+	// ==================================
+	//   MEDIA HANDLING - CAMERA & PHOTOS
+	// ==================================
+	const handleCameraPress = async () => {
+		try {
+			const { status } =
+				await ImagePicker.requestCameraPermissionsAsync();
+
+			if (status !== 'granted') {
+				Alert.alert(
+					'Camera Permission Required',
+					'Please enable camera access in your device settings to take photos.',
+					[{ text: 'OK' }]
+				);
+				return;
+			}
+
+			Alert.alert(
+				'Add Photo',
+				'Choose how you want to add a photo to your memory',
+				[
+					{
+						text: 'Take Photo',
+						onPress: () => openCamera(),
+					},
+					{
+						text: 'Choose from Library',
+						onPress: () => openImageLibrary(),
+					},
+					{
+						text: 'Cancel',
+						style: 'cancel',
+					},
+				]
+			);
+		} catch (error) {
+			console.error('Error accessing camera:', error);
+			Alert.alert(
+				'Camera Error',
+				'Could not access camera. Please try again.',
+				[{ text: 'OK' }]
+			);
+		}
+	};
+
+	const openCamera = async () => {
+		try {
+			await ImagePicker.requestCameraPermissionsAsync();
+			let result = await ImagePicker.launchCameraAsync({
+				allowsEditing: true,
+				quality: 0.75,
+			});
+
+			if (!result.canceled && result.assets[0]) {
+				const newMedia: MediaItem = {
+					uri: result.assets[0].uri,
+					type: 'photo', // Simplified - assume photo
+					name: `Camera Photo ${selectedMedia.length + 1}`,
+				};
+				setSelectedMedia((prev) => [...prev, newMedia]);
+				showModal(
+					'success',
+					'Photo Added!',
+					'Your photo has been added to this memory.'
+				);
+			}
+		} catch (error) {
+			console.error('Error opening camera:', error);
+			Alert.alert(
+				'Camera Error',
+				'Could not open camera. Please try again.'
+			);
+		}
+	};
+
+	const openImageLibrary = async () => {
+		try {
+			let result = await ImagePicker.launchImageLibraryAsync({
+				allowsEditing: true,
+				quality: 0.75,
+			});
+
+			if (!result.canceled && result.assets[0]) {
+				const newMedia: MediaItem = {
+					uri: result.assets[0].uri,
+					type: 'photo', // Simplified - assume photo
+					name: `Library Photo ${selectedMedia.length + 1}`,
+				};
+				setSelectedMedia((prev) => [...prev, newMedia]);
+				showModal(
+					'success',
+					'Photo Added!',
+					'Your photo has been added to this memory.'
+				);
+			}
+		} catch (error) {
+			console.error('Error opening image library:', error);
+			Alert.alert(
+				'Library Error',
+				'Could not access photo library. Please try again.'
+			);
+		}
+	};
+
+	const removeMedia = (indexToRemove: number) => {
+		setSelectedMedia((prev) =>
+			prev.filter((_, index) => index !== indexToRemove)
+		);
+	};
+
+	// ======================================
+	//   AUDIO HANDLING - RECORD & PLAYBACK
+	// ======================================
+	const startRecording = async () => {
+		try {
+			const { status } = await Audio.requestPermissionsAsync();
+
+			if (status !== 'granted') {
+				Alert.alert(
+					'Microphone Permission Required',
+					'Please enable microphone access in your device settings to record audio.',
+					[{ text: 'OK' }]
+				);
+				return;
+			}
+
+			await Audio.setAudioModeAsync({
+				allowsRecordingIOS: true,
+				playsInSilentModeIOS: true,
+			});
+
+			const { recording } = await Audio.Recording.createAsync(
+				Audio.RecordingOptionsPresets.LOW_QUALITY
+			);
+
+			setRecording(recording);
+			setIsRecording(true);
+			console.log('Started recording...');
+		} catch (error) {
+			console.error('Error starting recording:', error);
+			Alert.alert(
+				'Recording Error',
+				'Could not start recording. Please try again.',
+				[{ text: 'OK' }]
+			);
+		}
+	};
+
+	const stopRecording = async () => {
+		try {
+			if (!recording) return;
+
+			console.log('Stopping recording...');
+			setIsRecording(false);
+			await recording.stopAndUnloadAsync();
+
+			const uri = recording.getURI();
+			if (uri) {
+				setAudioUri(uri);
+				showModal(
+					'success',
+					'Recording Complete!',
+					'Your audio memory has been saved.'
+				);
+				console.log('Recording saved to:', uri);
+			}
+
+			setRecording(null);
+		} catch (error) {
+			console.error('Error stopping recording:', error);
+			Alert.alert(
+				'Recording Error',
+				'Could not stop recording. Please try again.',
+				[{ text: 'OK' }]
+			);
+		}
+	};
+
+	const handleAudioPress = async () => {
+		if (isRecording) {
+			await stopRecording();
+		} else {
+			await startRecording();
+		}
+	};
+
+	const playRecording = async () => {
+		if (!audioUri) {
+			Alert.alert(
+				'No Recording',
+				'Please record audio first before trying to play it back.',
+				[{ text: 'OK' }]
+			);
+			return;
+		}
+
+		try {
+			// Stop any currently playing sound
+			if (sound) {
+				await sound.unloadAsync();
+				setSound(null);
+			}
+
+			setIsPlayingAudio(true);
+
+			const { sound: newSound } = await Audio.Sound.createAsync(
+				{ uri: audioUri },
+				{ shouldPlay: true }
+			);
+
+			setSound(newSound);
+
+			// NOTE: Set up playback status listener
+			newSound.setOnPlaybackStatusUpdate((status) => {
+				if (status.isLoaded && status.didJustFinish) {
+					setIsPlayingAudio(false);
+					newSound.unloadAsync();
+					setSound(null);
+				}
+			});
+
+			console.log('Playing recording from:', audioUri);
+		} catch (error) {
+			console.error('Error playing recording:', error);
+			setIsPlayingAudio(false);
+			Alert.alert(
+				'Playback Error',
+				'Could not play the recording. Please try again.',
+				[{ text: 'OK' }]
+			);
+		}
+	};
+
+	const stopPlayback = async () => {
+		try {
+			if (sound) {
+				await sound.stopAsync();
+				await sound.unloadAsync();
+				setSound(null);
+			}
+			setIsPlayingAudio(false);
+		} catch (error) {
+			console.error('Error stopping playback:', error);
+		}
+	};
+
+	const removeAudio = () => {
+		// NOTE: Stop any playing audio first
+		if (sound) {
+			sound.unloadAsync();
+			setSound(null);
+		}
+		setIsPlayingAudio(false);
+		setAudioUri(null);
+	};
+
+	// ==================================
+	//   MEMORY PREVIEW & SAVE HANDLERS
+	// ==================================
+	const createMemoryData = (): MemoryData => {
+		return {
+			id: Date.now().toString(),
+			timestamp: new Date().toISOString(),
+			location: {
+				query: locationQuery.trim(),
+			},
+			content: {
+				title: memoryTitle.trim(),
+				description: memoryDescription.trim(),
+			},
+			visibility: selectedVisibility,
+			media: {
+				photos: selectedMedia.filter((item) => item.type === 'photo'),
+				videos: selectedMedia.filter((item) => item.type === 'video'),
+				audio: audioUri
+					? {
+							uri: audioUri,
+							recorded: new Date().toISOString(),
+					  }
+					: null,
+			},
+			metadata: {
+				totalMediaItems: selectedMedia.length + (audioUri ? 1 : 0),
+				hasDescription: !!memoryDescription.trim(),
+				createdAt: new Date().toISOString(),
+			},
+		};
+	};
+
+	const handlePreviewMemory = () => {
+		// Validation
+		if (!memoryTitle.trim()) {
+			showModal(
+				'error',
+				'Missing Title',
+				'Please add a title for your memory before previewing.'
+			);
+			return;
+		}
+
+		if (!locationQuery.trim()) {
+			showModal(
+				'error',
+				'Missing Location',
+				'Please add a location for your memory before previewing.'
+			);
+			return;
+		}
+
+		// Create preview data and show modal
+		const memoryData = createMemoryData();
+		setPreviewData(memoryData);
+
+		setModalState({
+			show: true,
+			type: 'preview',
+			title: 'Preview Your Memory',
+			message: '',
+			actions: [
+				{
+					text: 'Edit',
+					onPress: hideModal,
+					style: 'secondary',
+				},
+				{
+					text: 'Confirm & Post',
+					onPress: handleConfirmSave,
+					style: 'primary',
+				},
+			],
+		});
+	};
+
+	const handleConfirmSave = () => {
+		if (!previewData) return;
+
+		// NOTE: Log the memory data (in production, this would be sent to your backend)
+		console.log('Saving memory pin with data:');
+		console.log(JSON.stringify(previewData, null, 2));
+
+		// ATTN: Hide preview modal and show success
+		hideModal();
+
+		setTimeout(() => {
+			showModal(
+				'success',
+				'Memory Posted!',
+				`Your memory "${previewData.content.title}" has been successfully posted to ${previewData.location.query}.`,
+				[
+					{
+						text: 'View on Map',
+						onPress: () => {
+							hideModal();
+							navigateToWorldMap();
+						},
+						style: 'primary',
+					},
+					{
+						text: 'Create Another',
+						onPress: () => {
+							hideModal();
+							// Reset form
+							setMemoryTitle('');
+							setMemoryDescription('');
+							setLocationQuery('');
+							setSelectedMedia([]);
+							setAudioUri(null);
+							setSelectedVisibility(['public']);
+						},
+						style: 'secondary',
+					},
+				]
+			);
+		}, 0);
+	};
+
+	// ====================
+	//   MODAL COMPONENTS
+	// ====================
+	const renderPreviewModal = () => {
+		if (!previewData) return null;
+
+		return (
+			<ScrollView style={styles.previewScrollView}>
+				<View style={styles.previewContainer}>
+					{/* Header */}
+					<View style={styles.previewHeader}>
+						<HeaderText align="center" style={styles.previewTitle}>
+							{previewData.content.title}
+						</HeaderText>
+						<CaptionText
+							align="center"
+							style={styles.previewLocation}
+						>
+							📍 {previewData.location.query}
+						</CaptionText>
+						<CaptionText
+							align="center"
+							style={styles.previewTimestamp}
+						>
+							{new Date(previewData.timestamp).toLocaleString()}
+						</CaptionText>
+					</View>
+
+					{/* Description */}
+					{previewData.content.description && (
+						<View style={styles.previewSection}>
+							<LabelText>Description:</LabelText>
+							<BodyText style={styles.previewDescription}>
+								{previewData.content.description}
+							</BodyText>
+						</View>
+					)}
+
+					{/* Visibility */}
+					<View style={styles.previewSection}>
+						<LabelText>Visibility:</LabelText>
+						<View style={styles.previewVisibility}>
+							{previewData.visibility.map((option, index) => (
+								<View
+									key={option}
+									style={styles.previewVisibilityItem}
+								>
+									<BodyText>
+										{option.charAt(0).toUpperCase() +
+											option.slice(1)}
+									</BodyText>
+								</View>
+							))}
+						</View>
+					</View>
+
+					{/* Media */}
+					{previewData.metadata.totalMediaItems > 0 && (
+						<View style={styles.previewSection}>
+							<LabelText>Attached Media:</LabelText>
+
+							{/* Photos */}
+							{previewData.media.photos.map((photo, index) => (
+								<View
+									key={`photo-${index}`}
+									style={styles.previewMediaItem}
+								>
+									<BodyText>📷 {photo.name}</BodyText>
+								</View>
+							))}
+
+							{/* Videos */}
+							{previewData.media.videos.map((video, index) => (
+								<View
+									key={`video-${index}`}
+									style={styles.previewMediaItem}
+								>
+									<BodyText>🎥 {video.name}</BodyText>
+								</View>
+							))}
+
+							{/* Audio */}
+							{previewData.media.audio && (
+								<View style={styles.previewMediaItem}>
+									<View style={styles.previewAudioItem}>
+										<BodyText
+											style={styles.previewAudioText}
+										>
+											🎤 Audio recording
+										</BodyText>
+										<IconButton
+											icon={
+												isPlayingAudio ? 'stop' : 'play'
+											}
+											onPress={
+												isPlayingAudio
+													? stopPlayback
+													: playRecording
+											}
+											backgroundColor={
+												ReMapColors.primary.blue
+											}
+											size={16}
+											style={styles.previewAudioButton}
+										/>
+									</View>
+								</View>
+							)}
+						</View>
+					)}
+
+					<CaptionText align="center" style={styles.previewFooter}>
+						Review your memory above, then choose to edit or confirm
+						posting.
+					</CaptionText>
+				</View>
+			</ScrollView>
+		);
+	};
+
 	const renderModal = () => {
 		if (!modalState.show) return null;
 
@@ -620,6 +840,8 @@ export default function createPin() {
 				<Modal.Container>
 					<Modal.Header title={modalState.title} />
 					<Modal.Body>
+						{modalState.type === 'preview' && renderPreviewModal()}
+
 						{modalState.type === 'success' && (
 							<SuccessMessage
 								title={modalState.title}
@@ -647,8 +869,7 @@ export default function createPin() {
 							</WarningMessage>
 						)}
 
-						{(modalState.type === 'photoChoice' ||
-							modalState.type === 'info') && (
+						{modalState.type === 'info' && (
 							<InfoMessage
 								title={modalState.title}
 								onDismiss={hideModal}
@@ -676,6 +897,8 @@ export default function createPin() {
 									variant={
 										action.style === 'primary'
 											? 'primary'
+											: action.style === 'danger'
+											? 'danger'
 											: 'secondary'
 									}
 								>
@@ -768,7 +991,6 @@ export default function createPin() {
 												: 'secondary'
 										}
 									>
-										{getVisibilityIcon(option)}{' '}
 										{option.charAt(0).toUpperCase() +
 											option.slice(1)}
 										{isVisibilitySelected(option) && ' ✓'}
@@ -798,6 +1020,7 @@ export default function createPin() {
 								}
 								onBlur={handleInputBlur}
 								style={styles.fullWidth}
+								required={true}
 							/>
 
 							<Input
@@ -829,17 +1052,30 @@ export default function createPin() {
 							{/* Media Display */}
 							{(selectedMedia.length > 0 || audioUri) && (
 								<View style={styles.mediaPreview}>
+									<SubheaderText
+										style={styles.mediaPreviewTitle}
+									>
+										Attached Media:
+									</SubheaderText>
+
 									{/* Photos/Videos */}
-									{selectedMedia.map((uri, index) => (
+									{selectedMedia.map((media, index) => (
 										<View
 											key={index}
 											style={styles.mediaItem}
 										>
-											<CaptionText numberOfLines={1}>
-												📷 Photo {index + 1}
-											</CaptionText>
+											<BodyText
+												style={styles.mediaItemText}
+											>
+												{media.type === 'photo'
+													? '📷'
+													: '🎥'}{' '}
+												{media.name}
+											</BodyText>
 											<Button
-												onPress={() => removeMedia(uri)}
+												onPress={() =>
+													removeMedia(index)
+												}
 												style={styles.removeButton}
 												size="small"
 												variant="danger"
@@ -852,17 +1088,38 @@ export default function createPin() {
 									{/* Audio */}
 									{audioUri && (
 										<View style={styles.mediaItem}>
-											<CaptionText>
-												🎤 Audio recording
-											</CaptionText>
-											<Button
-												onPress={removeAudio}
-												style={styles.removeButton}
-												size="small"
-												variant="danger"
+											<BodyText
+												style={styles.mediaItemText}
 											>
-												Remove
-											</Button>
+												Audio recording
+											</BodyText>
+											<View style={styles.audioControls}>
+												<IconButton
+													icon={
+														isPlayingAudio
+															? 'stop'
+															: 'play'
+													}
+													onPress={
+														isPlayingAudio
+															? stopPlayback
+															: playRecording
+													}
+													backgroundColor={
+														ReMapColors.primary.blue
+													}
+													size={20}
+													style={styles.audioButton}
+												/>
+												<Button
+													onPress={removeAudio}
+													style={styles.removeButton}
+													size="small"
+													variant="danger"
+												>
+													Remove
+												</Button>
+											</View>
 										</View>
 									)}
 								</View>
@@ -891,11 +1148,6 @@ export default function createPin() {
 								/>
 							</View>
 
-			<IconButton
-				icon='play'
-				onPress={playRecording}
-			></IconButton>
-
 							<CaptionText style={styles.helperText}>
 								{isRecording
 									? '🔴 Recording... Tap microphone to stop'
@@ -917,20 +1169,20 @@ export default function createPin() {
 							</Button>
 
 							<Button
-								onPress={handleSavePin}
-								style={styles.saveButton}
+								onPress={handlePreviewMemory}
+								style={styles.previewButton}
 								variant="primary"
 								disabled={
 									!memoryTitle.trim() || !locationQuery.trim()
 								}
 							>
-								Save Memory
+								Preview Memory
 							</Button>
 						</View>
 					</View>
 				</Footer>
 
-				{/* NOTE: Custom Modal System Above. NOT IN MODAL COMPONENT */}
+				{/* ATTN: Custom Modal System */}
 				{renderModal()}
 			</View>
 		</KeyboardAvoidingView>
@@ -945,6 +1197,12 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: ReMapColors.ui.background,
 	},
+	scrollContainer: {
+		flex: 1,
+	},
+	scrollContent: {
+		paddingBottom: 20,
+	},
 	content: {
 		paddingHorizontal: 20,
 		paddingVertical: 20,
@@ -958,11 +1216,103 @@ const styles = StyleSheet.create({
 		marginBottom: 12,
 		fontSize: 16,
 	},
-	scrollContent: {
-		paddingBottom: 20,
+
+	// Form Styling
+	fullWidth: {
+		width: '100%',
 	},
-	scrollContainer: {},
-	footer: {},
+	helperText: {
+		marginTop: 8,
+		paddingHorizontal: 4,
+	},
+
+	// Visibility Selection
+	visibilityContainer: {
+		flexDirection: 'row',
+		gap: 8,
+		marginBottom: 12,
+		flexWrap: 'wrap',
+	},
+	visibilityButton: {
+		flex: 1,
+		minHeight: 44,
+		minWidth: 100,
+	},
+	selectedVisibilityButton: {
+		// Additional styling handled by variant prop
+	},
+	visibilityDescription: {
+		marginTop: 8,
+		padding: 12,
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 8,
+		borderLeftWidth: 3,
+		borderLeftColor: ReMapColors.primary.violet,
+	},
+
+	// Media Section
+	mediaButtons: {
+		flexDirection: 'row',
+		justifyContent: 'center',
+		gap: 16,
+		paddingBottom: 10,
+		marginBottom: 8,
+	},
+	mediaAddButton: {
+		width: 'auto',
+		height: 'auto',
+		padding: 15,
+	},
+	mediaPreview: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 8,
+		padding: 12,
+		marginBottom: 12,
+		borderLeftWidth: 3,
+		borderLeftColor: ReMapColors.primary.blue,
+	},
+	mediaPreviewTitle: {
+		marginBottom: 8,
+	},
+	mediaItem: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		paddingVertical: 8,
+		borderBottomWidth: 1,
+		borderBottomColor: ReMapColors.ui.border,
+	},
+	mediaItemText: {
+		flex: 1,
+	},
+	audioControls: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+	},
+	audioButton: {
+		width: 36,
+		height: 36,
+	},
+	removeButton: {
+		width: 80,
+	},
+
+	// Footer Styling
+	buttonContainer: {
+		width: '100%',
+	},
+	navigationRow: {
+		flexDirection: 'row',
+		gap: 12,
+		padding: 10,
+	},
+	backButton: {
+		flex: 1,
+	},
+	previewButton: {
+		flex: 3,
+	},
 
 	// Modal Styling
 	modalButton: {
@@ -978,172 +1328,70 @@ const styles = StyleSheet.create({
 		backgroundColor: ReMapColors.semantic.error,
 	},
 
-	// Form Styling
-	fullWidth: {
-		width: '100%',
+	// Preview Modal Styles
+	previewScrollView: {
+		maxHeight: 400,
 	},
-	helperText: {
-		marginTop: 8,
-		paddingHorizontal: 4,
+	previewContainer: {
+		padding: 16,
 	},
-
-	// Visibility Selection
-	visibilityContainer: {
-		flexDirection: 'row',
-		gap: 5,
-		marginBottom: 5,
+	previewHeader: {
+		marginBottom: 20,
+		alignItems: 'center',
 	},
-	visibilityButton: {
-		flex: 1,
-		minHeight: 44,
-	},
-	selectedVisibilityButton: {
-		// Additional styling handled by variant prop
-	},
-	visibilityDescription: {
-		marginTop: 8,
-		padding: 12,
-		backgroundColor: ReMapColors.ui.cardBackground,
-		borderRadius: 8,
-		borderLeftWidth: 3,
-		borderLeftColor: ReMapColors.primary.violet,
-	},
-
-	// Media Section
-	mediaRow: {
-		flexDirection: 'row',
-		alignItems: 'flex-end',
-		gap: 12,
+	previewTitle: {
 		marginBottom: 8,
 	},
-	mediaInputContainer: {
-		flex: 1,
+	previewLocation: {
+		marginBottom: 4,
+		color: ReMapColors.primary.blue,
 	},
-	mediaInput: {
-		flex: 1,
+	previewTimestamp: {
+		opacity: 0.7,
 	},
-	mediaButtons: {
+	previewSection: {
+		marginBottom: 16,
+	},
+	previewDescription: {
+		marginTop: 4,
+		padding: 8,
+		backgroundColor: ReMapColors.ui.background,
+		borderRadius: 6,
+	},
+	previewVisibility: {
 		flexDirection: 'row',
-		justifyContent: 'center',
-		gap: 16,
-		paddingBottom: 10,
-		marginBottom: 8,
+		flexWrap: 'wrap',
+		gap: 8,
+		marginTop: 4,
 	},
-	actionButton: {
-		width: 'auto',
-		padding: 15,
-		height: 'auto',
+	previewVisibilityItem: {
+		backgroundColor: ReMapColors.ui.background,
+		padding: 6,
+		borderRadius: 6,
 	},
-	mediaAddButton: {
-		width: 'auto',
-		height: 'auto',
-		padding: 15,
+	previewMediaItem: {
+		padding: 8,
+		backgroundColor: ReMapColors.ui.background,
+		borderRadius: 6,
+		marginBottom: 4,
 	},
-	mediaPreview: {
-		backgroundColor: ReMapColors.ui.cardBackground,
-		borderRadius: 8,
-		padding: 12,
-		marginBottom: 12,
-		borderLeftWidth: 3,
-		borderLeftColor: ReMapColors.primary.blue,
-	},
-	mediaItem: {
+	previewAudioItem: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		paddingVertical: 8,
-		borderBottomWidth: 1,
-		borderBottomColor: ReMapColors.ui.border,
 	},
-	removeButton: {
-		width: 100,
-	},
-
-	// Footer Styling
-	buttonContainer: {
-		width: '100%',
-	},
-	navigationRow: {
-		flexDirection: 'row',
-		gap: 12,
-		padding: 10,
-	},
-	backButton: {
+	previewAudioText: {
 		flex: 1,
 	},
-	saveButton: {
-		flex: 4,
+	previewAudioButton: {
+		width: 32,
+		height: 32,
 	},
-  container: {
-	flex: 1,
-	backgroundColor: ReMapColors.ui.background,
-  },
-  content: {
-	alignItems: 'center',
-	paddingHorizontal: 20,
-	gap: 12,
-  },
-  description: {
-	fontSize: 16,
-	color: ReMapColors.ui.text,
-	textAlign: 'center',
-	lineHeight: 24,
-	marginBottom: 30,
-  },
-
-  displayLocationContainer: {
-	width: '100%',
-	alignItems:'center',
-  },
-  pin: {
-	width: 60,
-	height: 80,
-  },
-
-  imageUpload: {
-	width: '65%',
-	justifyContent: 'flex-start',
-},
-  cameraMicrophone: {
-	flexDirection: 'row',
-	alignItems:'center',
-  },
-
-  selectImage: {
-	borderRadius: 15,
-	backgroundColor: "#D9D9D9",
-	height: 'auto',
-	alignItems: 'flex-start',
-  },
-  imageUploadText: {
-	color: ReMapColors.primary.black,
-	fontSize: 14,
-  },
-
-  orText: {
-	fontSize: 14,
-	color: ReMapColors.ui.textSecondary,
-	textAlign: 'center',
-	marginBottom: 20,
-  },
-  buttonContainer: {
-	width: '100%',
-	gap: 10,
-  },
-  modalButton: {
-	width: 150,
-  },
-
-  fullWidth: {
-	width: '100%',
-  },
-  location: {
-
-  },
-  row: {
-	flexDirection: 'row',
-	width: '100%',
-	justifyContent:'space-between',
-  },
-
+	previewFooter: {
+		marginTop: 16,
+		padding: 12,
+		backgroundColor: ReMapColors.ui.background,
+		borderRadius: 8,
+		opacity: 0.8,
+	},
 });

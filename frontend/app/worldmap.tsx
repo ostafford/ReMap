@@ -1,62 +1,32 @@
-// ================
-//   CORE IMPORTS
-// ================
 import React, { useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Alert, Image } from 'react-native';
-
-// =======================
-//   THIRD-PARTY IMPORTS
-// =======================
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
 import { ReMapColors } from '@/constants/Colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
-import BottomSheet from '@gorhom/bottom-sheet';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-// ================================
-//   INTERNAL 'UI' COMPONENTS
-// ================================
+// Components imports
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
 import { IconButton } from '@/components/ui/IconButton';
-
-// ============================
-//   INTERNAL 'LAYOUT' COMPONENTS
-// ============================
 import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
 import { Footer } from '@/components/layout/Footer';
 
-// ================================
-//   INTERNAL 'TYPOGRAPHY' IMPORTS
-// ================================
-import { HeaderText, BodyText, LabelText } from '@/components/ui/Typography';
+// Map imports
+import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 
-// ========================
-//   COMPONENT DEFINITION
-// ========================
+// Fancy schmancy modal library imports
+import BottomSheet from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 export default function WorldMapScreen() {
 	// to make sure page isnt going over status bar region
 	const insets = useSafeAreaInsets();
 
-	// ===============
-	//   BOTTOMSHEET
-	// ===============
-	// BottomSheet refs that were missing
-	const bottomSheetRef = useRef<BottomSheet>(null);
-	const snapPoints = useMemo(() => ['50%'], []);
-	const [bottomSheetIndex, setBottomSheetIndex] = React.useState(-1);
-
-	const openBottomSheet = () => setBottomSheetIndex(0);
-	const closeBottomSheet = () => setBottomSheetIndex(-1);
-
-	// ==================
-	//   EVENT HANDLERS
-	// ==================
+	// Page Navigation
 	const goBack = () => {
-		router.navigate('/onboarding/account');
+		router.back();
 	};
 	const navigateToWorldMap = () => {
 		router.navigate('/worldmap');
@@ -65,9 +35,7 @@ export default function WorldMapScreen() {
 		router.navigate('/createPin');
 	};
 
-	// ==================
-	//   MODAL STATE
-	// ==================
+	// Modals
 	const [isModalVisible, setIsModalVisible] = React.useState(false);
 	const [modalMode, setModalMode] = React.useState<'login' | 'signup'>(
 		'login'
@@ -78,58 +46,35 @@ export default function WorldMapScreen() {
 		setIsModalVisible(true);
 	};
 
-	// ================
-	//   MAP SETTINGS
-	// ================
+	// BottomSheet
+	const bottomSheetRef = useRef<BottomSheet>(null);
+	const snapPoints = useMemo(() => ['50%'], []);
+	const [bottomSheetIndex, setBottomSheetIndex] = React.useState(-1);
+
+	const openBottomSheet = () => setBottomSheetIndex(0);
+	const closeBottomSheet = () => setBottomSheetIndex(-1);
+
+	// Setting up MAP
 	const INITIAL_REGION = {
+		// Holberton coordinates
 		latitude: -37.817979,
 		longitude: 144.960408,
 		latitudeDelta: 0.01,
 		longitudeDelta: 0.01,
 	};
 
-  return (
-    //this bottom sheet honestly isn't working and im miserable
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={styles.container}>
-
-        <Header
-          title='World Map'
-          subtitle='Click on a pin and see what happens'
-        >
-        </Header>
-
-          {/**********************************************/}
-          {/**************** MAIN CONTENT ****************/}
-          {/* *********************************************/}
-        <MainContent>
-
-          <View>
-            <MapView 
-              style={styles.map}
-              provider={PROVIDER_GOOGLE}  
-              initialRegion={INITIAL_REGION}
-              showsUserLocation
-              showsMyLocationButton
-            >
-              <Marker
-                title="Holberton School"
-                description="Holberton Campus - Collins Street"
-                coordinate={{latitude: -37.817979, longitude: 144.960408 }}
-              >
-                <Image
-                  source={require('../assets/images/holberton_logo.jpg')}
-                  style={{ width: 60, height: 60 }}
-                  resizeMode="contain"
-                />
-              </Marker>
-            </MapView>
-          </View>
 	return (
+		//this bottom sheet honestly isn't working and im miserable
 		<GestureHandlerRootView style={{ flex: 1 }}>
 			<View style={styles.container}>
-				<Header title="World Map"></Header>
+				<Header
+					title="World Map"
+					subtitle="Click on a pin and see what happens"
+				></Header>
 
+				{/**********************************************/}
+				{/**************** MAIN CONTENT ****************/}
+				{/* *********************************************/}
 				<MainContent>
 					<View>
 						<MapView
@@ -156,7 +101,9 @@ export default function WorldMapScreen() {
 						</MapView>
 					</View>
 
-					{/* NOTE: Under map content with Typography components */}
+					{/* =========================================== */}
+					{/* ============= UNDER MAP ================== */}
+					{/* =========================================== */}
 					<View style={styles.scrollContent}>
 						<View style={styles.search}>
 							<Input
@@ -170,21 +117,26 @@ export default function WorldMapScreen() {
 
 				<Footer>
 					<View style={styles.footerContainer}>
-						<IconButton icon="reply" onPress={goBack}></IconButton>
+						<IconButton
+							icon="chevron-left"
+							onPress={goBack}
+						></IconButton>
 						<IconButton
 							icon="map-pin"
 							onPress={navigateToCreatePin}
 						></IconButton>
+
 						<IconButton
 							icon="user"
 							onPress={openLoginModal}
 						></IconButton>
+
 						<IconButton
-							icon="list"
+							icon="sliders"
 							onPress={navigateToCreatePin}
 						></IconButton>
 
-						{/* Login/Signup Modal */}
+						{/* this is for the login / sign up modal */}
 						<Modal
 							isVisible={isModalVisible}
 							onBackdropPress={() => setIsModalVisible(false)}
@@ -258,7 +210,7 @@ export default function WorldMapScreen() {
 					</View>
 				</Footer>
 
-				{/* Bottom sheet for location data */}
+				{/* this is for the gorham bottomsheet for location&pin data */}
 				<BottomSheet
 					ref={bottomSheetRef}
 					index={bottomSheetIndex}
@@ -274,8 +226,7 @@ export default function WorldMapScreen() {
 							backgroundColor: 'white',
 						}}
 					>
-						<HeaderText>Location Details</HeaderText>
-						<BodyText>Bottom Sheet Content</BodyText>
+						<Text>Bottom Sheet Content</Text>
 						<Button onPress={closeBottomSheet}>Close Sheet</Button>
 					</View>
 				</BottomSheet>
@@ -284,7 +235,6 @@ export default function WorldMapScreen() {
 	);
 }
 
-// Styles remain the same
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
@@ -302,9 +252,11 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 		marginBottom: 30,
 	},
+
 	scrollContent: {
-		padding: 8,
+		padding: 20,
 	},
+
 	search: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
@@ -315,8 +267,9 @@ const styles = StyleSheet.create({
 	backButton: {
 		backgroundColor: ReMapColors.primary.black,
 	},
+
 	modalButton: {
-		width: 'auto',
+		width: 150,
 	},
 	signUpButton: {
 		backgroundColor: '#2900E2',
@@ -331,9 +284,10 @@ const styles = StyleSheet.create({
 	footerContainer: {
 		flexDirection: 'row',
 	},
+
 	map: {
 		width: '100%',
-		height: 550,
-		// borderRadius: 12,
+		height: 500,
+		borderRadius: 12,
 	},
 });
