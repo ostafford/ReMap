@@ -179,9 +179,7 @@ export default function OnboardingAccountScreen() {
 			// Refresh current user info
 			await checkCurrentUser();
 
-			setTimeout(() => {
-				navigateToWorldMap();
-			}, 10000);
+			navigateToWorldMap();
 		} catch (error: any) {
 			console.error('Signup error:', error);
 			const errorMessage =
@@ -214,9 +212,7 @@ export default function OnboardingAccountScreen() {
 			// Refresh current user info
 			await checkCurrentUser();
 
-			setTimeout(() => {
-				navigateToWorldMap();
-			}, 1500);
+			navigateToWorldMap();
 		} catch (error: any) {
 			console.error('Login error:', error);
 			const errorMessage =

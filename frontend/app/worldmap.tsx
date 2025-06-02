@@ -29,10 +29,10 @@ export default function WorldMapScreen() {
 		router.back();
 	};
 	const navigateToWorldMap = () => {
-		router.navigate('/worldmap');
+		router.replace('/worldmap');
 	};
 	const navigateToCreatePin = () => {
-		router.navigate('/createPin');
+		router.replace('/createPin');
 	};
 
 	// Modals

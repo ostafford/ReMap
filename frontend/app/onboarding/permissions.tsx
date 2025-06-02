@@ -103,12 +103,8 @@ export default function OnboardingPermissionsScreen() {
 	// NOTE: Auto-hide (moves on) success messages and navigate
 	useEffect(() => {
 		if (locationStatus === 'granted' && messageState.type === 'success') {
-			const timer = setTimeout(() => {
-				hideMessage();
-				continueToAccount();
-			}, 8000);
-
-			return () => clearTimeout(timer);
+			hideMessage();
+			continueToAccount();
 		}
 	}, [locationStatus, messageState.type]);
 
@@ -229,10 +225,7 @@ export default function OnboardingPermissionsScreen() {
 			'Skip Location Access?'
 		);
 
-		// Auto-continue after warning is shown
-		setTimeout(() => {
-			continueToAccount();
-		}, 8000);
+		continueToAccount();
 	};
 
 	const goBack = () => {
