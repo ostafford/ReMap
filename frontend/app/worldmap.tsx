@@ -76,13 +76,6 @@ export default function WorldMapScreen() {
 
 	return (
 		<View style={styles.container}>
-			{/**********************************************/}
-			{/****************** HEADER *******************/}
-			{/* *********************************************/}
-			<Header
-				title="World Map"
-				subtitle="Click on a pin and see what happens"
-			></Header>
 
 			{/**********************************************/}
 			{/**************** MAIN CONTENT ****************/}
@@ -111,6 +104,9 @@ export default function WorldMapScreen() {
 							/>
 						</Marker>
 					</MapView>
+					<View style={styles.mapContent}>
+						<Text></Text>
+					</View>
 				</View>
 
 				{/* NOTE: Under map content with Typography components */}
@@ -240,7 +236,16 @@ const styles = StyleSheet.create({
 	},
 	map: {
 		width: '100%',
-		height: 550,
+		height: 620,
+	},
+	mapContent: {
+		backgroundColor: ReMapColors.primary.accent, // this colour is just for examples sake - not gonna be purple
+		borderRadius: 12,
+		height: 30,
+		left:'25%',
+		position:'absolute',
+		top:'8%',
+		width:'50%',
 	},
 	scrollContent: {
 		padding: 8,
