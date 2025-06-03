@@ -1,6 +1,6 @@
 // Profile routes
-import supabase from '../config/supabaseClient.js';
 import { Router } from 'express';
+import supabase from '../supabaseClient';
 
 const router = Router();
 

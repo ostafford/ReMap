@@ -1,5 +1,5 @@
 // Sign up and Sign in routes
-import supabase from '../config/supabaseClient.js';
+import supabase from '../supabaseClient';
 import { Router } from 'express';
 
 const router = Router();

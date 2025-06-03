@@ -1,12 +1,13 @@
 // Entry point
 import dotenv from 'dotenv';
 dotenv.config();
+
 import express from 'express';
 // routes
-import profiles from './routers/profiles.js';
-import auth from './routers/sign_up_in.js';
-import pins from './routers/pins.js';
-import groups from './routers/groups.js';
+import profiles from './routers/profiles';
+import auth from './routers/sign_up_in';
+import pins from './routers/pins';
+import groups from './routers/groups';
 
 const port = process.env.BackPORT || 3000;
 
