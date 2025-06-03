@@ -140,7 +140,7 @@ export default function OnboardingWelcomeScreen() {
 		}
 
 		try {
-			router.replace(route);
+			router.navigate(route);
 		} catch (error) {
 			console.error('Navigation failed:', error);
 			showMessage(

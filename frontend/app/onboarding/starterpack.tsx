@@ -16,9 +16,26 @@ import { Input } from '@/components/ui/TextInput';
 import { ReMapColors } from '@/constants/Colors';
 import { IconButton } from '@/components/ui/IconButton';
 
+// =========================
+//   TYPE DEFINITIONS
+// =========================
+
+interface MessageState {
+	show: boolean;
+	message: string;
+	type?: 'success' | 'error' | 'warning' | 'info';
+	title?: string;
+	duration?: number;
+}
+
 export default function OnboardingScreen() {
 	const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
 	const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
+	const [messageState, setMessageState] = useState<MessageState>({
+		show: false,
+		message: '',
+		type: 'info',
+	});
 
 	const toggleLoginModal = () => setIsLoginModalVisible(!isLoginModalVisible);
 	const toggleSignupModal = () =>
@@ -28,9 +45,63 @@ export default function OnboardingScreen() {
 		router.back();
 	};
 
-	const navigateToWorldMap = () => {
-		// After login/signup, go to world map
-		router.navigate('/worldmap');
+	const showMessage = (
+		message: string,
+		type: MessageState['type'] = 'info',
+		title?: string
+	) => {
+		setMessageState({ show: true, message, type, title });
+	};
+
+	const hideMessage = () => {
+		setMessageState((prev) => ({ ...prev, show: false }));
+	};
+
+	// ATTN: Working on navigation
+	const validRoutes = ['/onboarding', '/onboarding/account'];
+
+	const continueToOnboarding = () => {
+		const route = '/onboarding';
+
+		if (!validRoutes.includes(route)) {
+			showMessage(
+				'Navigation error: Account setup page is not available.',
+				'error'
+			);
+			return;
+		}
+
+		try {
+			router.navigate(route);
+		} catch (error) {
+			console.error('Navigation failed:', error);
+			showMessage(
+				'Could not navigate to account setup. Please try again.',
+				'error'
+			);
+		}
+	};
+
+	const continueToAccounts = () => {
+		const route = '/onboarding/account';
+
+		if (!validRoutes.includes(route)) {
+			showMessage(
+				'Navigation error: Account setup page is not available.',
+				'error'
+			);
+			return;
+		}
+
+		try {
+			router.navigate(route);
+		} catch (error) {
+			console.error('Navigation failed:', error);
+			showMessage(
+				'Could not navigate to account setup. Please try again.',
+				'error'
+			);
+		}
 	};
 
 	return (
@@ -90,23 +161,23 @@ export default function OnboardingScreen() {
 
 			<Footer>
 				<View style={styles.buttonContainer}>
-					{/* <Button 
-            style={styles.primaryButton}
-            onPress={toggleSignupModal}
-          >
-            🚀 Create Account
-          </Button>
-          
-          <Button 
-            style={styles.secondaryButton}
-            onPress={toggleLoginModal}
-          >
-            🔑 Sign In
-          </Button> */}
-
-					<Button style={styles.tertiaryButton} onPress={goBack}>
-						← Back to Home
+					<Button
+						style={styles.primaryButton}
+						onPress={continueToAccounts}
+					>
+						Create Account
 					</Button>
+					<View style={styles.row}>
+						<Button style={styles.tertiaryButton} onPress={goBack}>
+							← Back
+						</Button>
+						<Button
+							style={styles.secondaryButton}
+							onPress={continueToOnboarding}
+						>
+							Skip for now
+						</Button>
+					</View>
 				</View>
 			</Footer>
 
@@ -189,6 +260,7 @@ const styles = StyleSheet.create({
 		lineHeight: 24,
 		marginBottom: 30,
 	},
+	footer: {},
 	orText: {
 		fontSize: 14,
 		color: ReMapColors.ui.textSecondary,
@@ -197,7 +269,9 @@ const styles = StyleSheet.create({
 	},
 	buttonContainer: {
 		width: '100%',
-		gap: 10,
+		// padding: 10,
+		// alignItems: 'center',
+		// gap: 10,
 	},
 	primaryButton: {
 		backgroundColor: ReMapColors.primary.violet,
@@ -205,11 +279,11 @@ const styles = StyleSheet.create({
 	},
 	secondaryButton: {
 		backgroundColor: ReMapColors.primary.blue,
-		width: '100%',
+		width: '50%',
 	},
 	tertiaryButton: {
 		backgroundColor: ReMapColors.ui.textSecondary,
-		width: '100%',
+		width: '50%',
 	},
 	modalButton: {
 		width: 150,
@@ -226,6 +300,9 @@ const styles = StyleSheet.create({
 	},
 	row: {
 		flexDirection: 'row',
+		justifyContent: 'center',
+		gap: 10,
+		padding: 10,
 	},
 	icons: {
 		width: 120,

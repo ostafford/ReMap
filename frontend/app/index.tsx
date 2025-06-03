@@ -238,7 +238,7 @@ export default function SplashScreen() {
 	// ==================
 	//   EVENT HANDLERS
 	// ==================
-	const validRoutes = ['/worldmap', '/onboarding'];
+	const validRoutes = ['/worldmap', '/onboarding', '/onboarding/starterpack'];
 
 	const navigateToWorldMap = () => {
 		const route = '/worldmap';
@@ -263,7 +263,7 @@ export default function SplashScreen() {
 	};
 
 	const navigateToOnboarding = () => {
-		const route = '/onboarding';
+		const route = '/onboarding/starterpack';
 
 		if (!validRoutes.includes(route)) {
 			showMessage(
@@ -295,7 +295,7 @@ export default function SplashScreen() {
 	};
 
 	// ============================
-	//   OPTION 4: ENHANCED LOADING STATE
+	//   ENHANCED LOADING STATE
 	// ============================
 	if (
 		isCheckingAuth ||
@@ -506,7 +506,7 @@ export default function SplashScreen() {
 			</Modal>
 
 			{/* ===============
-			      OPTION 1: WELCOME BACK MODAL
+				WELCOME BACK MODAL
 			    =============== */}
 			{WELCOME_BACK_MODE === 'modal' && (
 				<Modal

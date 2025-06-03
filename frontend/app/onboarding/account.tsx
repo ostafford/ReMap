@@ -466,12 +466,12 @@ export default function OnboardingAccountScreen() {
 								Create New Account
 							</Button>
 
-							<Button
+							{/* <Button
 								style={styles.secondaryButton}
 								onPress={toggleLoginModal}
 							>
 								Sign In
-							</Button>
+							</Button> */}
 
 							<View style={styles.navigationActions}>
 								<Button
