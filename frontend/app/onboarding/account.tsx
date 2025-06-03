@@ -7,7 +7,7 @@ import { View, StyleSheet, Alert } from 'react-native';
 // =======================
 //   THIRD-PARTY IMPORTS
 // =======================
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 // ================================
 //   INTERNAL 'LAYOUT' COMPONENTS
@@ -38,6 +38,7 @@ import {
 	SubheaderText,
 	BodySmallText,
 	LabelText,
+	CaptionText,
 } from '@/components/ui/Typography';
 
 // ================================
@@ -56,10 +57,34 @@ import {
 	isSignedIn,
 } from '@/services/auth';
 
+// =========================
+//   TYPE DEFINITIONS
+// =========================
+interface StarterPackSelection {
+	id: string;
+	name: string;
+	icon: string;
+	description: string;
+	category: string;
+	color: string;
+}
+
+interface StarterPackData {
+	starterPacks: StarterPackSelection[];
+	selectedIds: string[];
+	timestamp: string;
+	skipped?: boolean;
+}
+
 // ========================
 //   COMPONENT DEFINITION
 // ========================
 export default function OnboardingAccountScreen() {
+	// ==================
+	//   ROUTE PARAMS
+	// ==================
+	const { starterPackSelections } = useLocalSearchParams();
+
 	// ==================
 	//   MODAL STATE
 	// ==================
@@ -90,6 +115,28 @@ export default function OnboardingAccountScreen() {
 	// ==================
 	const [currentUser, setCurrentUser] = useState<any>(null);
 	const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+	// ==================
+	//   STARTER PACK STATE
+	// ==================
+	const [starterPackData, setStarterPackData] =
+		useState<StarterPackData | null>(null);
+
+	// ===========================
+	//   PARSE STARTER PACK DATA
+	// ===========================
+	// [ CONSOLE/SERVER DEBUGGING RELATED ]
+	useEffect(() => {
+		if (starterPackSelections) {
+			try {
+				const parsedData = JSON.parse(starterPackSelections as string);
+				setStarterPackData(parsedData);
+				console.log('📦 Received starter pack data:', parsedData);
+			} catch (error) {
+				console.error('Error parsing starter pack selections:', error);
+			}
+		}
+	}, [starterPackSelections]);
 
 	// ====================
 	//   AUTH DEFINITIONS
@@ -162,6 +209,20 @@ export default function OnboardingAccountScreen() {
 
 		try {
 			await signUp({ email, password });
+
+			// Create user profile data including starter pack preferences
+			const userProfileData = {
+				fullName,
+				email,
+				starterPackPreferences: starterPackData,
+				accountCreatedAt: new Date().toISOString(),
+			};
+
+			console.log(
+				'📋 User account data with starter packs:',
+				userProfileData
+			);
+
 			showMessage(
 				'Welcome to ReMap! Account created successfully.',
 				'success'
@@ -181,39 +242,39 @@ export default function OnboardingAccountScreen() {
 		}
 	};
 
-	const handleSignIn = async () => {
-		if (!email || !password) {
-			showMessage('Please fill out all required fields', 'warning');
-			return;
-		}
+	// const handleSignIn = async () => {
+	// 	if (!email || !password) {
+	// 		showMessage('Please fill out all required fields', 'warning');
+	// 		return;
+	// 	}
 
-		const emailValidation = validateEmail(email);
-		if (emailValidation) {
-			setEmailError(emailValidation);
-			showMessage('Please check your email format', 'error');
-			return;
-		}
+	// 	const emailValidation = validateEmail(email);
+	// 	if (emailValidation) {
+	// 		setEmailError(emailValidation);
+	// 		showMessage('Please check your email format', 'error');
+	// 		return;
+	// 	}
 
-		setIsLoading(true);
+	// 	setIsLoading(true);
 
-		try {
-			await signIn({ email, password });
-			showMessage('Welcome back! Successfully signed in.', 'success');
+	// 	try {
+	// 		await signIn({ email, password });
+	// 		showMessage('Welcome back! Successfully signed in.', 'success');
 
-			// Refresh current user info
-			await checkCurrentUser();
+	// 		// Refresh current user info
+	// 		await checkCurrentUser();
 
-			navigateToWorldMap();
-		} catch (error: any) {
-			console.error('Login error:', error);
-			const errorMessage =
-				error?.message ||
-				'Could not sign in. Please check your credentials.';
-			showMessage(errorMessage, 'error');
-		} finally {
-			setIsLoading(false);
-		}
-	};
+	// 		navigateToWorldMap();
+	// 	} catch (error: any) {
+	// 		console.error('Login error:', error);
+	// 		const errorMessage =
+	// 			error?.message ||
+	// 			'Could not sign in. Please check your credentials.';
+	// 		showMessage(errorMessage, 'error');
+	// 	} finally {
+	// 		setIsLoading(false);
+	// 	}
+	// };
 
 	const handleSignOut = async () => {
 		Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -241,6 +302,7 @@ export default function OnboardingAccountScreen() {
 		]);
 	};
 
+	// NOTE: Console/Server Debugging related. THIS IS NOT FOR USER
 	const checkCurrentUser = async () => {
 		setIsCheckingAuth(true);
 		try {
@@ -266,7 +328,18 @@ export default function OnboardingAccountScreen() {
 		resetForm();
 		setIsLoginModalVisible(false);
 		setIsSignupModalVisible(false);
-		router.replace('/worldmap');
+
+		// Pass starter pack data to world map
+		if (starterPackData && starterPackData.starterPacks.length > 0) {
+			router.replace({
+				pathname: '/worldmap',
+				params: {
+					userPreferences: JSON.stringify(starterPackData),
+				},
+			});
+		} else {
+			router.replace('/worldmap');
+		}
 	};
 
 	const skipAuth = () => {
@@ -275,7 +348,7 @@ export default function OnboardingAccountScreen() {
 
 	const confirmSkip = () => {
 		setIsSkipModalVisible(false);
-		router.replace('/worldmap');
+		navigateToWorldMap();
 	};
 
 	const cancelSkip = () => {
@@ -286,15 +359,22 @@ export default function OnboardingAccountScreen() {
 		router.back();
 	};
 
-	const toggleLoginModal = () => {
-		setIsLoginModalVisible(!isLoginModalVisible);
-		resetForm();
-	};
+	// const toggleLoginModal = () => {
+	// 	setIsLoginModalVisible(!isLoginModalVisible);
+	// 	resetForm();
+	// };
 
 	const toggleSignupModal = () => {
 		setIsSignupModalVisible(!isSignupModalVisible);
 		resetForm();
 	};
+
+	// ==================
+	//   COMPUTED VALUES
+	// ==================
+	const hasStarterPackSelections =
+		starterPackData && starterPackData.starterPacks.length > 0;
+	const selectionCount = starterPackData?.starterPacks.length || 0;
 
 	if (isCheckingAuth) {
 		return (
@@ -319,11 +399,11 @@ export default function OnboardingAccountScreen() {
 	// ============================
 	return (
 		<View style={styles.container}>
-			<Header title="Create Your Account" />
+			<Header title="Create Your Account" subtitle="Step 4 of 4" />
 
 			<MainContent>
 				<View style={styles.content}>
-					{/* NEW: Current User Status */}
+					{/* Current User Status */}
 					{currentUser && (
 						<View style={styles.currentUserContainer}>
 							<InfoMessage title="Already Signed In">
@@ -344,7 +424,7 @@ export default function OnboardingAccountScreen() {
 						</View>
 					)}
 
-					{/* Existing welcome section - only show if not signed in */}
+					{/* Welcome section - only show if not signed in */}
 					{!currentUser && (
 						<>
 							<View style={styles.welcomeSection}>
@@ -371,6 +451,39 @@ export default function OnboardingAccountScreen() {
 								<SubheaderText style={styles.benefitsTitle}>
 									With a ReMap account:
 								</SubheaderText>
+
+								{/* Starter Pack Summary */}
+								{hasStarterPackSelections && (
+									<View style={styles.selectionSummary}>
+										<InfoMessage title="Your Selections">
+											You've selected {selectionCount}{' '}
+											starter pack
+											{selectionCount !== 1 ? 's' : ''}.
+											We'll personalize your map
+											experience with these preferences!
+										</InfoMessage>
+
+										<View style={styles.selectedPacks}>
+											{starterPackData?.starterPacks.map(
+												(pack) => (
+													<View
+														key={pack.id}
+														style={styles.packChip}
+													>
+														<BodySmallText
+															style={
+																styles.packChipText
+															}
+														>
+															{pack.icon}{' '}
+															{pack.name}
+														</BodySmallText>
+													</View>
+												)
+											)}
+										</View>
+									</View>
+								)}
 
 								<View style={styles.benefitsList}>
 									<View style={styles.benefitItem}>
@@ -527,6 +640,27 @@ export default function OnboardingAccountScreen() {
 								</WarningMessage>
 							)}
 
+						{/* Starter Pack Preview in Modal */}
+						{hasStarterPackSelections && (
+							<View style={styles.modalStarterPacks}>
+								<LabelText style={styles.modalPacksTitle}>
+									Your selected interests:
+								</LabelText>
+								<View style={styles.modalPacksList}>
+									{starterPackData?.starterPacks.map(
+										(pack) => (
+											<CaptionText
+												key={pack.id}
+												style={styles.modalPackItem}
+											>
+												{pack.icon} {pack.name}
+											</CaptionText>
+										)
+									)}
+								</View>
+							</View>
+						)}
+
 						{/* Form Inputs */}
 						<Input
 							label="Full Name"
@@ -582,15 +716,15 @@ export default function OnboardingAccountScreen() {
 			{/* ===============
 			      LOGIN MODAL
 			    =============== */}
-			<Modal
+			{/* <Modal
 				isVisible={isLoginModalVisible}
 				onBackdropPress={toggleLoginModal}
 			>
 				<Modal.Container>
 					<Modal.Header title="Welcome Back!" />
-					<Modal.Body>
-						{/* Message Display */}
-						{messageState.show &&
+					<Modal.Body> */}
+			{/* Message Display */}
+			{/* {messageState.show &&
 							messageState.type === 'success' && (
 								<SuccessMessage
 									title="Welcome Back!"
@@ -611,10 +745,10 @@ export default function OnboardingAccountScreen() {
 								<WarningMessage onDismiss={hideMessage}>
 									{messageState.message}
 								</WarningMessage>
-							)}
+							)} */}
 
-						{/* Form Inputs */}
-						<Input
+			{/* Form Inputs */}
+			{/* <Input
 							value={email}
 							onChangeText={(text) => {
 								setEmail(text);
@@ -634,9 +768,9 @@ export default function OnboardingAccountScreen() {
 							secureTextEntry
 							secureToggle
 						/>
-					</Modal.Body>
+					</Modal.Body> */}
 
-					<Modal.Footer>
+			{/* <Modal.Footer>
 						<Button
 							onPress={handleSignIn}
 							style={[styles.modalButton, styles.loginButton]}
@@ -653,7 +787,7 @@ export default function OnboardingAccountScreen() {
 						</Button>
 					</Modal.Footer>
 				</Modal.Container>
-			</Modal>
+			</Modal> */}
 
 			{/* ==============
 			      SKIP MODAL
@@ -669,6 +803,8 @@ export default function OnboardingAccountScreen() {
 							{'\n'}• Sharing with friends and family
 							{'\n'}• Contributing to the global memory map
 							{'\n'}• Privacy controls for your content
+							{hasStarterPackSelections &&
+								'\n\n• Your personalized starter pack preferences'}
 						</WarningMessage>
 					</Modal.Body>
 
@@ -714,6 +850,56 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		paddingVertical: 20,
 	},
+
+	// Starter Pack Selection Summary
+	selectionSummary: {
+		marginBottom: 20,
+	},
+	selectedPacks: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 8,
+		marginTop: 10,
+	},
+	packChip: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 16,
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderWidth: 1,
+		borderColor: ReMapColors.primary.violet,
+	},
+	packChipText: {
+		color: ReMapColors.primary.violet,
+		fontSize: 12,
+	},
+
+	// Modal Starter Pack Display
+	modalStarterPacks: {
+		backgroundColor: ReMapColors.ui.background,
+		padding: 12,
+		borderRadius: 8,
+		marginBottom: 16,
+		borderLeftWidth: 4,
+		borderLeftColor: ReMapColors.primary.violet,
+	},
+	modalPacksTitle: {
+		marginBottom: 8,
+		color: ReMapColors.primary.violet,
+	},
+	modalPacksList: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 8,
+	},
+	modalPackItem: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 12,
+	},
+
+	// Existing styles
 	currentUserContainer: {
 		marginBottom: 30,
 	},
@@ -803,31 +989,5 @@ const styles = StyleSheet.create({
 	},
 	skipConfirmButton: {
 		backgroundColor: ReMapColors.semantic.warning,
-	},
-
-	// Add to your existing styles
-	navIconButton: {
-		backgroundColor: ReMapColors.ui.textSecondary,
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-	},
-
-	secondaryIconButton: {
-		backgroundColor: ReMapColors.ui.textSecondary,
-		flex: 0, // Don't grow like text buttons
-	},
-
-	// Optional: Icon + text combination
-	backGroup: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 8,
-		flex: 1,
-	},
-
-	navLabel: {
-		color: ReMapColors.ui.text,
-		fontSize: 14,
 	},
 });

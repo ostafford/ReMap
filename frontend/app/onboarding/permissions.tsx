@@ -267,7 +267,7 @@ export default function OnboardingPermissionsScreen() {
 					title: 'Location Access Granted!',
 					description:
 						'Perfect! ReMap can now help you pin memories to specific places and discover stories around you.',
-					buttonText: 'Continue to Account Setup →',
+					buttonText: 'Next →',
 					buttonDisabled: false,
 				};
 			case 'denied':
@@ -414,6 +414,9 @@ export default function OnboardingPermissionsScreen() {
 								: statusInfo.buttonText}
 						</Button>
 					)}
+					<Button style={styles.secondaryButton} onPress={goBack}>
+						← Previous
+					</Button>
 
 					{(locationStatus === 'granted' ||
 						locationStatus === 'denied') && (
@@ -426,10 +429,6 @@ export default function OnboardingPermissionsScreen() {
 					)}
 
 					<View style={styles.secondaryActions}>
-						<Button style={styles.secondaryButton} onPress={goBack}>
-							← Previous
-						</Button>
-
 						{locationStatus === 'not_requested' && (
 							<Button
 								style={styles.tertiaryButton}
@@ -522,10 +521,11 @@ const styles = StyleSheet.create({
 	},
 	buttonContainer: {
 		width: '100%',
+		flexDirection: 'row',
 	},
 	primaryButton: {
 		backgroundColor: ReMapColors.primary.violet,
-		width: '100%',
+		width: '50%',
 		marginBottom: 10,
 	},
 	secondaryActions: {

@@ -257,12 +257,12 @@ export default function OnboardingWelcomeScreen() {
 			<Footer>
 				<View style={styles.buttonContainer}>
 					<Button style={styles.primaryButton} onPress={nextStep}>
-						{isLastStep ? '🚀 Get Started' : 'Continue'}
+						{isLastStep ? 'Enable Location Services' : 'Continue'}
 					</Button>
 
 					<View style={styles.secondaryActions}>
 						<Button style={styles.secondaryButton} onPress={goBack}>
-							{currentStep > 0 ? '← Previous' : '← Back to Home'}
+							{currentStep > 0 ? '← Previous' : '← Previous'}
 						</Button>
 
 						<Button
