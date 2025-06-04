@@ -253,6 +253,25 @@ export default function OnboardingStarterPackScreen() {
 	const hasSelections = selectedPacks.length > 0;
 	const selectionCount = selectedPacks.length;
 
+	// NEW: Use memory colors for different pin types
+	const getMemoryTypeColor = (
+		memoryType:
+			| 'personal'
+			| 'shared'
+			| 'adventure'
+			| 'peaceful'
+			| 'exciting'
+	) => {
+		return ReMapColors.memory[memoryType];
+	};
+
+	// NEW: Use location colors for location status
+	const getLocationStatusColor = (
+		status: 'current' | 'visited' | 'planned' | 'favorite'
+	) => {
+		return ReMapColors.location[status];
+	};
+
 	// ============================
 	//   COMPONENT RENDER SECTION
 	// ============================

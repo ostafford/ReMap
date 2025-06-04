@@ -9,7 +9,6 @@ import {
 import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
-import { ReMapColors } from '@/constants/Colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Components imports
@@ -30,6 +29,13 @@ import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BodyText, CaptionText } from '@/components/ui/Typography';
+
+import {
+	ReMapColors,
+	StarterPackColors,
+	MemoryThemes,
+	AccessibleColors,
+} from '@/constants/Colors';
 
 export default function WorldMapScreen() {
 	// to make sure page isnt going over status bar region
@@ -188,15 +194,258 @@ export default function WorldMapScreen() {
 	};
 
 	const getMarkerColor = (category: string): string => {
-		const colorMap: { [key: string]: string } = {
-			cafes: '#8B4513',
-			nightlife: '#4A148C',
-			foodie: '#FF5722',
-			culture: '#9C27B0',
-			nature: '#4CAF50',
-			urban: '#2196F3',
+		return (
+			StarterPackColors[category as keyof typeof StarterPackColors] ||
+			ReMapColors.ui.textSecondary
+		);
+	};
+
+	// =====================================
+	// ENHANCED MARKER STYLES
+	// =====================================
+
+	// Add these new marker style variants
+	const getMarkerStyle = (pin: DummyPin, isSelected: boolean = false) => {
+		const baseColor = getMarkerColor(pin.starterPackCategory);
+		const memoryType = determineMemoryType(pin.memory);
+
+		return {
+			backgroundColor: baseColor,
+			borderColor: isSelected
+				? ReMapColors.adventure.goldenHour
+				: '#FFFFFF',
+			borderWidth: isSelected ? 3 : 2,
+			// Add subtle gradient effect for adventure memories
+			shadowColor:
+				memoryType === 'adventure'
+					? ReMapColors.adventure.sunsetOrange
+					: '#000',
+			shadowOpacity: memoryType === 'adventure' ? 0.4 : 0.3,
+			// Larger size for exciting memories
+			transform: [{ scale: memoryType === 'exciting' ? 1.2 : 1.0 }],
 		};
-		return colorMap[category] || '#666666';
+	};
+
+	// Helper function to determine memory type from memory data
+	const determineMemoryType = (
+		memory: any
+	): keyof typeof ReMapColors.memory => {
+		const title = memory.title.toLowerCase();
+		const description = memory.description.toLowerCase();
+
+		// Simple keyword-based categorization
+		if (
+			title.includes('adventure') ||
+			description.includes('exciting') ||
+			description.includes('amazing')
+		) {
+			return 'adventure';
+		}
+		if (
+			title.includes('peaceful') ||
+			description.includes('calm') ||
+			description.includes('quiet')
+		) {
+			return 'peaceful';
+		}
+		if (
+			title.includes('friend') ||
+			description.includes('together') ||
+			description.includes('family')
+		) {
+			return 'shared';
+		}
+		if (
+			description.includes('amazing') ||
+			title.includes('incredible') ||
+			description.includes('thrilling')
+		) {
+			return 'exciting';
+		}
+
+		return 'personal'; // default
+	};
+
+	// =====================================
+	// ENHANCED FILTER CONTROLS STYLING
+	// =====================================
+
+	// Update your filter controls section with new colors
+	const EnhancedFilterControls = ({
+		userStarterPacks,
+		showPersonalizedPins,
+		togglePersonalizedView,
+		filteredPins,
+		getFilterStatusText,
+	}: any) => (
+		<View
+			style={[
+				styles.filterControls,
+				{
+					backgroundColor: ReMapColors.ui.surface, // Softer than pure white
+					borderLeftColor: ReMapColors.earth.forestGreen, // More natural than violet
+					shadowColor: ReMapColors.earth.deepForest,
+				},
+			]}
+		>
+			<View style={styles.filterHeader}>
+				<CaptionText
+					style={[
+						styles.filterStatus,
+						{
+							color: ReMapColors.ui.text,
+						},
+					]}
+				>
+					{getFilterStatusText()}
+				</CaptionText>
+				<Button
+					onPress={togglePersonalizedView}
+					style={[
+						styles.filterToggle,
+						{
+							backgroundColor: showPersonalizedPins
+								? ReMapColors.adventure.sunsetOrange
+								: ReMapColors.earth.sageGreen,
+						},
+					]}
+					size="small"
+				>
+					{showPersonalizedPins ? 'Show All' : 'My Interests'}
+				</Button>
+			</View>
+
+			{/* Enhanced category chips with memory themes */}
+			<View style={styles.selectedCategories}>
+				{userStarterPacks.starterPacks.map((pack: any) => (
+					<View
+						key={pack.id}
+						style={[
+							styles.categoryChip,
+							{
+								backgroundColor: ReMapColors.vintage.parchment, // Warmer background
+								borderColor:
+									StarterPackColors[pack.id] ||
+									ReMapColors.earth.warmBrown,
+								// Add subtle shadow for depth
+								shadowColor:
+									StarterPackColors[pack.id] ||
+									ReMapColors.earth.deepForest,
+								shadowOffset: { width: 0, height: 1 },
+								shadowOpacity: 0.2,
+								shadowRadius: 2,
+								elevation: 2,
+							},
+						]}
+					>
+						<CaptionText
+							style={[
+								styles.categoryChipText,
+								{
+									color:
+										StarterPackColors[pack.id] ||
+										ReMapColors.earth.deepForest,
+								},
+							]}
+						>
+							{pack.icon} {pack.name}
+						</CaptionText>
+					</View>
+				))}
+			</View>
+		</View>
+	);
+
+	// =====================================
+	// THEMED MEMORY PREVIEW
+	// =====================================
+
+	// Add this new component for when users tap on pins
+	const MemoryPreviewCard = ({
+		pin,
+		onClose,
+	}: {
+		pin: DummyPin;
+		onClose: () => void;
+	}) => {
+		const memoryType = determineMemoryType(pin.memory);
+		const theme = getMemoryTheme(memoryType);
+
+		return (
+			<View
+				style={[
+					styles.memoryPreview,
+					{
+						backgroundColor: theme.background,
+						borderLeftColor: theme.primary,
+					},
+				]}
+			>
+				<View style={styles.memoryHeader}>
+					<Text style={[styles.memoryTitle, { color: theme.text }]}>
+						{pin.memory.title}
+					</Text>
+					<TouchableOpacity
+						onPress={onClose}
+						style={styles.closeButton}
+					>
+						<Text style={{ color: theme.primary }}>✕</Text>
+					</TouchableOpacity>
+				</View>
+
+				<Text
+					style={[styles.memoryLocation, { color: theme.secondary }]}
+				>
+					📍 {pin.name}
+				</Text>
+
+				<Text style={[styles.memoryDescription, { color: theme.text }]}>
+					{pin.memory.description.substring(0, 150)}...
+				</Text>
+
+				<View style={styles.memoryMeta}>
+					<Text
+						style={[
+							styles.memoryAuthor,
+							{ color: theme.secondary },
+						]}
+					>
+						by {pin.memory.author}
+					</Text>
+					<View
+						style={[
+							styles.memoryTypeTag,
+							{ backgroundColor: theme.primary },
+						]}
+					>
+						<Text
+							style={[
+								styles.memoryTypeText,
+								{ color: theme.background },
+							]}
+						>
+							{memoryType.charAt(0).toUpperCase() +
+								memoryType.slice(1)}
+						</Text>
+					</View>
+				</View>
+			</View>
+		);
+	};
+
+	// Helper function to get theme based on memory type
+	const getMemoryTheme = (memoryType: keyof typeof ReMapColors.memory) => {
+		switch (memoryType) {
+			case 'adventure':
+			case 'exciting':
+				return MemoryThemes.adventure;
+			case 'peaceful':
+				return MemoryThemes.peaceful;
+			case 'shared':
+				return MemoryThemes.nature; // Social memories use nature theme
+			default:
+				return MemoryThemes.vintage; // Personal memories use vintage theme
+		}
 	};
 
 	// ====================================
@@ -570,69 +819,137 @@ const styles = StyleSheet.create({
 	},
 
 	// Okky's Sign Out Testing Modal
-	profileContent: {
-		alignItems: 'center',
-		padding: 10,
-	},
-	profileEmail: {
-		marginBottom: 4,
-		fontSize: 16,
-	},
-	profileMeta: {
-		marginBottom: 20,
-		color: ReMapColors.ui.textSecondary,
-	},
-	profileMessage: {
-		textAlign: 'center',
-		color: ReMapColors.ui.textSecondary,
-		lineHeight: 22,
-	},
-	signOutButton: {
-		backgroundColor: ReMapColors.semantic.error,
-	},
+
 	filterControls: {
-		backgroundColor: ReMapColors.ui.cardBackground,
+		backgroundColor: ReMapColors.ui.surface, // Softer than white
 		padding: 16,
 		borderRadius: 12,
 		marginBottom: 10,
 		borderLeftWidth: 4,
-		borderLeftColor: ReMapColors.primary.violet,
+		borderLeftColor: ReMapColors.earth.forestGreen, // Natural accent
+		shadowColor: ReMapColors.earth.deepForest,
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+		elevation: 3,
 	},
+
 	filterHeader: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
 		marginBottom: 12,
 	},
+
 	filterStatus: {
 		flex: 1,
 		color: ReMapColors.ui.text,
 	},
+
 	filterToggle: {
-		backgroundColor: ReMapColors.primary.violet,
+		backgroundColor: ReMapColors.earth.sageGreen,
 		paddingHorizontal: 16,
 		paddingVertical: 8,
 		borderRadius: 16,
+		shadowColor: ReMapColors.earth.deepForest,
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.2,
+		shadowRadius: 2,
+		elevation: 2,
 	},
-	selectedCategories: {
-		flexDirection: 'row',
-		flexWrap: 'wrap',
-		gap: 8,
-	},
+
+	// Enhanced category chips
 	categoryChip: {
-		backgroundColor: ReMapColors.ui.background,
+		backgroundColor: ReMapColors.vintage.parchment,
 		paddingHorizontal: 10,
 		paddingVertical: 4,
 		borderRadius: 12,
 		borderWidth: 1,
-		borderColor: ReMapColors.primary.violet,
-	},
-	categoryChipText: {
-		color: ReMapColors.primary.violet,
-		fontSize: 11,
+		marginRight: 8,
+		marginBottom: 4,
 	},
 
-	// Custom Markers
+	categoryChipText: {
+		fontSize: 11,
+		fontWeight: '500',
+	},
+
+	// New memory preview styles
+	memoryPreview: {
+		position: 'absolute',
+		bottom: 100,
+		left: 20,
+		right: 20,
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 12,
+		padding: 16,
+		borderLeftWidth: 4,
+		shadowColor: ReMapColors.earth.deepForest,
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.2,
+		shadowRadius: 8,
+		elevation: 8,
+	},
+
+	memoryHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'flex-start',
+		marginBottom: 8,
+	},
+
+	memoryTitle: {
+		fontSize: 16,
+		fontWeight: '600',
+		flex: 1,
+		marginRight: 8,
+	},
+
+	closeButton: {
+		width: 24,
+		height: 24,
+		borderRadius: 12,
+		backgroundColor: ReMapColors.ui.surface,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+
+	memoryLocation: {
+		fontSize: 14,
+		marginBottom: 8,
+		fontWeight: '500',
+	},
+
+	memoryDescription: {
+		fontSize: 14,
+		lineHeight: 20,
+		marginBottom: 12,
+	},
+
+	memoryMeta: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+	},
+
+	memoryAuthor: {
+		fontSize: 12,
+		fontStyle: 'italic',
+	},
+
+	memoryTypeTag: {
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 8,
+	},
+
+	memoryTypeText: {
+		fontSize: 11,
+		fontWeight: '600',
+		textTransform: 'uppercase',
+	},
+
+	// Enhanced marker styles
 	customMarker: {
 		width: 36,
 		height: 36,
@@ -641,14 +958,10 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		borderWidth: 2,
 		borderColor: '#FFFFFF',
-		shadowColor: '#000',
+		shadowColor: ReMapColors.earth.deepForest,
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.3,
 		shadowRadius: 3,
 		elevation: 5,
-	},
-	markerIcon: {
-		fontSize: 16,
-		color: '#FFFFFF',
 	},
 });
