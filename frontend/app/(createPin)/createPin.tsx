@@ -10,6 +10,8 @@ import {
 	ScrollView,
 	Keyboard,
 	Alert,
+	Image,
+	TouchableOpacity,
 } from 'react-native';
 
 // =======================
@@ -56,10 +58,26 @@ import {
 // ================================
 import { ReMapColors } from '@/constants/Colors';
 
+import {
+	createMemoryPin,
+	getUserSocialCircles,
+	type CreateMemoryRequest,
+	type UploadProgress,
+} from '@/services/memoryService';
+
 // =========================
 //   TYPE DEFINITIONS
 // =========================
 type VisibilityOption = 'public' | 'social' | 'private';
+
+// NEW: Social Circle Types
+interface SocialCircle {
+	id: string;
+	name: string;
+	memberCount: number;
+	description: string;
+	color: string;
+}
 
 interface ModalState {
 	show: boolean;
@@ -69,7 +87,8 @@ interface ModalState {
 		| 'photoChoice'
 		| 'success'
 		| 'info'
-		| 'preview';
+		| 'preview'
+		| 'imagePreview';
 	title: string;
 	message: string;
 	actions?: Array<{
@@ -96,6 +115,7 @@ interface MemoryData {
 		description: string;
 	};
 	visibility: VisibilityOption[];
+	socialCircles: string[]; // NOTE: Selected social circle IDs
 	media: {
 		photos: MediaItem[];
 		videos: MediaItem[];
@@ -111,6 +131,47 @@ interface MemoryData {
 	};
 }
 
+// =========================
+//   DUMMY SOCIAL CIRCLES
+// =========================
+const DUMMY_SOCIAL_CIRCLES: SocialCircle[] = [
+	{
+		id: 'family',
+		name: 'Family Circle',
+		memberCount: 8,
+		description: 'Close family members',
+		color: '#FF6B6B',
+	},
+	{
+		id: 'work_friends',
+		name: 'Work Friends',
+		memberCount: 12,
+		description: 'Colleagues and work buddies',
+		color: '#4ECDC4',
+	},
+	{
+		id: 'university',
+		name: 'University Squad',
+		memberCount: 15,
+		description: 'University friends and classmates',
+		color: '#45B7D1',
+	},
+	{
+		id: 'hiking_group',
+		name: 'Adventure Hikers',
+		memberCount: 6,
+		description: 'Weekend hiking enthusiasts',
+		color: '#96CEB4',
+	},
+	{
+		id: 'book_club',
+		name: 'Book Club',
+		memberCount: 9,
+		description: 'Monthly book discussion group',
+		color: '#FFEAA7',
+	},
+];
+
 // ========================
 //   COMPONENT DEFINITION
 // ========================
@@ -121,6 +182,18 @@ export default function CreatePinScreen() {
 	const [selectedVisibility, setSelectedVisibility] = useState<
 		VisibilityOption[]
 	>(['public']);
+
+	// ATTN: Social Circle State
+	const [selectedSocialCircles, setSelectedSocialCircles] = useState<
+		string[]
+	>([]);
+	const [showSocialDropdown, setShowSocialDropdown] = useState(false);
+	const [isSaving, setIsSaving] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
+		null
+	);
+	const [userSocialCircles, setUserSocialCircles] = useState<any[]>([]);
+
 	const [locationQuery, setLocationQuery] = useState('');
 	const [memoryTitle, setMemoryTitle] = useState('');
 	const [memoryDescription, setMemoryDescription] = useState('');
@@ -140,12 +213,15 @@ export default function CreatePinScreen() {
 	// ====================================
 	//   STATE MANAGEMENT [ MEDIA ]
 	// ====================================
-	const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
+	const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
 	const [recording, setRecording] = useState<Audio.Recording | null>(null);
 	const [isRecording, setIsRecording] = useState(false);
 	const [audioUri, setAudioUri] = useState<string | null>(null);
 	const [sound, setSound] = useState<Audio.Sound | null>(null);
 	const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
+	// ATTN: Image Preview State
+	const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
 
 	// ==============================
 	//   STATE MANAGEMENT [ MODAL ]
@@ -201,6 +277,17 @@ export default function CreatePinScreen() {
 		};
 	}, [sound, recording]);
 
+	// ATTN: Load user's actual social circles
+	useEffect(() => {
+		const loadUserSocialCircles = async () => {
+			const circles = await getUserSocialCircles();
+			setUserSocialCircles(circles);
+			console.log('👥 Loaded user social circles:', circles);
+		};
+
+		loadUserSocialCircles();
+	}, []);
+
 	// =======================
 	//   NAVIGATION HANDLERS
 	// =======================
@@ -219,11 +306,24 @@ export default function CreatePinScreen() {
 		setSelectedVisibility((prev) => {
 			if (prev.includes(option)) {
 				if (prev.length > 1) {
-					return prev.filter((item) => item !== option);
+					const newVisibility = prev.filter(
+						(item) => item !== option
+					);
+					// Hide social dropdown if social is deselected
+					if (option === 'social') {
+						setShowSocialDropdown(false);
+						setSelectedSocialCircles([]);
+					}
+					return newVisibility;
 				}
 				return prev;
 			} else {
-				return [...prev, option];
+				const newVisibility = [...prev, option];
+				// Show social dropdown if social is selected
+				if (option === 'social') {
+					setShowSocialDropdown(true);
+				}
+				return newVisibility;
 			}
 		});
 	};
@@ -232,35 +332,46 @@ export default function CreatePinScreen() {
 		return selectedVisibility.includes(option);
 	};
 
+	// NOTE: Social Circle Handlers
+	const handleSocialCircleToggle = (circleId: string) => {
+		setSelectedSocialCircles((prev) => {
+			if (prev.includes(circleId)) {
+				return prev.filter((id) => id !== circleId);
+			} else {
+				return [...prev, circleId];
+			}
+		});
+	};
+
+	const getSelectedSocialCircles = () => {
+		return userSocialCircles.filter((circle) =>
+			selectedSocialCircles.includes(circle.id)
+		);
+	};
+
 	const getVisibilityDescription = () => {
-		if (selectedVisibility.length === 1) {
-			switch (selectedVisibility[0]) {
-				case 'public':
-					return 'Visible to everyone in the ReMap community';
-				case 'social':
-					return 'Visible to your friends and followers';
-				case 'private':
-					return 'Only visible to you';
-			}
-		} else if (selectedVisibility.length === 2) {
-			const options = selectedVisibility.sort();
-			if (options.includes('public') && options.includes('social')) {
-				return 'Visible to everyone and your social circle';
-			} else if (
-				options.includes('public') &&
-				options.includes('private')
-			) {
-				return 'Visible to everyone, but you control the details';
-			} else if (
-				options.includes('social') &&
-				options.includes('private')
-			) {
-				return 'Visible to your friends, with private elements';
-			}
-		} else if (selectedVisibility.length === 3) {
-			return 'Multiple visibility layers - maximum flexibility';
+		let description = '';
+
+		if (selectedVisibility.includes('public')) {
+			description += 'Visible to everyone in the ReMap community';
 		}
-		return 'Select your visibility preferences';
+
+		if (selectedVisibility.includes('social')) {
+			if (description) description += ' and ';
+			if (selectedSocialCircles.length > 0) {
+				description += `visible to ${selectedSocialCircles.length} selected social circle(s)`;
+			} else {
+				description +=
+					'visible to your social circles (none selected yet)';
+			}
+		}
+
+		if (selectedVisibility.includes('private')) {
+			if (description) description += ' and ';
+			description += 'kept private to you';
+		}
+
+		return description || 'Select your visibility preferences';
 	};
 
 	// ========================
@@ -268,7 +379,6 @@ export default function CreatePinScreen() {
 	// ========================
 	const handleInputFocus = (inputRef: any, inputId: string) => {
 		setActiveInputId(inputId);
-		// Immediate scroll without waiting for keyboard
 		scrollToInput(inputRef, inputId);
 	};
 
@@ -330,6 +440,23 @@ export default function CreatePinScreen() {
 		if (currentType === 'preview') {
 			setPreviewData(null);
 		}
+		if (currentType === 'imagePreview') {
+			setPreviewImageUri(null);
+		}
+	};
+
+	// ATTN: Image Preview Handler
+	const showImagePreview = (imageUri: string) => {
+		setPreviewImageUri(imageUri);
+		setModalState({
+			show: true,
+			type: 'imagePreview',
+			title: 'Image Preview',
+			message: '',
+			actions: [
+				{ text: 'Close', onPress: hideModal, style: 'secondary' },
+			],
+		});
 	};
 
 	// ==================================
@@ -388,7 +515,7 @@ export default function CreatePinScreen() {
 			if (!result.canceled && result.assets[0]) {
 				const newMedia: MediaItem = {
 					uri: result.assets[0].uri,
-					type: 'photo', // Simplified - assume photo
+					type: 'photo',
 					name: `Camera Photo ${selectedMedia.length + 1}`,
 				};
 				setSelectedMedia((prev) => [...prev, newMedia]);
@@ -417,7 +544,7 @@ export default function CreatePinScreen() {
 			if (!result.canceled && result.assets[0]) {
 				const newMedia: MediaItem = {
 					uri: result.assets[0].uri,
-					type: 'photo', // Simplified - assume photo
+					type: 'photo',
 					name: `Library Photo ${selectedMedia.length + 1}`,
 				};
 				setSelectedMedia((prev) => [...prev, newMedia]);
@@ -529,7 +656,6 @@ export default function CreatePinScreen() {
 		}
 
 		try {
-			// Stop any currently playing sound
 			if (sound) {
 				await sound.unloadAsync();
 				setSound(null);
@@ -544,7 +670,6 @@ export default function CreatePinScreen() {
 
 			setSound(newSound);
 
-			// NOTE: Set up playback status listener
 			newSound.setOnPlaybackStatusUpdate((status) => {
 				if (status.isLoaded && status.didJustFinish) {
 					setIsPlayingAudio(false);
@@ -579,7 +704,6 @@ export default function CreatePinScreen() {
 	};
 
 	const removeAudio = () => {
-		// NOTE: Stop any playing audio first
 		if (sound) {
 			sound.unloadAsync();
 			setSound(null);
@@ -603,6 +727,7 @@ export default function CreatePinScreen() {
 				description: memoryDescription.trim(),
 			},
 			visibility: selectedVisibility,
+			socialCircles: selectedSocialCircles, // NEW: Include social circles
 			media: {
 				photos: selectedMedia.filter((item) => item.type === 'photo'),
 				videos: selectedMedia.filter((item) => item.type === 'video'),
@@ -620,9 +745,24 @@ export default function CreatePinScreen() {
 			},
 		};
 	};
+	const createBackendMemoryData = (): CreateMemoryRequest => {
+		return {
+			name: memoryTitle.trim(),
+			description: memoryDescription.trim(),
+			latitude: 0, // TODO: Get from location service
+			longitude: 0, // TODO: Get from location service
+			location_query: locationQuery.trim(),
+			visibility: selectedVisibility,
+			social_circle_ids: selectedSocialCircles,
+			media: {
+				photos: selectedMedia.filter((item) => item.type === 'photo'),
+				videos: selectedMedia.filter((item) => item.type === 'video'),
+				audio: audioUri ? { uri: audioUri } : null,
+			},
+		};
+	};
 
 	const handlePreviewMemory = () => {
-		// Validation
 		if (!memoryTitle.trim()) {
 			showModal(
 				'error',
@@ -641,7 +781,6 @@ export default function CreatePinScreen() {
 			return;
 		}
 
-		// Create preview data and show modal
 		const memoryData = createMemoryData();
 		setPreviewData(memoryData);
 
@@ -665,30 +804,82 @@ export default function CreatePinScreen() {
 		});
 	};
 
-	const handleConfirmSave = () => {
-		console.log('DEBUG: previewData exists?', !!previewData);
-		console.log('DEBUG: previewData title:', previewData?.content?.title);
-		const currentMemoryData = createMemoryData();
+	const handleConfirmSave = async () => {
+		const TESTING_MODE = true;
 
-		if (
-			!currentMemoryData.content.title.trim() ||
-			!currentMemoryData.location.query.trim()
-		) {
-			console.error('Missing required data for saving');
-			return;
+		setIsSaving(true);
+		setUploadProgress({
+			total: 0,
+			completed: 0,
+			currentFile: 'Preparing...',
+			percentage: 0,
+		});
+
+		try {
+			const memoryData = createMemoryData();
+			const backendData = createBackendMemoryData();
+
+			if (TESTING_MODE) {
+				// Simple testing simulation
+				console.log('Testing mode: Simulating save...');
+
+				// Quick progress simulation
+				const totalFiles = selectedMedia.length + (audioUri ? 1 : 0);
+				setUploadProgress({
+					total: totalFiles,
+					completed: totalFiles,
+					currentFile: 'Complete',
+					percentage: 100,
+				});
+
+				// Brief delay to show progress
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+
+				// Log data structures for backend team
+				console.log('Frontend data:', memoryData);
+				console.log('Backend payload:', backendData);
+				console.log('✅ Test save completed');
+
+				// Success flow
+				const result = {
+					success: true,
+					data: {
+						id: `test-${Date.now()}`,
+						name: backendData.name,
+					},
+				};
+
+				handleSaveSuccess(memoryData, result);
+			} else {
+				// Production API call
+				const result = await createMemoryPin(
+					backendData,
+					setUploadProgress
+				);
+
+				if (result.success) {
+					console.log('Memory saved:', result.data);
+					handleSaveSuccess(memoryData, result);
+				} else {
+					handleSaveError(result.error);
+				}
+			}
+		} catch (error) {
+			console.error('Save error:', error);
+			handleSaveError('Unexpected error occurred');
+		} finally {
+			setIsSaving(false);
+			setUploadProgress(null);
 		}
+	};
 
-		// Log the memory data (in production, this would be sent to your backend)
-		console.log('Saving memory pin with data:');
-		console.log(JSON.stringify(currentMemoryData, null, 2));
-
-		// Hide preview modal and show success
+	// Helper functions to reduce duplication
+	const handleSaveSuccess = (memoryData: MemoryData, result: any) => {
 		hideModal();
-
 		showModal(
 			'success',
 			'Memory Posted!',
-			`Your memory "${currentMemoryData.content.title}" has been successfully posted to ${currentMemoryData.location.query}.`,
+			`"${memoryData.content.title}" posted to ${memoryData.location.query}`,
 			[
 				{
 					text: 'View on Map',
@@ -700,26 +891,52 @@ export default function CreatePinScreen() {
 				},
 				{
 					text: 'Create Another',
-					onPress: () => {
-						hideModal();
-						// Reset form
-						setMemoryTitle('');
-						setMemoryDescription('');
-						setLocationQuery('');
-						setSelectedMedia([]);
-						setAudioUri(null);
-						setSelectedVisibility(['public']);
-						setPreviewData(null); // IMPORTANT: Clear preview data
-					},
+					onPress: resetForm,
 					style: 'secondary',
 				},
 			]
 		);
 	};
 
+	const handleSaveError = (error: string) => {
+		showModal(
+			'error',
+			'Save Failed',
+			error || 'Something went wrong. Please try again.',
+			[{ text: 'Try Again', onPress: hideModal, style: 'primary' }]
+		);
+	};
+
+	const resetForm = () => {
+		hideModal();
+		setMemoryTitle('');
+		setMemoryDescription('');
+		setLocationQuery('');
+		setSelectedMedia([]);
+		setAudioUri(null);
+		setSelectedVisibility(['public']);
+		setSelectedSocialCircles([]);
+		setShowSocialDropdown(false);
+		setPreviewData(null);
+	};
+
 	// ====================
 	//   MODAL COMPONENTS
 	// ====================
+	const renderImagePreviewModal = () => {
+		if (!previewImageUri) return null;
+
+		return (
+			<View style={styles.imagePreviewContainer}>
+				<Image
+					source={{ uri: previewImageUri }}
+					style={styles.fullImagePreview}
+					resizeMode="contain"
+				/>
+			</View>
+		);
+	};
+
 	const renderPreviewModal = () => {
 		if (!previewData) return null;
 
@@ -729,24 +946,29 @@ export default function CreatePinScreen() {
 					{/* Header */}
 					<View style={styles.previewHeader}>
 						<HeaderText align="center" style={styles.previewTitle}>
-							{previewData.content.title}
+							{previewData?.content?.title || 'Untitled Memory'}
 						</HeaderText>
 						<CaptionText
 							align="center"
 							style={styles.previewLocation}
 						>
-							📍 {previewData.location.query}
+							📍{' '}
+							{previewData?.location?.query || 'Unknown Location'}
 						</CaptionText>
 						<CaptionText
 							align="center"
 							style={styles.previewTimestamp}
 						>
-							{new Date(previewData.timestamp).toLocaleString()}
+							{previewData?.timestamp
+								? new Date(
+										previewData.timestamp
+								  ).toLocaleString()
+								: 'Now'}
 						</CaptionText>
 					</View>
 
 					{/* Description */}
-					{previewData.content.description && (
+					{previewData?.content?.description && (
 						<View style={styles.previewSection}>
 							<LabelText>Description:</LabelText>
 							<BodyText style={styles.previewDescription}>
@@ -771,57 +993,146 @@ export default function CreatePinScreen() {
 								</View>
 							))}
 						</View>
+
+						{/* NEW: Social Circles Preview */}
+						{previewData.socialCircles.length > 0 && (
+							<View style={styles.socialCirclesPreview}>
+								<LabelText style={styles.socialCirclesLabel}>
+									Selected Social Circles:
+								</LabelText>
+								{getSelectedSocialCircles().map((circle) => (
+									<View
+										key={circle.id}
+										style={[
+											styles.socialCirclePreviewItem,
+											{ borderLeftColor: circle.color },
+										]}
+									>
+										<BodyText
+											style={styles.socialCircleName}
+										>
+											{circle.name}
+										</BodyText>
+										<CaptionText
+											style={styles.socialCircleMembers}
+										>
+											{circle.memberCount} members
+										</CaptionText>
+									</View>
+								))}
+							</View>
+						)}
 					</View>
 
-					{/* Media */}
+					{/* Media with Enhanced Previews */}
 					{previewData.metadata.totalMediaItems > 0 && (
 						<View style={styles.previewSection}>
 							<LabelText>Attached Media:</LabelText>
 
-							{/* Photos */}
+							{/* Photos with Thumbnails */}
 							{previewData.media.photos.map((photo, index) => (
-								<View
+								<TouchableOpacity
 									key={`photo-${index}`}
 									style={styles.previewMediaItem}
+									onPress={() => showImagePreview(photo.uri)}
 								>
-									<BodyText>📷 {photo.name}</BodyText>
-								</View>
+									<Image
+										source={{ uri: photo.uri }}
+										style={styles.mediaThumbnail}
+										resizeMode="cover"
+									/>
+									<View style={styles.mediaItemInfo}>
+										<BodyText style={styles.mediaItemText}>
+											📷 {photo.name}
+										</BodyText>
+										<CaptionText
+											style={styles.tapToPreview}
+										>
+											Tap to view full size
+										</CaptionText>
+									</View>
+								</TouchableOpacity>
 							))}
 
-							{/* Videos */}
+							{/* Videos with Thumbnails */}
 							{previewData.media.videos.map((video, index) => (
 								<View
 									key={`video-${index}`}
 									style={styles.previewMediaItem}
 								>
-									<BodyText>🎥 {video.name}</BodyText>
+									<View
+										style={styles.videoThumbnailContainer}
+									>
+										<Image
+											source={{ uri: video.uri }}
+											style={styles.mediaThumbnail}
+											resizeMode="cover"
+										/>
+										<View style={styles.videoPlayOverlay}>
+											<BodyText style={styles.playIcon}>
+												▶️
+											</BodyText>
+										</View>
+									</View>
+									<View style={styles.mediaItemInfo}>
+										<BodyText style={styles.mediaItemText}>
+											🎥 {video.name}
+										</BodyText>
+										<CaptionText
+											style={styles.tapToPreview}
+										>
+											Video preview
+										</CaptionText>
+									</View>
 								</View>
 							))}
 
-							{/* Audio */}
+							{/* Audio with Enhanced Display */}
 							{previewData.media.audio && (
 								<View style={styles.previewMediaItem}>
-									<View style={styles.previewAudioItem}>
-										<BodyText
-											style={styles.previewAudioText}
-										>
-											🎤 Audio recording
+									<View
+										style={styles.audioThumbnailContainer}
+									>
+										<View style={styles.audioWaveform}>
+											<BodyText style={styles.audioIcon}>
+												🎤
+											</BodyText>
+										</View>
+									</View>
+									<View style={styles.mediaItemInfo}>
+										<BodyText style={styles.mediaItemText}>
+											Audio recording
 										</BodyText>
-										<IconButton
-											icon={
-												isPlayingAudio ? 'stop' : 'play'
-											}
-											onPress={
-												isPlayingAudio
-													? stopPlayback
-													: playRecording
-											}
-											backgroundColor={
-												ReMapColors.primary.blue
-											}
-											size={16}
-											style={styles.previewAudioButton}
-										/>
+										<View
+											style={styles.audioPreviewControls}
+										>
+											<IconButton
+												icon={
+													isPlayingAudio
+														? 'stop'
+														: 'play'
+												}
+												onPress={
+													isPlayingAudio
+														? stopPlayback
+														: playRecording
+												}
+												backgroundColor={
+													ReMapColors.primary.blue
+												}
+												size={16}
+												style={
+													styles.previewAudioButton
+												}
+											/>
+											<CaptionText
+												style={styles.audioStatus}
+											>
+												{isPlayingAudio
+													? 'Playing...'
+													: 'Tap to play'}
+											</CaptionText>
+										</View>
 									</View>
 								</View>
 							)}
@@ -846,7 +1157,8 @@ export default function CreatePinScreen() {
 					<Modal.Header title={modalState.title} />
 					<Modal.Body>
 						{modalState.type === 'preview' && renderPreviewModal()}
-
+						{modalState.type === 'imagePreview' &&
+							renderImagePreviewModal()}
 						{modalState.type === 'success' && (
 							<SuccessMessage
 								title={modalState.title}
@@ -855,7 +1167,6 @@ export default function CreatePinScreen() {
 								{modalState.message}
 							</SuccessMessage>
 						)}
-
 						{modalState.type === 'error' && (
 							<ErrorMessage
 								title={modalState.title}
@@ -864,7 +1175,6 @@ export default function CreatePinScreen() {
 								{modalState.message}
 							</ErrorMessage>
 						)}
-
 						{modalState.type === 'permission' && (
 							<WarningMessage
 								title={modalState.title}
@@ -873,7 +1183,6 @@ export default function CreatePinScreen() {
 								{modalState.message}
 							</WarningMessage>
 						)}
-
 						{modalState.type === 'info' && (
 							<InfoMessage
 								title={modalState.title}
@@ -881,6 +1190,31 @@ export default function CreatePinScreen() {
 							>
 								{modalState.message}
 							</InfoMessage>
+						)}
+						{modalState.type === 'progress' && uploadProgress && (
+							<View style={styles.progressContainer}>
+								<BodyText style={styles.progressTitle}>
+									Saving Your Memory...
+								</BodyText>
+								<View style={styles.progressBar}>
+									<View
+										style={[
+											styles.progressFill,
+											{
+												width: `${uploadProgress.percentage}%`,
+											},
+										]}
+									/>
+								</View>
+								<CaptionText style={styles.progressText}>
+									{uploadProgress.currentFile} (
+									{uploadProgress.percentage}%)
+								</CaptionText>
+								<CaptionText style={styles.progressStep}>
+									Step {uploadProgress.completed} of{' '}
+									{uploadProgress.total}
+								</CaptionText>
+							</View>
 						)}
 					</Modal.Body>
 
@@ -1003,6 +1337,70 @@ export default function CreatePinScreen() {
 								))}
 							</View>
 
+							{/* NEW: Social Circle Dropdown */}
+							{showSocialDropdown &&
+								isVisibilitySelected('social') && (
+									<View style={styles.inlineSocialDropdown}>
+										<View
+											style={styles.socialDropdownHeader}
+										>
+											<LabelText
+												style={styles.inlineLabel}
+											>
+												Select Social Circles (
+												{selectedSocialCircles.length}{' '}
+												selected):
+											</LabelText>
+										</View>
+
+										<View style={styles.socialCirclesGrid}>
+											{userSocialCircles.map((circle) => (
+												<TouchableOpacity
+													key={circle.id}
+													style={[
+														styles.inlineSocialCircleItem,
+														selectedSocialCircles.includes(
+															circle.id
+														) &&
+															styles.selectedInlineSocialCircle,
+														{
+															borderColor:
+																circle.color,
+														},
+													]}
+													onPress={() =>
+														handleSocialCircleToggle(
+															circle.id
+														)
+													}
+												>
+													<BodyText
+														style={[
+															styles.inlineSocialCircleName,
+															selectedSocialCircles.includes(
+																circle.id
+															) &&
+																styles.selectedInlineText,
+														]}
+													>
+														{circle.name}
+														{selectedSocialCircles.includes(
+															circle.id
+														) && ' ✓'}
+													</BodyText>
+													<CaptionText
+														style={
+															styles.inlineMembers
+														}
+													>
+														{circle.memberCount}{' '}
+														members
+													</CaptionText>
+												</TouchableOpacity>
+											))}
+										</View>
+									</View>
+								)}
 							<CaptionText style={styles.visibilityDescription}>
 								{getVisibilityDescription()}
 							</CaptionText>
@@ -1055,7 +1453,7 @@ export default function CreatePinScreen() {
 								Add media to your memory
 							</LabelText>
 
-							{/* Media Display */}
+							{/* Enhanced Media Display with Thumbnails */}
 							{(selectedMedia.length > 0 || audioUri) && (
 								<View style={styles.mediaPreview}>
 									<SubheaderText
@@ -1064,20 +1462,61 @@ export default function CreatePinScreen() {
 										Attached Media:
 									</SubheaderText>
 
-									{/* Photos/Videos */}
+									{/* Photos/Videos with Thumbnails */}
 									{selectedMedia.map((media, index) => (
 										<View
 											key={index}
 											style={styles.mediaItem}
 										>
-											<BodyText
-												style={styles.mediaItemText}
+											<TouchableOpacity
+												onPress={() =>
+													media.type === 'photo' &&
+													showImagePreview(media.uri)
+												}
+												style={styles.mediaItemContent}
 											>
-												{media.type === 'photo'
-													? '📷'
-													: '🎥'}{' '}
-												{media.name}
-											</BodyText>
+												<Image
+													source={{ uri: media.uri }}
+													style={
+														styles.mediaItemThumbnail
+													}
+													resizeMode="cover"
+												/>
+												<View
+													style={
+														styles.mediaItemDetails
+													}
+												>
+													<BodyText
+														style={
+															styles.mediaItemText
+														}
+													>
+														{media.type === 'photo'
+															? '📷'
+															: '🎥'}{' '}
+														{media.name}
+													</BodyText>
+													{media.type === 'photo' && (
+														<CaptionText
+															style={
+																styles.tapToPreview
+															}
+														>
+															Tap to preview
+														</CaptionText>
+													)}
+													{media.type === 'video' && (
+														<CaptionText
+															style={
+																styles.tapToPreview
+															}
+														>
+															Video file
+														</CaptionText>
+													)}
+												</View>
+											</TouchableOpacity>
 											<Button
 												onPress={() =>
 													removeMedia(index)
@@ -1091,41 +1530,100 @@ export default function CreatePinScreen() {
 										</View>
 									))}
 
-									{/* Audio */}
+									{/* Enhanced Audio Display */}
 									{audioUri && (
 										<View style={styles.mediaItem}>
-											<BodyText
-												style={styles.mediaItemText}
+											<View
+												style={styles.audioItemContent}
 											>
-												Audio recording
-											</BodyText>
-											<View style={styles.audioControls}>
-												<IconButton
-													icon={
-														isPlayingAudio
-															? 'stop'
-															: 'play'
+												<View
+													style={
+														styles.audioVisualizer
 													}
-													onPress={
-														isPlayingAudio
-															? stopPlayback
-															: playRecording
-													}
-													backgroundColor={
-														ReMapColors.primary.blue
-													}
-													size={20}
-													style={styles.audioButton}
-												/>
-												<Button
-													onPress={removeAudio}
-													style={styles.removeButton}
-													size="small"
-													variant="danger"
 												>
-													Remove
-												</Button>
+													<BodyText
+														style={styles.audioIcon}
+													>
+														🎶
+													</BodyText>
+													<View
+														style={
+															styles.audioWaveform
+														}
+													>
+														{/* Simple waveform visualization */}
+														{[1, 2, 3, 4, 5].map(
+															(bar) => (
+																<View
+																	key={bar}
+																	style={[
+																		styles.waveformBar,
+																		isPlayingAudio &&
+																			styles.waveformBarActive,
+																	]}
+																/>
+															)
+														)}
+													</View>
+												</View>
+												<View
+													style={
+														styles.audioItemDetails
+													}
+												>
+													<BodyText
+														style={
+															styles.mediaItemText
+														}
+													>
+														Audio recording
+													</BodyText>
+													<View
+														style={
+															styles.audioControls
+														}
+													>
+														<IconButton
+															icon={
+																isPlayingAudio
+																	? 'stop'
+																	: 'play'
+															}
+															onPress={
+																isPlayingAudio
+																	? stopPlayback
+																	: playRecording
+															}
+															backgroundColor={
+																ReMapColors
+																	.primary
+																	.blue
+															}
+															size={20}
+															style={
+																styles.audioButton
+															}
+														/>
+														<CaptionText
+															style={
+																styles.audioStatus
+															}
+														>
+															{isPlayingAudio
+																? 'Playing...'
+																: 'Ready to play'}
+														</CaptionText>
+													</View>
+												</View>
 											</View>
+											<Button
+												onPress={removeAudio}
+												style={styles.removeButton}
+												size="small"
+												variant="danger"
+											>
+												Remove
+											</Button>
 										</View>
 									)}
 								</View>
@@ -1188,7 +1686,7 @@ export default function CreatePinScreen() {
 					</View>
 				</Footer>
 
-				{/* ATTN: Custom Modal System */}
+				{/* Enhanced Modal System */}
 				{renderModal()}
 			</View>
 		</KeyboardAvoidingView>
@@ -1256,7 +1754,19 @@ const styles = StyleSheet.create({
 		borderLeftColor: ReMapColors.primary.violet,
 	},
 
-	// Media Section
+	// NEW: Social Circle Dropdown Styles
+
+	socialCircleName: {
+		flex: 1,
+		fontWeight: '500',
+	},
+
+	socialCircleMembers: {
+		color: ReMapColors.ui.textSecondary,
+		fontSize: 11,
+	},
+
+	// Enhanced Media Section
 	mediaButtons: {
 		flexDirection: 'row',
 		justifyContent: 'center',
@@ -1278,30 +1788,94 @@ const styles = StyleSheet.create({
 		borderLeftColor: ReMapColors.primary.blue,
 	},
 	mediaPreviewTitle: {
+		marginBottom: 12,
+	},
+
+	// Enhanced Media Item Styles
+	mediaItem: {
+		flexDirection: 'column',
+		marginBottom: 12,
+		backgroundColor: ReMapColors.ui.background,
+		borderRadius: 8,
+		padding: 8,
+	},
+	mediaItemContent: {
+		flexDirection: 'row',
+		alignItems: 'center',
 		marginBottom: 8,
 	},
-	mediaItem: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		paddingVertical: 8,
-		borderBottomWidth: 1,
-		borderBottomColor: ReMapColors.ui.border,
+	mediaItemThumbnail: {
+		width: 60,
+		height: 60,
+		borderRadius: 8,
+		marginRight: 12,
+	},
+	mediaItemDetails: {
+		flex: 1,
 	},
 	mediaItemText: {
+		marginBottom: 2,
+	},
+	tapToPreview: {
+		color: ReMapColors.primary.blue,
+		fontStyle: 'italic',
+	},
+
+	// Enhanced Audio Styles
+	audioItemContent: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 8,
+	},
+	audioVisualizer: {
+		width: 60,
+		height: 60,
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 8,
+		marginRight: 12,
+		alignItems: 'center',
+		justifyContent: 'center',
+		borderWidth: 1,
+		borderColor: ReMapColors.ui.border,
+	},
+	audioIcon: {
+		fontSize: 24,
+		marginBottom: 4,
+	},
+	audioWaveform: {
+		flexDirection: 'row',
+		alignItems: 'flex-end',
+		gap: 2,
+	},
+	waveformBar: {
+		width: 3,
+		height: 8,
+		backgroundColor: ReMapColors.ui.textSecondary,
+		borderRadius: 1,
+	},
+	waveformBarActive: {
+		backgroundColor: ReMapColors.primary.blue,
+		height: 12,
+	},
+	audioItemDetails: {
 		flex: 1,
 	},
 	audioControls: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 8,
+		marginTop: 4,
 	},
 	audioButton: {
-		width: 36,
-		height: 36,
+		width: 32,
+		height: 32,
+	},
+	audioStatus: {
+		color: ReMapColors.ui.textSecondary,
 	},
 	removeButton: {
 		width: 80,
+		alignSelf: 'flex-end',
 	},
 
 	// Footer Styling
@@ -1334,7 +1908,7 @@ const styles = StyleSheet.create({
 		backgroundColor: ReMapColors.semantic.error,
 	},
 
-	// Preview Modal Styles
+	// Enhanced Preview Modal Styles
 	previewScrollView: {
 		maxHeight: 400,
 	},
@@ -1375,19 +1949,83 @@ const styles = StyleSheet.create({
 		padding: 6,
 		borderRadius: 6,
 	},
+
+	// NEW: Social Circles Preview Styles
+	socialCirclesPreview: {
+		marginTop: 12,
+		padding: 12,
+		backgroundColor: ReMapColors.ui.background,
+		borderRadius: 8,
+		borderLeftWidth: 3,
+		borderLeftColor: ReMapColors.primary.blue,
+	},
+	socialCirclesLabel: {
+		marginBottom: 8,
+		color: ReMapColors.primary.blue,
+	},
+	socialCirclePreviewItem: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+		padding: 8,
+		borderRadius: 6,
+		marginBottom: 6,
+		borderLeftWidth: 3,
+	},
+
+	// Enhanced Media Preview Styles
 	previewMediaItem: {
+		flexDirection: 'row',
+		alignItems: 'center',
 		padding: 8,
 		backgroundColor: ReMapColors.ui.background,
 		borderRadius: 6,
 		marginBottom: 4,
 	},
-	previewAudioItem: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
+	mediaThumbnail: {
+		width: 50,
+		height: 50,
+		borderRadius: 6,
+		marginRight: 12,
 	},
-	previewAudioText: {
+	mediaItemInfo: {
 		flex: 1,
+	},
+	videoThumbnailContainer: {
+		position: 'relative',
+		width: 50,
+		height: 50,
+		marginRight: 12,
+	},
+	videoPlayOverlay: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		backgroundColor: 'rgba(0,0,0,0.3)',
+		borderRadius: 6,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	playIcon: {
+		color: 'white',
+		fontSize: 18,
+	},
+	audioThumbnailContainer: {
+		width: 50,
+		height: 50,
+		marginRight: 12,
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 6,
+		borderWidth: 1,
+		borderColor: ReMapColors.ui.border,
+	},
+	audioPreviewControls: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		marginTop: 4,
 	},
 	previewAudioButton: {
 		width: 32,
@@ -1399,5 +2037,99 @@ const styles = StyleSheet.create({
 		backgroundColor: ReMapColors.ui.background,
 		borderRadius: 8,
 		opacity: 0.8,
+	},
+
+	// NEW: Image Preview Modal Styles
+	imagePreviewContainer: {
+		alignItems: 'center',
+		justifyContent: 'center',
+		minHeight: 300,
+		maxHeight: 500,
+	},
+	fullImagePreview: {
+		width: '100%',
+		height: '100%',
+		borderRadius: 8,
+	},
+	// NEW: Inline Social Circle Styles
+	inlineSocialDropdown: {
+		marginTop: 12,
+		marginBottom: 8,
+	},
+	socialDropdownHeader: {
+		marginBottom: 8,
+	},
+	inlineLabel: {
+		color: ReMapColors.primary.blue,
+		fontSize: 13,
+	},
+	socialCirclesGrid: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 8,
+	},
+	inlineSocialCircleItem: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 20,
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderWidth: 1,
+		minWidth: 100,
+		alignItems: 'center',
+	},
+	selectedInlineSocialCircle: {
+		backgroundColor: '#F0F8FF',
+		borderWidth: 2,
+	},
+	inlineSocialCircleName: {
+		fontSize: 12,
+		fontWeight: '500',
+		textAlign: 'center',
+	},
+	selectedInlineText: {
+		color: ReMapColors.primary.blue,
+		fontWeight: '600',
+	},
+	inlineMembers: {
+		fontSize: 10,
+		textAlign: 'center',
+		marginTop: 2,
+	},
+
+	// Progress Modal Styles
+	progressContainer: {
+		padding: 20,
+		alignItems: 'center',
+	},
+	progressTitle: {
+		marginBottom: 20,
+		textAlign: 'center',
+	},
+	progressBar: {
+		width: '100%',
+		height: 8,
+		backgroundColor: ReMapColors.ui.border,
+		borderRadius: 4,
+		marginBottom: 12,
+		overflow: 'hidden',
+	},
+	progressFill: {
+		height: '100%',
+		backgroundColor: ReMapColors.primary.violet,
+		borderRadius: 4,
+	},
+	progressText: {
+		textAlign: 'center',
+		marginBottom: 4,
+	},
+	progressStep: {
+		textAlign: 'center',
+		color: ReMapColors.ui.textSecondary,
+	},
+	loadingText: {
+		textAlign: 'center',
+		fontStyle: 'italic',
+		color: ReMapColors.ui.textSecondary,
+		padding: 16,
 	},
 });
