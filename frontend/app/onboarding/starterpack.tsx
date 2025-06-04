@@ -190,7 +190,7 @@ export default function OnboardingStarterPackScreen() {
 			console.log('Starter pack selections:', selectionsData);
 
 			// Navigate with selections data
-			router.navigate({
+			router.replace({
 				pathname: route,
 				params: {
 					starterPackSelections: JSON.stringify(selectionsData),
@@ -205,28 +205,29 @@ export default function OnboardingStarterPackScreen() {
 		}
 	};
 
-	const skipStarterPacks = () => {
-		try {
-			// Navigate without any selections
-			router.navigate({
-				pathname: '/onboarding/account',
-				params: {
-					starterPackSelections: JSON.stringify({
-						starterPacks: [],
-						selectedIds: [],
-						timestamp: new Date().toISOString(),
-						skipped: true,
-					}),
-				},
-			});
-		} catch (error) {
-			console.error('Navigation failed:', error);
-			showMessage(
-				'Could not skip starter packs. Please try again.',
-				'error'
-			);
-		}
-	};
+	// const skipStarterPacks = () => {
+	// ATTN: DEPRECATED FUNCTION DUE TO ONBOARDING SEQUENCE
+	// 	try {
+	// 		// Navigate without any selections
+	// 		router.navigate({
+	// 			pathname: '/onboarding/account',
+	// 			params: {
+	// 				starterPackSelections: JSON.stringify({
+	// 					starterPacks: [],
+	// 					selectedIds: [],
+	// 					timestamp: new Date().toISOString(),
+	// 					skipped: true,
+	// 				}),
+	// 			},
+	// 		});
+	// 	} catch (error) {
+	// 		console.error('Navigation failed:', error);
+	// 		showMessage(
+	// 			'Could not skip starter packs. Please try again.',
+	// 			'error'
+	// 		);
+	// 	}
+	// };
 
 	const goBack = () => {
 		const route = '/onboarding/permissions';
@@ -240,7 +241,7 @@ export default function OnboardingStarterPackScreen() {
 		}
 
 		try {
-			router.navigate(route);
+			router.replace(route);
 		} catch (error) {
 			console.error('Navigation failed:', error);
 			showMessage('Could not go back. Please try again.', 'error');
@@ -379,6 +380,18 @@ export default function OnboardingStarterPackScreen() {
 
 			<Footer>
 				<View style={styles.buttonContainer}>
+					<View style={styles.secondaryActions}>
+						<Button style={styles.secondaryButton} onPress={goBack}>
+							← Previous
+						</Button>
+
+						<Button
+							style={styles.secondaryButton}
+							onPress={navigateToAccount}
+						>
+							Skip for Now
+						</Button>
+					</View>
 					{hasSelections ? (
 						<Button
 							style={styles.primaryButton}
@@ -395,19 +408,6 @@ export default function OnboardingStarterPackScreen() {
 							Continue Without Selections →
 						</Button>
 					)}
-
-					<View style={styles.secondaryActions}>
-						<Button style={styles.secondaryButton} onPress={goBack}>
-							← Previous
-						</Button>
-
-						<Button
-							style={styles.tertiaryButton}
-							onPress={skipStarterPacks}
-						>
-							Skip for Now
-						</Button>
-					</View>
 				</View>
 			</Footer>
 		</View>
@@ -537,11 +537,11 @@ const styles = StyleSheet.create({
 	},
 	buttonContainer: {
 		width: '100%',
+		gap: 10,
 	},
 	primaryButton: {
 		backgroundColor: ReMapColors.primary.violet,
 		width: '100%',
-		marginBottom: 10,
 	},
 	secondaryActions: {
 		flexDirection: 'row',
@@ -549,11 +549,7 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	secondaryButton: {
-		backgroundColor: ReMapColors.ui.textSecondary,
-		flex: 1,
-	},
-	tertiaryButton: {
-		backgroundColor: ReMapColors.primary.blue,
+		backgroundColor: ReMapColors.primary.cadet,
 		flex: 1,
 	},
 });

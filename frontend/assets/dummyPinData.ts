@@ -1,7 +1,6 @@
 // ==============================
 //   DUMMY PIN DATA FOR TESTING
 // ==============================
-// This structure aligns with createPin.tsx and ReMap's memory-focused philosophy
 
 export interface MediaItem {
 	uri: string;
@@ -29,6 +28,7 @@ export interface DummyPin {
 	starterPackCategory: string; // Maps to our starter pack system
 
 	// MAIN MEMORY DATA (matches createPin structure)
+	// NOTE: ADDING NOTES HERE TO REMIND ME OF THE STRUCTURE AND SEQUENCE OF THE MEMORY DATA
 	memory: {
 		title: string; // User's memory title (from createPin)
 		description: string; // User's memory description (from createPin)
@@ -47,7 +47,6 @@ export interface DummyPin {
 	};
 }
 
-// Melbourne-based dummy data aligned with ReMap's memory philosophy
 export const DUMMY_PINS: DummyPin[] = [
 	// =============================
 	//   CAFE EXPLORER MEMORIES
@@ -676,25 +675,25 @@ export const convertToMapMarker = (pin: DummyPin) => ({
  * Sample function for future Foursquare API integration
  */
 export const convertFoursquareToPin = (
-	foursquareVenue: any,
+	foursquarePlace: any,
 	memoryData: any
 ): DummyPin => {
 	// This function will help convert real Foursquare data + user memory to our pin format
 	return {
-		id: `${foursquareVenue.fsq_id}_${memoryData.timestamp}`, // Unique ID combining venue and memory
-		name: foursquareVenue.name,
+		id: `${foursquarePlace.fsq_id}_${memoryData.timestamp}`, // Unique ID combining venue and memory
+		name: foursquarePlace.name,
 		location: {
-			latitude: foursquareVenue.geocodes.main.latitude,
-			longitude: foursquareVenue.geocodes.main.longitude,
-			address: foursquareVenue.location.address || '',
-			query: `${foursquareVenue.name}, ${
-				foursquareVenue.location.address ||
-				foursquareVenue.location.locality
+			latitude: foursquarePlace.geocodes.main.latitude,
+			longitude: foursquarePlace.geocodes.main.longitude,
+			address: foursquarePlace.location.address || '',
+			query: `${foursquarePlace.name}, ${
+				foursquarePlace.location.address ||
+				foursquarePlace.location.locality
 			}`,
-			city: foursquareVenue.location.locality || '',
-			country: foursquareVenue.location.country || '',
+			city: foursquarePlace.location.locality || '',
+			country: foursquarePlace.location.country || '',
 		},
-		categories: foursquareVenue.categories.map((cat: any) => ({
+		categories: foursquarePlace.categories.map((cat: any) => ({
 			id: cat.id.toString(),
 			name: cat.name,
 			icon: '📍', // Default, can be mapped from Foursquare icons

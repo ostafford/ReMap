@@ -252,7 +252,7 @@ export default function SplashScreen() {
 		}
 
 		try {
-			router.navigate(route);
+			router.replace(route);
 		} catch (error) {
 			console.error('Navigation failed:', error);
 			showMessage(
@@ -263,7 +263,7 @@ export default function SplashScreen() {
 	};
 
 	const navigateToOnboarding = () => {
-		const route = '/onboarding/starterpack';
+		const route = '/onboarding';
 
 		if (!validRoutes.includes(route)) {
 			showMessage(
@@ -274,7 +274,7 @@ export default function SplashScreen() {
 		}
 
 		try {
-			router.navigate(route);
+			router.replace(route);
 		} catch (error) {
 			console.error('Navigation failed:', error);
 			showMessage(
@@ -404,28 +404,26 @@ export default function SplashScreen() {
 
 			<Footer>
 				<View style={styles.buttonContainer}>
-					<Button
-						style={styles.primaryButton}
-						onPress={navigateToWorldMap}
-					>
-						🗺️ Explore World Map
-					</Button>
-
 					<View style={styles.secondaryActions}>
+						<Button
+							style={styles.secondaryButton}
+							onPress={toggleSignInModal}
+						>
+							🔑 Sign In
+						</Button>
 						<Button
 							style={styles.secondaryButton}
 							onPress={navigateToOnboarding}
 						>
 							🚀 Start Onboarding
 						</Button>
-
-						<Button
-							style={styles.tertiaryButton}
-							onPress={toggleSignInModal}
-						>
-							🔑 Sign In
-						</Button>
 					</View>
+					<Button
+						style={styles.primaryButton}
+						onPress={navigateToWorldMap}
+					>
+						🗺️ Explore World Map
+					</Button>
 				</View>
 			</Footer>
 
@@ -721,13 +719,13 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	secondaryButton: {
-		backgroundColor: ReMapColors.primary.blue,
-		flex: 1,
-	},
-	tertiaryButton: {
 		backgroundColor: ReMapColors.primary.cadet,
 		flex: 1,
 	},
+	// tertiaryButton: {
+	// 	backgroundColor: ReMapColors.primary.cadet,
+	// 	flex: 1,
+	// },
 	modalButton: {
 		width: 150,
 	},

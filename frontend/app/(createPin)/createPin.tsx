@@ -1045,6 +1045,7 @@ export default function CreatePinScreen() {
 								multiline={true}
 								numberOfLines={4}
 								textAlignVertical="top"
+								required={true}
 							/>
 						</View>
 

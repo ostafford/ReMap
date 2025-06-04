@@ -88,7 +88,6 @@ export default function OnboardingAccountScreen() {
 	// ==================
 	//   MODAL STATE
 	// ==================
-	const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
 	const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
 	const [isSkipModalVisible, setIsSkipModalVisible] = useState(false);
 
@@ -141,9 +140,9 @@ export default function OnboardingAccountScreen() {
 	// ====================
 	//   AUTH DEFINITIONS
 	// ====================
-	useEffect(() => {
-		checkCurrentUser();
-	}, []);
+	// useEffect(() => {
+	// 	checkCurrentUser();
+	// }, []);
 
 	// ==================
 	//   HELPER FUNCTIONS
@@ -242,66 +241,6 @@ export default function OnboardingAccountScreen() {
 		}
 	};
 
-	// const handleSignIn = async () => {
-	// 	if (!email || !password) {
-	// 		showMessage('Please fill out all required fields', 'warning');
-	// 		return;
-	// 	}
-
-	// 	const emailValidation = validateEmail(email);
-	// 	if (emailValidation) {
-	// 		setEmailError(emailValidation);
-	// 		showMessage('Please check your email format', 'error');
-	// 		return;
-	// 	}
-
-	// 	setIsLoading(true);
-
-	// 	try {
-	// 		await signIn({ email, password });
-	// 		showMessage('Welcome back! Successfully signed in.', 'success');
-
-	// 		// Refresh current user info
-	// 		await checkCurrentUser();
-
-	// 		navigateToWorldMap();
-	// 	} catch (error: any) {
-	// 		console.error('Login error:', error);
-	// 		const errorMessage =
-	// 			error?.message ||
-	// 			'Could not sign in. Please check your credentials.';
-	// 		showMessage(errorMessage, 'error');
-	// 	} finally {
-	// 		setIsLoading(false);
-	// 	}
-	// };
-
-	const handleSignOut = async () => {
-		Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-			{ text: 'Cancel', style: 'cancel' },
-			{
-				text: 'Sign Out',
-				style: 'destructive',
-				onPress: async () => {
-					setIsLoading(true);
-					try {
-						await signOut();
-						setCurrentUser(null);
-						showMessage('Successfully signed out', 'success');
-					} catch (error: any) {
-						console.error('Sign out error:', error);
-						showMessage(
-							error.message || 'Failed to sign out',
-							'error'
-						);
-					} finally {
-						setIsLoading(false);
-					}
-				},
-			},
-		]);
-	};
-
 	// NOTE: Console/Server Debugging related. THIS IS NOT FOR USER
 	const checkCurrentUser = async () => {
 		setIsCheckingAuth(true);
@@ -326,7 +265,6 @@ export default function OnboardingAccountScreen() {
 	// ==================
 	const navigateToWorldMap = () => {
 		resetForm();
-		setIsLoginModalVisible(false);
 		setIsSignupModalVisible(false);
 
 		// Pass starter pack data to world map
@@ -342,7 +280,12 @@ export default function OnboardingAccountScreen() {
 		}
 	};
 
-	const skipAuth = () => {
+	const toggleSignupModal = () => {
+		setIsSignupModalVisible(!isSignupModalVisible);
+		resetForm();
+	};
+
+	const toggleSkipAuth = () => {
 		setIsSkipModalVisible(true);
 	};
 
@@ -355,20 +298,25 @@ export default function OnboardingAccountScreen() {
 		setIsSkipModalVisible(false);
 	};
 
+	const validRoutes = ['/onboarding/starterpack'];
 	const goBack = () => {
-		router.back();
+		const route = '/onboarding/starterpack';
+
+		if (!validRoutes.includes(route)) {
+			showMessage(
+				'Navigation error: Previous page is not available.',
+				'error'
+			);
+			return;
+		}
+
+		try {
+			router.replace(route);
+		} catch (error) {
+			console.error('Navigation failed:', error);
+			showMessage('Could not go back. Please try again.', 'error');
+		}
 	};
-
-	// const toggleLoginModal = () => {
-	// 	setIsLoginModalVisible(!isLoginModalVisible);
-	// 	resetForm();
-	// };
-
-	const toggleSignupModal = () => {
-		setIsSignupModalVisible(!isSignupModalVisible);
-		resetForm();
-	};
-
 	// ==================
 	//   COMPUTED VALUES
 	// ==================
@@ -376,233 +324,136 @@ export default function OnboardingAccountScreen() {
 		starterPackData && starterPackData.starterPacks.length > 0;
 	const selectionCount = starterPackData?.starterPacks.length || 0;
 
-	if (isCheckingAuth) {
-		return (
-			<View style={styles.container}>
-				<Header
-					title="Loading..."
-					subtitle="Checking authentication status"
-				/>
-				<MainContent>
-					<View style={styles.loadingContainer}>
-						<BodyText align="center">
-							Checking your authentication status...
-						</BodyText>
-					</View>
-				</MainContent>
-			</View>
-		);
-	}
-
 	// ============================
 	//   COMPONENT RENDER SECTION
 	// ============================
 	return (
 		<View style={styles.container}>
-			<Header title="Create Your Account" subtitle="Step 4 of 4" />
+			<Header title="Create Your Account" />
 
 			<MainContent>
 				<View style={styles.content}>
-					{/* Current User Status */}
-					{currentUser && (
-						<View style={styles.currentUserContainer}>
-							<InfoMessage title="Already Signed In">
-								You are currently signed in as:{' '}
-								{currentUser.email}
-								{'\n'}
-								To create a new account, please sign out first.
-							</InfoMessage>
-
-							<Button
-								style={styles.signOutButton}
-								onPress={handleSignOut}
-								disabled={isLoading}
-								variant="danger"
-							>
-								🚪 Sign Out
-							</Button>
-						</View>
-					)}
-
 					{/* Welcome section - only show if not signed in */}
-					{!currentUser && (
-						<>
-							<View style={styles.welcomeSection}>
-								<BodyText style={styles.welcomeIcon}>
-									🎉
-								</BodyText>
-								<HeaderText
-									align="center"
-									style={styles.welcomeTitle}
-								>
-									You're Almost Ready!
-								</HeaderText>
-								<BodyText
-									align="center"
-									style={styles.welcomeDescription}
-								>
-									Create your ReMap account to start building
-									your interactive memory atlas and connect
-									with the community.
-								</BodyText>
-							</View>
+					<View style={styles.welcomeSection}>
+						<BodyText style={styles.welcomeIcon}>🎉</BodyText>
+						<HeaderText align="center" style={styles.welcomeTitle}>
+							You're Almost Ready!
+						</HeaderText>
+						<BodyText
+							align="center"
+							style={styles.welcomeDescription}
+						>
+							Create your ReMap account to start building your
+							interactive memory atlas and connect with the
+							community.
+						</BodyText>
+					</View>
 
-							<View style={styles.benefitsContainer}>
-								<SubheaderText style={styles.benefitsTitle}>
-									With a ReMap account:
-								</SubheaderText>
+					<View style={styles.benefitsContainer}>
+						<SubheaderText style={styles.benefitsTitle}>
+							With a ReMap account:
+						</SubheaderText>
 
-								{/* Starter Pack Summary */}
-								{hasStarterPackSelections && (
-									<View style={styles.selectionSummary}>
-										<InfoMessage title="Your Selections">
-											You've selected {selectionCount}{' '}
-											starter pack
-											{selectionCount !== 1 ? 's' : ''}.
-											We'll personalize your map
-											experience with these preferences!
-										</InfoMessage>
+						{/* Starter Pack Summary */}
+						{hasStarterPackSelections && (
+							<View style={styles.selectionSummary}>
+								<InfoMessage title="Your Selections">
+									You've selected {selectionCount} starter
+									pack
+									{selectionCount !== 1 ? 's' : ''}. We'll
+									personalize your map experience with these
+									preferences!
+								</InfoMessage>
 
-										<View style={styles.selectedPacks}>
-											{starterPackData?.starterPacks.map(
-												(pack) => (
-													<View
-														key={pack.id}
-														style={styles.packChip}
-													>
-														<BodySmallText
-															style={
-																styles.packChipText
-															}
-														>
-															{pack.icon}{' '}
-															{pack.name}
-														</BodySmallText>
-													</View>
-												)
-											)}
-										</View>
-									</View>
-								)}
-
-								<View style={styles.benefitsList}>
-									<View style={styles.benefitItem}>
-										<BodyText style={styles.benefitIcon}>
-											💾
-										</BodyText>
-										<BodySmallText
-											style={styles.benefitText}
-										>
-											Save and sync your memories across
-											devices
-										</BodySmallText>
-									</View>
-
-									<View style={styles.benefitItem}>
-										<BodyText style={styles.benefitIcon}>
-											🤝
-										</BodyText>
-										<BodySmallText
-											style={styles.benefitText}
-										>
-											Share special moments with friends
-											and family
-										</BodySmallText>
-									</View>
-
-									<View style={styles.benefitItem}>
-										<BodyText style={styles.benefitIcon}>
-											🌍
-										</BodyText>
-										<BodySmallText
-											style={styles.benefitText}
-										>
-											Discover and contribute to the
-											global memory map
-										</BodySmallText>
-									</View>
-
-									<View style={styles.benefitItem}>
-										<BodyText style={styles.benefitIcon}>
-											🔒
-										</BodyText>
-										<BodySmallText
-											style={styles.benefitText}
-										>
-											Full control over your privacy and
-											sharing settings
-										</BodySmallText>
-									</View>
+								<View style={styles.selectedPacks}>
+									{starterPackData?.starterPacks.map(
+										(pack) => (
+											<View
+												key={pack.id}
+												style={styles.packChip}
+											>
+												<BodySmallText
+													style={styles.packChipText}
+												>
+													{pack.icon} {pack.name}
+												</BodySmallText>
+											</View>
+										)
+									)}
 								</View>
 							</View>
+						)}
 
-							<View style={styles.accountOptions}>
-								<LabelText
-									align="center"
-									style={styles.optionsTitle}
-								>
-									How would you like to proceed?
-								</LabelText>
+						<View style={styles.benefitsList}>
+							<View style={styles.benefitItem}>
+								<BodyText style={styles.benefitIcon}>
+									💾
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
+									Save and sync your memories across devices
+								</BodySmallText>
 							</View>
-						</>
-					)}
+
+							<View style={styles.benefitItem}>
+								<BodyText style={styles.benefitIcon}>
+									🤝
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
+									Share special moments with friends and
+									family
+								</BodySmallText>
+							</View>
+
+							<View style={styles.benefitItem}>
+								<BodyText style={styles.benefitIcon}>
+									🌍
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
+									Discover and contribute to the global memory
+									map
+								</BodySmallText>
+							</View>
+
+							<View style={styles.benefitItem}>
+								<BodyText style={styles.benefitIcon}>
+									🔒
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
+									Full control over your privacy and sharing
+									settings
+								</BodySmallText>
+							</View>
+						</View>
+					</View>
+
+					<View style={styles.accountOptions}>
+						<LabelText align="center" style={styles.optionsTitle}>
+							How would you like to proceed?
+						</LabelText>
+					</View>
 				</View>
 			</MainContent>
 
 			<Footer>
 				<View style={styles.buttonContainer}>
-					{/* Show different buttons based on auth state */}
-					{currentUser ? (
-						<>
-							<Button
-								style={styles.primaryButton}
-								onPress={navigateToWorldMap}
-							>
-								🗺️ Continue to World Map
-							</Button>
+					<View style={styles.secondaryActions}>
+						<Button style={styles.secondaryButton} onPress={goBack}>
+							← Previous
+						</Button>
 
-							<View style={styles.navigationActions}>
-								<Button
-									style={styles.backButton}
-									onPress={goBack}
-								>
-									← Previous
-								</Button>
-							</View>
-						</>
-					) : (
-						<>
-							<Button
-								style={styles.primaryButton}
-								onPress={toggleSignupModal}
-							>
-								Create New Account
-							</Button>
-
-							{/* <Button
-								style={styles.secondaryButton}
-								onPress={toggleLoginModal}
-							>
-								Sign In
-							</Button> */}
-
-							<View style={styles.navigationActions}>
-								<Button
-									style={styles.backButton}
-									onPress={goBack}
-								>
-									← Previous
-								</Button>
-
-								<Button
-									style={styles.skipButton}
-									onPress={skipAuth}
-								>
-									Skip for Now
-								</Button>
-							</View>
-						</>
-					)}
+						<Button
+							style={styles.secondaryButton}
+							onPress={toggleSkipAuth}
+						>
+							Skip for Now
+						</Button>
+					</View>
+					<Button
+						style={styles.primaryButton}
+						onPress={toggleSignupModal}
+					>
+						Create New Account
+					</Button>
 				</View>
 			</Footer>
 
@@ -712,82 +563,6 @@ export default function OnboardingAccountScreen() {
 					</Modal.Footer>
 				</Modal.Container>
 			</Modal>
-
-			{/* ===============
-			      LOGIN MODAL
-			    =============== */}
-			{/* <Modal
-				isVisible={isLoginModalVisible}
-				onBackdropPress={toggleLoginModal}
-			>
-				<Modal.Container>
-					<Modal.Header title="Welcome Back!" />
-					<Modal.Body> */}
-			{/* Message Display */}
-			{/* {messageState.show &&
-							messageState.type === 'success' && (
-								<SuccessMessage
-									title="Welcome Back!"
-									onDismiss={hideMessage}
-								>
-									{messageState.message}
-								</SuccessMessage>
-							)}
-
-						{messageState.show && messageState.type === 'error' && (
-							<ErrorMessage onDismiss={hideMessage}>
-								{messageState.message}
-							</ErrorMessage>
-						)}
-
-						{messageState.show &&
-							messageState.type === 'warning' && (
-								<WarningMessage onDismiss={hideMessage}>
-									{messageState.message}
-								</WarningMessage>
-							)} */}
-
-			{/* Form Inputs */}
-			{/* <Input
-							value={email}
-							onChangeText={(text) => {
-								setEmail(text);
-								setEmailError(validateEmail(text));
-							}}
-							error={emailError}
-							label="Email"
-							placeholder="Enter your email"
-							keyboardType="email-address"
-							autoCapitalize="none"
-						/>
-						<Input
-							value={password}
-							onChangeText={setPassword}
-							label="Password"
-							placeholder="Enter your password"
-							secureTextEntry
-							secureToggle
-						/>
-					</Modal.Body> */}
-
-			{/* <Modal.Footer>
-						<Button
-							onPress={handleSignIn}
-							style={[styles.modalButton, styles.loginButton]}
-							disabled={isLoading}
-						>
-							{isLoading ? 'Signing In...' : 'Sign In'}
-						</Button>
-						<Button
-							onPress={toggleLoginModal}
-							style={[styles.modalButton, styles.cancelButton]}
-							disabled={isLoading}
-						>
-							Cancel
-						</Button>
-					</Modal.Footer>
-				</Modal.Container>
-			</Modal> */}
 
 			{/* ==============
 			      SKIP MODAL
@@ -922,6 +697,7 @@ const styles = StyleSheet.create({
 	},
 	benefitsContainer: {
 		marginBottom: 30,
+		marginTop: 20,
 	},
 	benefitsTitle: {
 		marginBottom: 16,
@@ -951,21 +727,20 @@ const styles = StyleSheet.create({
 	optionsTitle: {},
 	buttonContainer: {
 		width: '100%',
+		gap: 10,
 	},
 	primaryButton: {
 		backgroundColor: ReMapColors.primary.violet,
 		width: '100%',
-		marginBottom: 10,
 	},
 	secondaryButton: {
-		backgroundColor: ReMapColors.primary.blue,
-		width: '100%',
-		marginBottom: 15,
+		backgroundColor: ReMapColors.primary.cetacean,
+		flex: 1,
 	},
-	navigationActions: {
+	secondaryActions: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
-		gap: 10,
+		gap: 12,
 	},
 	backButton: {
 		backgroundColor: ReMapColors.ui.textSecondary,
