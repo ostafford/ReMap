@@ -155,18 +155,18 @@ export default function WorldMapScreen() {
 			{/******** AUTOCOMPLETE SLIDE FROM TOP *********/}
 			{/* *********************************************/}
 			{searchVisible && (
-						<Animated.View
-						style={[
-							styles.animatedSearchContainer,
-							{ transform: [{ translateY: slideAnim }] },
-						]}
-						>
-							<FoursquareSearch
-								onSelect={onSelectSuggestion}
-								placeholder="Search location..." 
-							/>
-						</Animated.View>
-					)}
+				<Animated.View
+					style={[
+						styles.animatedSearchContainer,
+						{ transform: [{ translateY: slideAnim }] },
+					]}
+					>
+						<FoursquareSearch
+							onSelect={onSelectSuggestion}
+							placeholder="Search location..." 
+						/>
+				</Animated.View>
+			)}
 
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 				<KeyboardAvoidingView 
@@ -211,7 +211,14 @@ export default function WorldMapScreen() {
 
 				{/* NOTE: Under map content with Typography components */}
 				<View style={styles.scrollContent}>
-
+											<TouchableOpacity 
+							style={styles.fakeInput} 
+							onPress={searchVisible ? closeSearch : openSearch}
+						>
+							<Text style={{ color: ReMapColors.ui.textSecondary }}>
+								{searchVisible ? 'Close' : 'Search Location'}
+							</Text>
+						</TouchableOpacity>
 				</View>
 
 			</MainContent>
@@ -221,19 +228,10 @@ export default function WorldMapScreen() {
 			{/* *********************************************/}
 			<Footer>
 				<View style={styles.footerContainer}>
-						<TouchableOpacity 
-							style={styles.fakeInput} 
-							onPress={searchVisible ? closeSearch : openSearch}
-						>
-							<Text style={{ color: ReMapColors.ui.textSecondary }}>
-								{searchVisible ? 'Close' : 'Search Location'}
-							</Text>
-						</TouchableOpacity>
-					
-					
-
-
-					{/* <IconButton icon="reply" onPress={goBack}></IconButton>
+					<IconButton
+						icon="reply"
+						onPress={goBack}>
+					</IconButton>
 					<IconButton
 						icon="map-pin"
 						onPress={navigateToCreatePin}
@@ -245,10 +243,10 @@ export default function WorldMapScreen() {
 					<IconButton
 						icon="list"
 						onPress={navigateToCreatePin}
-					></IconButton> */}
+					></IconButton>
 
 					{/* Login/Signup Modal */}
-					{/* <Modal
+					<Modal
 						isVisible={isModalVisible}
 						onBackdropPress={() => setIsModalVisible(false)}
 					>
@@ -317,7 +315,7 @@ export default function WorldMapScreen() {
 								</View>
 							</Modal.Footer>
 						</Modal.Container>
-					</Modal> */}
+					</Modal>
 				</View> 
 			</Footer>
 
@@ -354,12 +352,12 @@ const styles = StyleSheet.create({
 	},
 	map: {
 		width: '100%',
-		height: 675,
+		height: 650,
 	},
 	mapContent: {
 		backgroundColor: ReMapColors.primary.accent, // this colour is just for examples sake - not gonna be purple
-		borderRadius: 12,
-		height: 30,
+		borderRadius: 16,
+		height: 35,
 		left:'25%',
 		position:'absolute',
 		top:'8%',
