@@ -2,7 +2,7 @@
 //   CORE IMPORTS
 // ================
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, FlatList, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TextInput, FlatList, TouchableOpacity, Text, StyleSheet, ScrollView } from 'react-native';
 
 // ===========================
 //   COMPONENTS IMPORTS
@@ -15,6 +15,7 @@ import { ReMapColors } from '@/constants/Colors';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import uuid from 'react-native-uuid';
+
 
 
 // ===========================
@@ -107,6 +108,7 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 		return () => clearTimeout(timeout);
 	}, [query]);
 
+	
 // ===========================================
 //   AUTOCOMPLETE SEARCH COMPONENT RENDERING
 // ==========================================
@@ -119,39 +121,41 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 				style={styles.input}
 			/>
 			{suggestions.length > 0 && (
-				<FlatList
-					data={suggestions}
-					keyExtractor={(item, index) => item.place?.fsq_id || String(index)}
+				<ScrollView
 					style={styles.list}
-					renderItem={({ item }) => {
-					let displayText = 'Unknown';
+					nestedScrollEnabled={true}
+					keyboardShouldPersistTaps="handled"
+				>
+					{suggestions.map((item, index) => {
+						let displayText = 'Unknown';
 
-					if (item.type === 'place' && item.place?.name) {
-						displayText = item.place.name;
-					} else if (item.type === 'search' && item.text?.primary) {
-						displayText = item.text.primary;
-					} else if (item.type === 'address' && item.address?.formatted_address) {
-						displayText = item.address.formatted_address;
-					} else if (item.type === 'geo' && item.text?.primary) {
-						displayText = item.text.primary;
-					}
+						if (item.type === 'place' && item.place?.name) {
+							displayText = item.place.name;
+						} else if (item.type === 'search' && item.text?.primary) {
+							displayText = item.text.primary;
+						} else if (item.type === 'address' && item.address?.formatted_address) {
+							displayText = item.address.formatted_address;
+						} else if (item.type === 'geo' && item.text?.primary) {
+							displayText = item.text.primary;
+						}
 
-					return (
-						<TouchableOpacity
-						style={styles.item}
-						onPress={() => {
-							setQuery(displayText);
-							setSuggestions([]);
-							onSelect(item);
-							setSessionToken(null);
-						}}
-						>
-						<Text>{displayText}</Text>
-						</TouchableOpacity>
-					);
-					}}
-				/>
-			)}
+						return (
+							<TouchableOpacity
+								key={item.place?.fsq_id || index}
+								style={styles.item}
+								onPress={() => {
+									setQuery(displayText);
+									setSuggestions([]);
+									onSelect(item);
+									setSessionToken(null);
+								}}
+								>
+								<Text>{displayText}</Text>
+							</TouchableOpacity>
+						);
+					})}
+				</ScrollView>
+				)}
 		</View>
 	);
 };
