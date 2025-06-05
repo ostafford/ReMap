@@ -58,6 +58,7 @@ export const ReMapColors = {
 		text: '#1F2937',
 		textSecondary: '#6B7280',
 		border: '#E5E7EB',
+		grey: '#D9D9D9',
 	},
 
 	// Semantic Colors

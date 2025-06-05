@@ -36,6 +36,9 @@
     "experiments": {
       "typedRoutes": true
     },
-    "scheme": "remap"
+    "scheme": "remap",
+    "extra": {
+      "foursquareApiKey": "37rxGxJd3/1rLD9h1iSY9aHDH1TD4HoRou5HYAH5Oo98="
+    }
   }
 }

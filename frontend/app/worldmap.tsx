@@ -2,7 +2,17 @@
 //   CORE IMPORTS
 // ================
 import React, { useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Alert, Image } from 'react-native';
+import {
+	Alert,
+	Image,
+	Keyboard,
+	KeyboardAvoidingView,
+	Platform,
+	StyleSheet, 
+	Text,
+	TouchableWithoutFeedback,
+	View,
+} from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
@@ -33,6 +43,13 @@ import { Footer } from '@/components/layout/Footer';
 //   INTERNAL 'TYPOGRAPHY' IMPORTS
 // ================================
 import { HeaderText, BodyText, LabelText } from '@/components/ui/Typography';
+
+// ==================================
+//   FOURSQUARE AUTOCOMPLETE IMPORTS
+// ==================================
+import axios from 'axios';
+import { FoursquareSearch } from '@/components/ui/FourSquareSearch';
+
 
 // ========================
 //   COMPONENT DEFINITION
@@ -73,9 +90,17 @@ export default function WorldMapScreen() {
 		latitudeDelta: 0.01,
 		longitudeDelta: 0.01,
 	};
+	const mapRef = useRef<MapView>(null);
 
 	return (
-		<View style={styles.container}>
+		<GestureHandlerRootView style={styles.container}>
+			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+				<KeyboardAvoidingView 
+					style={styles.keyboardAvoidingView}
+					behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+					keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+				>
+
 
 			{/**********************************************/}
 			{/**************** MAIN CONTENT ****************/}
@@ -83,6 +108,7 @@ export default function WorldMapScreen() {
 			<MainContent>
 				<View>
 					<MapView
+						ref={mapRef}
 						style={styles.map}
 						provider={PROVIDER_GOOGLE}
 						initialRegion={INITIAL_REGION}
@@ -112,10 +138,28 @@ export default function WorldMapScreen() {
 				{/* NOTE: Under map content with Typography components */}
 				<View style={styles.scrollContent}>
 					<View style={styles.search}>
-						<Input
-							style={styles.searchInput}
-							label="Search Location"
-							placeholder="Search Location"
+
+						{/* ===============================
+							//   FOURSQUARE AUTOCOMPLETE 
+							// ============================ */}
+						<FoursquareSearch
+							onSelect={(item) => {
+								if (
+								'geocodes' in item &&
+								item.geocodes?.main?.latitude !== undefined &&
+								item.geocodes?.main?.longitude !== undefined
+								) {
+								const { latitude, longitude } = item.geocodes.main;
+								mapRef.current?.animateToRegion({
+									latitude,
+									longitude,
+									latitudeDelta: 0.01,
+									longitudeDelta: 0.01,
+								});
+								} else {
+									Alert.alert('Location data is not available');
+								}
+							}}
 						/>
 					</View>
 				</View>
@@ -213,12 +257,17 @@ export default function WorldMapScreen() {
 					</Modal>
 				</View>
 			</Footer>
-		</View>
+			</KeyboardAvoidingView>
+			</TouchableWithoutFeedback>
+		</GestureHandlerRootView>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
+		flex: 1,
+	},
+	keyboardAvoidingView: {
 		flex: 1,
 	},
 	title: {
@@ -248,7 +297,7 @@ const styles = StyleSheet.create({
 		width:'50%',
 	},
 	scrollContent: {
-		padding: 8,
+		padding: 20,
 	},
 	search: {
 		flexDirection: 'row',
