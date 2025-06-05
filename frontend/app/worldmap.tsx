@@ -1,7 +1,7 @@
 // ================
 //   CORE IMPORTS
 // ================
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import {
 	Alert,
 	Image,
@@ -12,6 +12,9 @@ import {
 	Text,
 	TouchableWithoutFeedback,
 	View,
+	Animated,
+	Dimensions,
+	TouchableOpacity,
 } from 'react-native';
 
 // =======================
@@ -49,7 +52,10 @@ import { HeaderText, BodyText, LabelText } from '@/components/ui/Typography';
 // ==================================
 import axios from 'axios';
 import { FoursquareSearch } from '@/components/ui/FourSquareSearch';
+import type { Suggestion } from '@/components/ui/FourSquareSearch';
 
+
+const { height } = Dimensions.get('window');
 
 // ========================
 //   COMPONENT DEFINITION
@@ -92,8 +98,71 @@ export default function WorldMapScreen() {
 	};
 	const mapRef = useRef<MapView>(null);
 
+	// ===================================
+	//   AUTOCOMPLETE SEARCH SETUP
+	// ===================================
+	const [searchVisible, setSearchVisible] = useState(false);
+	const slideAnim = useRef(new Animated.Value(-100)).current;
+
+	const openSearch = () => {
+		setSearchVisible(true);
+		Animated.timing(slideAnim, {
+			toValue: 0,
+			duration: 300,
+			useNativeDriver: true,
+		}).start();
+	};
+
+	const closeSearch = () => {
+		Animated.timing(slideAnim, {
+			toValue: -100,
+			duration: 100,
+			useNativeDriver: true,
+		}).start(() => {
+		setSearchVisible(false);
+		});
+	};
+
+	const onSelectSuggestion = (item: Suggestion) => {
+		closeSearch();
+		if (
+			'geocodes' in item &&
+			item.geocodes?.main?.latitude !== undefined &&
+			item.geocodes?.main?.longitude !== undefined
+		) {
+			const { latitude, longitude } = item.geocodes.main;
+			mapRef.current?.animateToRegion({
+				latitude,
+				longitude,
+				latitudeDelta: 0.01,
+				longitudeDelta: 0.01,
+			});
+			} else {
+			Alert.alert('Location data is not available');
+			}
+		};
+
 	return (
+		<>
 		<GestureHandlerRootView style={styles.container}>
+
+			{/**********************************************/}
+			{/******** AUTOCOMPLETE SLIDE FROM TOP *********/}
+			{/* *********************************************/}
+			{searchVisible && (
+						<Animated.View
+						style={[
+							styles.animatedSearchContainer,
+							{ transform: [{ translateY: slideAnim }] },
+						]}
+						>
+							<FoursquareSearch
+								onSelect={onSelectSuggestion}
+								placeholder="Search location..." 
+							/>
+						</Animated.View>
+					)}
+
 			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
 				<KeyboardAvoidingView 
 					style={styles.keyboardAvoidingView}
@@ -137,32 +206,9 @@ export default function WorldMapScreen() {
 
 				{/* NOTE: Under map content with Typography components */}
 				<View style={styles.scrollContent}>
-					<View style={styles.search}>
 
-						{/* ===============================
-							//   FOURSQUARE AUTOCOMPLETE 
-							// ============================ */}
-						<FoursquareSearch
-							onSelect={(item) => {
-								if (
-								'geocodes' in item &&
-								item.geocodes?.main?.latitude !== undefined &&
-								item.geocodes?.main?.longitude !== undefined
-								) {
-								const { latitude, longitude } = item.geocodes.main;
-								mapRef.current?.animateToRegion({
-									latitude,
-									longitude,
-									latitudeDelta: 0.01,
-									longitudeDelta: 0.01,
-								});
-								} else {
-									Alert.alert('Location data is not available');
-								}
-							}}
-						/>
-					</View>
 				</View>
+
 			</MainContent>
 
 			{/**********************************************/}
@@ -170,7 +216,19 @@ export default function WorldMapScreen() {
 			{/* *********************************************/}
 			<Footer>
 				<View style={styles.footerContainer}>
-					<IconButton icon="reply" onPress={goBack}></IconButton>
+						<TouchableOpacity 
+							style={styles.fakeInput} 
+							onPress={searchVisible ? closeSearch : openSearch}
+						>
+							<Text style={{ color: ReMapColors.ui.textSecondary }}>
+								{searchVisible ? 'Close' : 'Search Location'}
+							</Text>
+						</TouchableOpacity>
+					
+					
+
+
+					{/* <IconButton icon="reply" onPress={goBack}></IconButton>
 					<IconButton
 						icon="map-pin"
 						onPress={navigateToCreatePin}
@@ -182,10 +240,10 @@ export default function WorldMapScreen() {
 					<IconButton
 						icon="list"
 						onPress={navigateToCreatePin}
-					></IconButton>
+					></IconButton> */}
 
 					{/* Login/Signup Modal */}
-					<Modal
+					{/* <Modal
 						isVisible={isModalVisible}
 						onBackdropPress={() => setIsModalVisible(false)}
 					>
@@ -254,12 +312,18 @@ export default function WorldMapScreen() {
 								</View>
 							</Modal.Footer>
 						</Modal.Container>
-					</Modal>
-				</View>
+					</Modal> */}
+				</View> 
 			</Footer>
+
+			
+
 			</KeyboardAvoidingView>
 			</TouchableWithoutFeedback>
 		</GestureHandlerRootView>
+		
+			
+		</>
 	);
 }
 
@@ -285,7 +349,7 @@ const styles = StyleSheet.create({
 	},
 	map: {
 		width: '100%',
-		height: 620,
+		height: 650,
 	},
 	mapContent: {
 		backgroundColor: ReMapColors.primary.accent, // this colour is just for examples sake - not gonna be purple
@@ -325,4 +389,42 @@ const styles = StyleSheet.create({
 		flexDirection: 'column',
 		alignItems: 'center',
 	},
+
+	fakeInput: {
+		backgroundColor: ReMapColors.ui.grey,
+		borderColor: ReMapColors.ui.grey,
+		borderRadius: 16,
+		borderWidth: 1,
+		marginHorizontal: 20,
+		marginTop: 10,
+		padding: 12,
+  	},
+	animatedSearchContainer: {
+		backgroundColor: 'white',
+		borderRadius: 30,
+		elevation: 10,
+		height: '20%',
+		left: 0,
+		paddingHorizontal: 20,
+		paddingTop: 50,
+		position: 'absolute',
+		right: 0,
+		shadowColor: ReMapColors.ui.textSecondary,
+		shadowOpacity: 0.7,
+		shadowRadius: 10,
+		top: 0,
+		zIndex: 1000,
+	},
+	closeButton: {
+		alignSelf: 'flex-end',
+		backgroundColor: '#2900E2',
+		borderRadius: 8,
+		marginTop: 10,
+		paddingHorizontal: 16,
+		paddingVertical: 8,
+	},
+	closeButtonText: {
+		color: 'white',
+		fontWeight: 'bold',
+	}
 });

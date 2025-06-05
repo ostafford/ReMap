@@ -2,7 +2,16 @@
 //   CORE IMPORTS
 // ================
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, FlatList, TouchableOpacity, Text, StyleSheet, ScrollView } from 'react-native';
+import { 
+	View,
+	TextInput,
+	TouchableOpacity,
+	Text,
+	StyleSheet,
+	ScrollView, 
+	Animated,
+	Dimensions
+} from 'react-native';
 
 // ===========================
 //   COMPONENTS IMPORTS
@@ -21,7 +30,7 @@ import uuid from 'react-native-uuid';
 // ===========================
 //  DECLARING TYPES
 // ===========================
-type Suggestion = {
+export type Suggestion = {
   type: string;
   place?: {
     fsq_id: string;
@@ -51,6 +60,7 @@ type Props = {
 	onSelect: (item: Suggestion) => void;
 	placeholder?: string;
 };
+
 
 
 // ==================================
@@ -116,6 +126,7 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 		<View style={styles.container}>
 			<TextInput
 				placeholder={placeholder}
+				placeholderTextColor= {ReMapColors.ui.textSecondary}
 				value={query}
 				onChangeText={setQuery}
 				style={styles.input}
@@ -162,7 +173,6 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 
 const styles = StyleSheet.create({
 	container: {
-		// zIndex: 999,
 		width: '100%',
 		alignItems: 'center',
 	},
