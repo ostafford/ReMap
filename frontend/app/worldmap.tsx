@@ -142,6 +142,11 @@ export default function WorldMapScreen() {
 			}
 		};
 
+	
+
+	// =========================
+	//   WORLDMAP PAGE RENDER
+	// =========================
 	return (
 		<>
 		<GestureHandlerRootView style={styles.container}>
@@ -349,7 +354,7 @@ const styles = StyleSheet.create({
 	},
 	map: {
 		width: '100%',
-		height: 650,
+		height: 675,
 	},
 	mapContent: {
 		backgroundColor: ReMapColors.primary.accent, // this colour is just for examples sake - not gonna be purple
@@ -366,9 +371,6 @@ const styles = StyleSheet.create({
 	search: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
-	},
-	searchInput: {
-		width: '100%',
 	},
 	backButton: {
 		backgroundColor: ReMapColors.primary.black,
@@ -393,7 +395,7 @@ const styles = StyleSheet.create({
 	fakeInput: {
 		backgroundColor: ReMapColors.ui.grey,
 		borderColor: ReMapColors.ui.grey,
-		borderRadius: 16,
+		borderRadius: 20,
 		borderWidth: 1,
 		marginHorizontal: 20,
 		marginTop: 10,
@@ -403,14 +405,14 @@ const styles = StyleSheet.create({
 		backgroundColor: 'white',
 		borderRadius: 30,
 		elevation: 10,
-		height: '20%',
+		height: '15%',
 		left: 0,
 		paddingHorizontal: 20,
 		paddingTop: 50,
 		position: 'absolute',
 		right: 0,
 		shadowColor: ReMapColors.ui.textSecondary,
-		shadowOpacity: 0.7,
+		shadowOpacity: 0.5,
 		shadowRadius: 10,
 		top: 0,
 		zIndex: 1000,
