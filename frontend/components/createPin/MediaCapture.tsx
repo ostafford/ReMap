@@ -170,8 +170,8 @@ export function MediaCapture({
 		<View style={styles.section}>
 			<LabelText style={styles.sectionLabel}>{title}</LabelText>
 
-			{/* Media Summary */}
-			{mediaSummary.totalItems > 0 && (
+			{/* DISABLED: Media Summary */}
+			{/* {mediaSummary.totalItems > 0 && (
 				<View style={styles.mediaSummary}>
 					<SubheaderText style={styles.mediaSummaryTitle}>
 						Attached Media ({mediaSummary.totalItems} items):
@@ -196,7 +196,7 @@ export function MediaCapture({
 						)}
 					</View>
 				</View>
-			)}
+			)} */}
 
 			{/* Media Preview */}
 			{(selectedMedia.length > 0 || audioUri) && (
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
 		fontStyle: 'italic',
 	},
 	removeButton: {
-		width: 80,
+		width: 'auto',
 		alignSelf: 'flex-end',
 	},
 

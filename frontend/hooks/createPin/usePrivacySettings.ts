@@ -1,5 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getUserSocialCircles } from '@/services/memoryService';
+import { getTestSocialCircles } from '@/assets/dummySocialCircleData';
+
+const USE_TEST_DATA = true; // ATTN: Set to 'false' when backend is ready
 
 // ==========================================
 // TYPE DEFINITIONS
@@ -64,38 +67,28 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 	// ==========================================
 	// LOAD USER'S SOCIAL CIRCLES
 	// ==========================================
+	// useEffect(() => {
+	// 	const loadUserSocialCircles = async () => {
+	// 		const circles = await getUserSocialCircles();
+	// 		setUserSocialCircles(circles);
+	// 		console.log('👥 Loaded user social circles:', circles);
+	// 	};
+	// 	loadUserSocialCircles();
+	// }, []);
+
 	useEffect(() => {
 		const loadUserSocialCircles = async () => {
 			try {
-				const circles = await getUserSocialCircles();
-				setUserSocialCircles(circles);
-				console.log('👥 Loaded user social circles:', circles);
+				if (USE_TEST_DATA) {
+					const circles = await getTestSocialCircles();
+					setUserSocialCircles(circles);
+				} else {
+					const circles = await getUserSocialCircles();
+					return Error;
+				}
 			} catch (error) {
-				console.error('Error loading social circles:', error);
-				// Fallback to dummy data for development
-				setUserSocialCircles([
-					{
-						id: 'family',
-						name: 'Family Circle',
-						memberCount: 8,
-						description: 'Close family members',
-						color: '#FF6B6B',
-					},
-					{
-						id: 'work_friends',
-						name: 'Work Friends',
-						memberCount: 12,
-						description: 'Colleagues and work buddies',
-						color: '#4ECDC4',
-					},
-					{
-						id: 'university',
-						name: 'University Squad',
-						memberCount: 15,
-						description: 'University friends and classmates',
-						color: '#45B7D1',
-					},
-				]);
+				console.error('Failed to load social circles:', error);
+				setUserSocialCircles([]);
 			}
 		};
 
@@ -248,7 +241,6 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 // ==========================================
 // HELPER TYPES FOR EXTERNAL USE
 // ==========================================
-export type PrivacySettingsHook = ReturnType<typeof usePrivacySettings>;
 export type { VisibilityOption, SocialCircle };
 
 // Default export

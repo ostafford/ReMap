@@ -1,11 +1,10 @@
-// ================
-//   CORE IMPORTS
-// ================
+// ========================
+//   REACT NATIVE IMPORTS
+// ========================
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
 	View,
 	StyleSheet,
-	Keyboard,
 	Image,
 	TouchableOpacity,
 	ScrollView,
@@ -16,16 +15,16 @@ import {
 // =======================
 import { router } from 'expo-router';
 
-// ================================
-//   INTERNAL 'LAYOUT' COMPONENTS
-// ================================
+// =====================
+//   LAYOUT COMPONENTS
+// =====================
 import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
 import { Footer } from '@/components/layout/Footer';
 
-// ============================
-//   INTERNAL 'UI' COMPONENTS
-// ============================
+// =================
+//   UI COMPONENTS
+// =================
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
@@ -36,41 +35,40 @@ import {
 	InfoMessage,
 } from '@/components/ui/Messages';
 
-// ================================
-//   INTERNAL 'TYPOGRAPHY' IMPORTS
-// ================================
+// ======================
+//   TYPOGRAPHY IMPORTS
+// ======================
 import {
 	HeaderText,
-	SubheaderText,
 	BodyText,
 	LabelText,
 	CaptionText,
 } from '@/components/ui/Typography';
 
-// ================================
-//   INTERNAL 'CONSTANTS' IMPORTS
-// ================================
+// ======================
+//   CONSTANTS IMPORTS
+// ======================
 import { ReMapColors } from '@/constants/Colors';
 
-// ================================
+// ====================
 //   SERVICE IMPORTS
-// ================================
+// ====================
 import {
 	createMemoryPin,
 	type CreateMemoryRequest,
 	type UploadProgress,
 } from '@/services/memoryService';
 
-// ================================
-//   CUSTOM HOOKS IMPORTS
-// ================================
-import { useMemoryContent } from '../../hooks/createPin/useMemoryContent';
-import { useMediaCapture } from '../../hooks/createPin/useMediaCapture';
-import { usePrivacySettings } from '../../hooks/createPin/usePrivacySettings';
+// =================
+//   CUSTOM HOOKS
+// =================
+import { useMemoryContent } from '@/hooks/createPin/useMemoryContent';
+import { useMediaCapture } from '@/hooks/createPin/useMediaCapture';
+import { usePrivacySettings } from '@/hooks/createPin/usePrivacySettings';
 
-// ================================
-//   COMPONENT IMPORTS
-// ================================
+// =======================
+//   FEATURE COMPONENTS
+// =======================
 import { LocationSelector } from '@/components/createPin/LocationSelector';
 import { MediaCapture } from '@/components/createPin/MediaCapture';
 import { VisibilitySelector } from '@/components/createPin/VisibilitySelector';
@@ -79,6 +77,44 @@ import { SocialCircleSelector } from '@/components/createPin/SocialCircleSelecto
 // =========================
 //   TYPE DEFINITIONS
 // =========================
+/**
+ * Modal Recipe Card - tells the app how to build any modal popup
+ *
+ * Think of this like a form you fill out to create a modal:
+ * - What should it look like? (error = red, success = green)
+ * - What text goes in it?
+ * - What buttons does it need?
+ *
+ *	LAYMAN TERMS: "I want to show a red error popup with 'Oops!' as the title,
+ * 'You forgot to add a title' as the message, and an OK button"
+ *
+ * TECHNICAL: Interface defining modal state configuration for consistent
+ * popup behavior across the CreatePin component
+ *
+ * @interface ModalState
+ * @since 1.0.0
+ *
+ * @example
+ * // "Show me a red error popup"
+ * const errorModal: ModalState = {
+ *   show: true,                    // "Display it now"
+ *   type: 'error',                 // "Make it red/scary"
+ *   title: 'Oops!',               // "Big text at top"
+ *   message: 'You forgot the title', // "Explanation text"
+ *   actions: [                     // "What buttons to show"
+ *     { text: 'OK', onPress: hideModal, style: 'primary' }
+ *   ]
+ * };
+ *
+ * // "Show me a simple info popup with just an OK button"
+ * const infoModal: ModalState = {
+ *   show: true,
+ *   type: 'info',                  // "Make it blue/informational"
+ *   title: 'Recording Started',
+ *   message: 'Tap microphone again to stop'
+ *   // No actions = automatic OK button
+ * };
+ */
 interface ModalState {
 	show: boolean;
 	type:
@@ -98,6 +134,58 @@ interface ModalState {
 	}>;
 }
 
+/**
+ * Complete Memory Package - everything about one memory location
+ *
+ * LAYMAN TERMS: When someone creates a memory pin, ALL the information
+ * gets packaged into this format:
+ * - Where it happened
+ * - What the person wrote about it
+ * - Who can see it
+ * - Any photos/videos/audio they attached
+ * - Some extra info the app calculated
+ *
+ * This same package gets used in 3 different ways:
+ * 1. PREVIEW: Show it in the preview popup
+ * 2. WORLDMAP: Display it as a pin on the map (future feature)
+ * 3. BACKEND: Transform it and send to database
+ *
+ * TECHNICAL: Frontend memory data structure for display, processing,
+ * and API transformation. Maintains separation from backend schema
+ * for UI flexibility.
+ *
+ * @interface MemoryData
+ * @since 1.0.0
+ *
+ * @example
+ * // A real memory someone might create
+ * const someoneMemory: MemoryData = {
+ *   id: '1642890123456',                           // Unique ID number
+ *   timestamp: '2024-01-22T14:30:00.000Z',        // When they created it
+ *   location: {
+ *     query: 'That cool cafe on Collins Street'    // Where they said it happened
+ *   },
+ *   content: {
+ *     title: 'Best coffee discovery',              // What they named it
+ *     description: 'Found this hidden gem...'     // Their story about it
+ *   },
+ *   visibility: ['public', 'social'],             // Everyone + friends can see it
+ *   socialCircles: ['coffee_lovers', 'work_friends'], // Which friend groups
+ *   media: {
+ *     photos: [photo of the latte art],     // Pictures they took
+ *     videos: [],                                 // No videos this time
+ *     audio: null                                 // No voice recording
+ *   },
+ *   metadata: {
+ *     totalMediaItems: 1,                         // 1 photo total
+ *     hasDescription: true,                       // They wrote a story
+ *     createdAt: '2024-01-22T14:30:00.000Z'      // When the app saved it
+ *   }
+ * };
+ *
+ * @see {@link createBackendMemoryData} for converting to database format
+ * @see {@link MemoryPreviewModal} for how this gets displayed
+ */
 interface MemoryData {
 	id: string;
 	timestamp: string;
@@ -128,14 +216,46 @@ interface MemoryData {
 // ========================
 //   COMPONENT DEFINITION
 // ========================
+/**
+ * CreatePin Screen - Main component for creating location-based memory pins
+ *
+ * LAYMAN TERMS: This is the main function that builds the entire "Create Memory Pin"
+ * screen. When someone taps "Create Pin" from the world map, this function runs and
+ * shows them the form to fill out (location, title, description, photos, etc.)
+ *
+ * TECHNICAL: Main React component handling complete memory creation workflow
+ * from initial form display through final API submission and navigation
+ *
+ * @component CreatePinScreen
+ * @returns {JSX.Element} Complete create pin form interface with modal system
+ *
+ * @example
+ * // Used in app routing
+ * <Stack.Screen name="createPin" component={CreatePinScreen} />
+ */
 export default function CreatePinScreen() {
 	// ====================
-	//   BASIC STATE MANAGEMENT
+	//   STATE MANAGEMENT
 	// ====================
+	/**
+	 * LAYMAN TERMS: "Is the app currently saving the memory to the server?"
+	 * Shows loading spinner and disables buttons while saving
+	 * TECHNICAL: Boolean state for save operation progress indication
+	 */
 	const [isSaving, setIsSaving] = useState(false);
+	/**
+	 * LAYMAN TERMS: "How much of the save process is done? (for progress bar)"
+	 * Shows user how many photos/videos have uploaded so far
+	 * TECHNICAL: Upload progress tracking state for user feedback
+	 */
 	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
 		null
 	);
+	/**
+	 * LAYMAN TERMS: "What popup should I show right now?"
+	 * Controls all popups: errors, success messages, preview window, etc.
+	 * TECHNICAL: Modal state management using ModalState interface
+	 */
 	const [modalState, setModalState] = useState<ModalState>({
 		show: false,
 		type: 'info',
@@ -143,12 +263,45 @@ export default function CreatePinScreen() {
 		message: '',
 		actions: [],
 	});
+	/**
+	 * LAYMAN TERMS: "The complete memory package for the preview popup"
+	 * When user taps "Preview Memory", this holds all their entered data
+	 * TECHNICAL: Preview modal data state using MemoryData interface
+	 */
 	const [previewData, setPreviewData] = useState<MemoryData | null>(null);
+	/**
+	 * LAYMAN TERMS: "Which photo should I show full-screen right now?"
+	 * When user taps a photo thumbnail, this holds the photo URL
+	 * TECHNICAL: Image preview modal state for full-screen photo display
+	 */
 	const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
 
-	// ==================================
-	//   MODAL HELPER FUNCTIONS (DEFINE FIRST!)
-	// ==================================
+	// ===================
+	// 	HELPER FUNCTIONS
+	// ===================
+	/**
+	 * Universal popup display function - shows any type of modal
+	 *
+	 * LAYMAN TERMS: "Show a popup with specific text and buttons"
+	 * Like calling: showModal('error', 'Oops!', 'You forgot the title')
+	 *
+	 * TECHNICAL: Centralized modal state setter with type safety and default actions
+	 *
+	 * @param {ModalState['type']} type - What kind of popup (error=red, success=green, etc.)
+	 * @param {string} title - Big text at the top
+	 * @param {string} message - Explanation text in the middle
+	 * @param {ModalState['actions']} [actions] - Custom buttons (optional)
+	 *
+	 * @example
+	 * // Simple error popup
+	 * showModal('error', 'Missing Title', 'Please add a title for your memory');
+	 *
+	 * // Success popup with custom buttons
+	 * showModal('success', 'Saved!', 'Your memory was posted', [
+	 *   { text: 'View Map', onPress: goToMap, style: 'primary' },
+	 *   { text: 'Create Another', onPress: resetForm, style: 'secondary' }
+	 * ]);
+	 */
 	const showModal = useCallback(
 		(
 			type: ModalState['type'],
@@ -168,7 +321,14 @@ export default function CreatePinScreen() {
 		},
 		[]
 	);
-
+	/**
+	 * Hide any currently visible popup and clean up related data
+	 *
+	 * LAYMAN TERMS: "Close whatever popup is showing and clean up"
+	 * Also clears preview data if it was a preview popup
+	 *
+	 * TECHNICAL: Modal state reset with conditional cleanup based on modal type
+	 */
 	const hideModal = useCallback(() => {
 		const currentType = modalState.type;
 		setModalState((prev) => ({ ...prev, show: false }));
@@ -180,22 +340,57 @@ export default function CreatePinScreen() {
 		}
 	}, [modalState.type]);
 
-	// ==========================================
-	//   CUSTOM HOOKS (NOW showModal IS DEFINED)
-	// ==========================================
+	// ================
+	//   CUSTOM HOOKS
+	// ================
+	/**
+	 * LAYMAN TERMS: "Manages everything about the memory content (title, description, location)"
+	 *
+	 * TECHNICAL: Custom hook for memory content state and validation logic
+	 */
 	const memoryContent = useMemoryContent({
 		showModal,
 	});
-
+	/**
+	 * LAYMAN TERMS: "Manages everything about photos, videos, and audio recording"
+	 *
+	 * TECHNICAL: Custom hook for media capture, storage, and playback functionality
+	 */
 	const mediaCapture = useMediaCapture({
 		showModal,
 	});
-
+	/**
+	 * LAYMAN TERMS: "Manages everything about privacy settings and social circles"
+	 *
+	 * TECHNICAL: Custom hook for visibility and social circle selection logic
+	 */
 	const privacySettings = usePrivacySettings();
 
-	// ==========================================
-	//   EXTRACT VALUES FROM HOOKS
-	// ==========================================
+	// ===============================================
+	//   DESTRUCTURING [ Clean Variable Extraction ]
+	// ===============================================
+	/**
+	 * LAYMAN TERMS: "Get all the memory content functions and data from the hook"
+	 * Instead of typing memoryContent.memoryTitle every time, just use memoryTitle
+	 * TECHNICAL: Destructured hook return values for cleaner code access
+	 *  const {
+		memoryTitle,              // Current title text
+		setMemoryTitle,           // Function to update title
+		memoryDescription,        // Current description text
+		setMemoryDescription,     // Function to update description
+		locationQuery,            // Current location search text
+		setLocationQuery,         // Function to update location
+		coordinates,              // Lat/lng coordinates from map
+		handleCoordinateChange,   // Function when user moves map pin
+		activeInputId,            // Which input field is currently focused
+		locationInputRef,         // Reference to location input for focusing
+		titleInputRef,           // Reference to title input for focusing
+		descriptionInputRef,     // Reference to description input for focusing
+		validateContent,         // Function to check if form is valid
+		resetContent,            // Function to clear all content
+		hasValidContent,         // Boolean: is form ready to submit?
+		contentSummary,          // Object with completion stats
+	  } = memoryContent; */
 	const {
 		memoryTitle,
 		setMemoryTitle,
@@ -205,16 +400,31 @@ export default function CreatePinScreen() {
 		setLocationQuery,
 		coordinates,
 		handleCoordinateChange,
-		activeInputId,
 		locationInputRef,
 		titleInputRef,
 		descriptionInputRef,
 		validateContent,
 		resetContent,
 		hasValidContent,
-		contentSummary,
 	} = memoryContent;
-
+	/**
+   * LAYMAN TERMS: "Get all the photo/video/audio functions and data from the hook"
+   * TECHNICAL: Destructured media capture hook return values
+   
+	const {
+    selectedMedia,        // Array of photos and videos user selected
+    audioUri,            // URL of recorded audio (or null)
+    isRecording,         // Boolean: is microphone recording right now?
+    isPlayingAudio,      // Boolean: is audio playing right now?
+    handleCameraPress,   // Function when user taps camera button
+    handleAudioPress,    // Function when user taps microphone button
+    removeMedia,         // Function to delete a photo/video
+    removeAudio,         // Function to delete audio recording
+    playRecording,       // Function to play the audio
+    stopPlayback,        // Function to stop playing audio
+    resetMedia,          // Function to clear all media
+    getMediaSummary,     // Function that returns media count stats
+  } = mediaCapture; */
 	const {
 		selectedMedia,
 		audioUri,
@@ -229,7 +439,23 @@ export default function CreatePinScreen() {
 		resetMedia,
 		getMediaSummary,
 	} = mediaCapture;
-
+	/**
+   * LAYMAN TERMS: "Get all the privacy/sharing functions and data from the hook"
+   * TECHNICAL: Destructured privacy settings hook return values
+   
+	const {
+    selectedVisibility,        // Array like ['public', 'social']
+    selectedSocialCircles,     // Array of circle IDs like ['family', 'friends']
+    showSocialDropdown,        // Boolean: should social circles section be visible?
+    userSocialCircles,         // Array of all available social circles
+    handleVisibilitySelect,    // Function when user taps public/social/private
+    handleSocialCircleToggle,  // Function when user taps a social circle
+    isVisibilitySelected,      // Function to check if option is selected
+    getSelectedSocialCircles,  // Function that returns selected circle objects
+    getVisibilityDescription,  // Function that returns description text
+    resetPrivacySettings,      // Function to reset to default privacy
+    privacySummary,           // Object with privacy stats
+  } = privacySettings; */
 	const {
 		selectedVisibility,
 		selectedSocialCircles,
@@ -241,20 +467,36 @@ export default function CreatePinScreen() {
 		getSelectedSocialCircles,
 		getVisibilityDescription,
 		resetPrivacySettings,
-		privacySummary,
 	} = privacySettings;
 
-	// =======================
-	//   NAVIGATION HANDLERS
-	// =======================
+	// ===================
+	//   EVENT HANDLERS
+	// ===================
+	/**
+	 * LAYMAN TERMS: "Go back to the world map (cancel creating memory)"
+	 *
+	 * TECHNICAL: Navigation handler for back button interaction
+	 */
 	const goBack = () => {
 		router.replace('/worldmap');
 	};
-
+	/**
+	 * LAYMAN TERMS: "Go to the world map (after successfully creating memory)"
+	 *
+	 * TECHNICAL: Navigation handler for post-creation workflow
+	 */
 	const navigateToWorldMap = () => {
 		router.replace('/worldmap');
 	};
-
+	/**
+	 * Show a photo in full-screen mode when user taps a thumbnail
+	 *
+	 * LAYMAN TERMS: "Make this photo fill the whole screen"
+	 *
+	 * TECHNICAL: Image preview modal trigger with URI state management
+	 *
+	 * @param {string} imageUri - URL of the photo to show full-screen
+	 */
 	const showImagePreview = (imageUri: string) => {
 		setPreviewImageUri(imageUri);
 		setModalState({
@@ -268,9 +510,74 @@ export default function CreatePinScreen() {
 		});
 	};
 
-	// ==================================
-	//   MEMORY DATA CREATION
-	// ==================================
+	// =======================
+	//  DATA TRANSFORMATION
+	// =======================
+	/**
+	 * Package all form data into the frontend memory format
+	 *
+	 * LAYMAN TERMS: "Take everything the user typed and selected in the form,
+	 * and bundle it all together into one neat package that the app can use
+	 * for showing previews and displaying on the map later."
+	 *
+	 * Think of it like packing a suitcase - you take all your clothes (user inputs)
+	 * from different drawers (different form sections) and organize them neatly
+	 * into one suitcase (MemoryData object) so you can travel with everything together.
+	 *
+	 * TECHNICAL: Frontend data aggregation function that creates a MemoryData
+	 * interface instance from current component state. Used for preview display,
+	 * future worldmap pin rendering, and as source for backend transformation.
+	 *
+	 * @function createMemoryData
+	 * @returns {MemoryData} Complete memory object formatted for frontend usage
+	 *
+	 * @example
+	 * User has filled out the form like this:
+	 * Title: "Best coffee ever"
+	 * Description: "Found this amazing cafe in a hidden laneway"
+	 * Location: "Patricia Coffee Brewers, Melbourne"
+	 * Privacy: Public + Social circles
+	 * SocialCircles: ['friends', 'coffee_lovers']
+	 * Photos: 2 photos of coffee and cafe
+	 * Audio: 1 voice recording
+	 *
+	 * const memoryData = createMemoryData();
+	 *
+	 * // Result will be:
+	 * {
+	 *   id: "1642890123456",
+	 *   timestamp: "2024-01-22T14:30:00.000Z",
+	 *   location: {
+	 *     query: "Patricia Coffee Brewers, Melbourne"
+	 *   },
+	 *   content: {
+	 *     title: "Best coffee ever",
+	 *     description: "Found this amazing cafe in a hidden laneway"
+	 *   },
+	 *   visibility: ["public", "social"],
+	 *   socialCircles: ["friends", "coffee_lovers"],
+	 *   media: {
+	 *     photos: [
+	 *       { uri: "file://photo1.jpg", type: "photo", name: "Coffee art" },
+	 *       { uri: "file://photo2.jpg", type: "photo", name: "Cafe exterior" }
+	 *     ],
+	 *     videos: [],
+	 *     audio: {
+	 *       uri: "file://recording.m4a",
+	 *       recorded: "2024-01-22T14:35:00.000Z"
+	 *     }
+	 *   },
+	 *   metadata: {
+	 *     totalMediaItems: 3,        // 2 photos + 1 audio = 3 total
+	 *     hasDescription: true,      // User wrote a description
+	 *     createdAt: "2024-01-22T14:30:00.000Z"
+	 *   }
+	 * }
+	 *
+	 * @see {@link MemoryData} for complete interface documentation
+	 * @see {@link handlePreviewMemory} for usage in preview functionality
+	 * @see {@link createBackendMemoryData} for backend format conversion
+	 */
 	const createMemoryData = (): MemoryData => {
 		return {
 			id: Date.now().toString(),
@@ -301,9 +608,60 @@ export default function CreatePinScreen() {
 			},
 		};
 	};
-
+	/**
+	 * Transform form data into backend API format
+	 *
+	 * LAYMAN TERMS: "Take the user's form data and translate it into the special
+	 * format that our database expects. It's like translating English to French -
+	 * same information, but different words and structure."
+	 *
+	 * The database has specific requirements:
+	 * - It wants "name" instead of "title"
+	 * - It needs exact GPS coordinates (latitude/longitude numbers)
+	 * - It expects "location_query" instead of just "query"
+	 * - It wants "social_circle_ids" instead of "socialCircles"
+	 *
+	 * TECHNICAL: Backend data transformation function that maps frontend state
+	 * to CreateMemoryRequest interface format for Supabase API submission.
+	 * Handles field name mapping and coordinate integration.
+	 *
+	 * @function createBackendMemoryData
+	 * @returns {CreateMemoryRequest} Backend-formatted memory object for API calls
+	 *
+	 * @example
+	 * Starting with same user input as above:
+	 * Title: "Best coffee ever"
+	 * Location: "Patricia Coffee Brewers, Melbourne"
+	 * Coordinates: { latitude: -37.8154, longitude: 144.9636 }
+	 * etc.
+	 *
+	 * const backendData = createBackendMemoryData();
+	 *
+	 * // Result will be (notice the different field names):
+	 * {
+	 *   name: "Best coffee ever",                    // ← "title" became "name"
+	 *   description: "Found this amazing cafe...",
+	 *   latitude: -37.8154,                         // ← GPS coordinate numbers
+	 *   longitude: 144.9636,                        // ← GPS coordinate numbers
+	 *   location_query: "Patricia Coffee Brewers, Melbourne", // ← Different name
+	 *   visibility: ["public", "social"],           // ← Same format
+	 *   social_circle_ids: ["friends", "coffee_lovers"], // ← Different name
+	 *   media: {
+	 *     photos: [same photo objects],
+	 *     videos: [],
+	 *     audio: { uri: "file://recording.m4a" }    // ← Simplified audio format
+	 *   }
+	 * }
+	 *
+	 * This gets sent to: await createMemoryPin(backendData, setUploadProgress);
+	 *
+	 * @throws {Error} Implicitly when coordinates are missing - latitude/longitude default to 0
+	 * @see {@link CreateMemoryRequest} for complete backend interface
+	 * @see {@link createMemoryPin} for API submission function
+	 * @see {@link handleConfirmSave} for usage in save workflow
+	 */
 	const createBackendMemoryData = (): CreateMemoryRequest => {
-		console.log('🔧 Creating backend data with coordinates:', coordinates);
+		console.log('Creating backend data with coordinates:', coordinates);
 		return {
 			name: memoryTitle.trim(),
 			description: memoryDescription.trim(),
@@ -323,6 +681,38 @@ export default function CreatePinScreen() {
 	// ==================================
 	//   MEMORY PREVIEW & SAVE HANDLERS
 	// ==================================
+	/**
+	 * Show the memory preview modal before final submission
+	 *
+	 * LAYMAN TERMS: "When user taps 'Preview Memory', check if they filled out
+	 * the required stuff, then show them exactly how their memory will look
+	 * before they post it for real."
+	 *
+	 * This is like a "final check" before submitting - shows them their title,
+	 * location, description, photos, and who can see it.
+	 *
+	 * TECHNICAL: Validates form content and displays preview modal with complete
+	 * memory data and confirmation actions
+	 *
+	 * @function handlePreviewMemory
+	 *
+	 * @example
+	 * User taps "Preview Memory" button
+	 * <Button onPress={handlePreviewMemory}>Preview Memory</Button>
+	 *
+	 * If validation fails:
+	 * → Shows error popup: "Please add a title for your memory"
+	 * → Function exits early, no preview shown
+	 *
+	 * If validation passes:
+	 * → Creates complete memory package
+	 * → Shows preview modal with "Edit" and "Confirm & Post" buttons
+	 * → User can review everything before final submission
+	 *
+	 * @see {@link validateContent} for validation logic
+	 * @see {@link createMemoryData} for memory package creation
+	 * @see {@link handleConfirmSave} for final save workflow
+	 */
 	const handlePreviewMemory = () => {
 		if (!validateContent()) {
 			return; // Hook handles showing the error modal
@@ -350,7 +740,48 @@ export default function CreatePinScreen() {
 			],
 		});
 	};
-
+	/**
+	 * Execute the final save workflow with backend submission
+	 *
+	 * LAYMAN TERMS: "When user taps 'Confirm & Post', this actually saves their
+	 * memory to the database. Shows progress bar while uploading photos/videos,
+	 * then shows success message when done."
+	 *
+	 * Currently in TESTING_MODE which means it just pretends to save and shows
+	 * you what would be sent to the database without actually sending it.
+	 *
+	 * TECHNICAL: Async save handler managing upload progress, error states,
+	 * and success/failure workflows. Includes testing mode for development.
+	 *
+	 * @async
+	 * @function handleConfirmSave
+	 *
+	 * @example
+	 * Save workflow progression:
+	 *
+	 * 1. User taps "Confirm & Post"
+	 * 2. Shows loading state: "Saving..." with progress bar
+	 * 3. Creates two data formats:
+	 *     - Frontend format (for success message display)
+	 *     - Backend format (for API submission)
+	 *
+	 * 4. If TESTING_MODE = true:
+	 *     → Simulates 1-second delay
+	 *     → Logs both data formats to console
+	 *     → Shows success message
+	 *
+	 * 5. If TESTING_MODE = false:
+	 *     → Actually calls createMemoryPin(backendData)
+	 *     → Shows real upload progress
+	 *     → Handles real API errors
+	 *
+	 * @throws {Error} Catches and handles all save errors via handleSaveError
+	 * @see {@link createMemoryData} for frontend format creation
+	 * @see {@link createBackendMemoryData} for API format creation
+	 * @see {@link createMemoryPin} for actual API submission
+	 * @see {@link handleSaveSuccess} for success workflow
+	 * @see {@link handleSaveError} for error handling
+	 */
 	const handleConfirmSave = async () => {
 		const TESTING_MODE = true;
 
@@ -413,7 +844,29 @@ export default function CreatePinScreen() {
 			setUploadProgress(null);
 		}
 	};
-
+	/**
+	 * Handle successful memory save with celebration and next actions
+	 *
+	 * LAYMAN TERMS: "When the memory successfully saves, hide the preview popup
+	 * and show a green 'Success!' popup with options to view the memory on the
+	 * map or create another one."
+	 *
+	 * TECHNICAL: Success handler managing modal transitions and user navigation
+	 * options post-save
+	 *
+	 * @function handleSaveSuccess
+	 * @param {MemoryData} memoryData - Frontend memory object for display info
+	 * @param {any} result - API response object with save confirmation
+	 *
+	 * @example
+	 * Called after successful save with:
+	 * handleSaveSuccess(memoryData, { success: true, data: { id: "123" } });
+	 *
+	 * Shows success popup with:
+	 * Title: "Memory Posted!"
+	 * Message: '"Best coffee ever" posted to Patricia Coffee Brewers, Melbourne'
+	 * Buttons: [View on Map] [Create Another]
+	 */
 	const handleSaveSuccess = (memoryData: MemoryData, result: any) => {
 		hideModal();
 		showModal(
@@ -437,7 +890,27 @@ export default function CreatePinScreen() {
 			]
 		);
 	};
-
+	/**
+	 * Handle save errors with user-friendly error messaging
+	 *
+	 * LAYMAN TERMS: "When something goes wrong saving the memory, show a red
+	 * error popup explaining what happened and give them a 'Try Again' button."
+	 *
+	 * TECHNICAL: Error handler displaying user-friendly error modal with retry option
+	 *
+	 * @function handleSaveError
+	 * @param {string} error - Error message to display to user
+	 *
+	 * @example
+	 * ```typescript
+	 * // Different error scenarios:
+	 * handleSaveError('Network connection failed');
+	 * handleSaveError('File too large to upload');
+	 * handleSaveError('Something went wrong. Please try again.');
+	 *
+	 * // All show red error popup with "Try Again" button
+	 * ```
+	 */
 	const handleSaveError = (error: string) => {
 		showModal(
 			'error',
@@ -446,9 +919,37 @@ export default function CreatePinScreen() {
 			[{ text: 'Try Again', onPress: hideModal, style: 'primary' }]
 		);
 	};
-
+	/**
+	 * Reset the entire form to start creating a new memory
+	 *
+	 * LAYMAN TERMS: "Clear out everything the user entered so they can start
+	 * fresh on a new memory. Like hitting a 'Clear All' button that wipes
+	 * the title, description, location, photos, privacy settings - everything."
+	 *
+	 * TECHNICAL: Complete form state reset function coordinating with all hooks
+	 * to return component to initial state
+	 *
+	 * @function resetForm
+	 *
+	 * @example
+	 * ```typescript
+	 * // Called when user taps "Create Another" after successful save
+	 * // or when they want to start over
+	 *
+	 * resetForm();
+	 *
+	 * // Result: All fields empty, back to default privacy settings,
+	 * // no photos/videos/audio, ready for new memory creation
+	 * ```
+	 *
+	 * @see {@link resetContent} from useMemoryContent hook
+	 * @see {@link resetMedia} from useMediaCapture hook
+	 * @see {@link resetPrivacySettings} from usePrivacySettings hook
+	 */
 	const resetForm = () => {
 		hideModal();
+		setMemoryTitle('');
+		setMemoryDescription('');
 		resetContent();
 		resetMedia();
 		resetPrivacySettings();
@@ -458,6 +959,17 @@ export default function CreatePinScreen() {
 	// ====================
 	//   MODAL COMPONENTS
 	// ====================
+	/**
+	 * Render full-screen image preview modal
+	 *
+	 * LAYMAN TERMS: "When user taps a photo thumbnail in the preview, show that
+	 * photo full-screen so they can see it clearly. Just the photo with a Close button."
+	 *
+	 * TECHNICAL: Conditional render function for image preview modal using previewImageUri state
+	 *
+	 * @function renderImagePreviewModal
+	 * @returns {JSX.Element | null} Image preview modal or null if no image selected
+	 */
 	const renderImagePreviewModal = () => {
 		if (!previewImageUri) return null;
 
@@ -471,7 +983,30 @@ export default function CreatePinScreen() {
 			</View>
 		);
 	};
-
+	/**
+	 * Render complete memory preview modal content
+	 *
+	 * LAYMAN TERMS: "Show the user exactly how their memory will look when posted.
+	 * Displays the title, location, description, privacy settings, social circles,
+	 * and media thumbnails all nicely formatted like a final preview."
+	 *
+	 * This is like a 'print preview' for their memory - they can see everything
+	 * before deciding to actually post it.
+	 *
+	 * TECHNICAL: Complex preview modal render function displaying complete MemoryData
+	 * with conditional sections and interactive media thumbnails
+	 *
+	 * @function renderPreviewModal
+	 * @returns {JSX.Element | null} Preview modal content or null if no preview data
+	 *
+	 * @example
+	 *  Shows structured preview with sections:
+	 *  - Header: Title, location pin, timestamp
+	 *  - Description: (if provided)
+	 *  - PrivacySettings: Who can see it + social circles
+	 *  - Media: Photo thumbnails, video count, audio indicator
+	 *  - Footer: Instructions for user
+	 */
 	const renderPreviewModal = () => {
 		if (!previewData) return null;
 
@@ -609,7 +1144,28 @@ export default function CreatePinScreen() {
 			</ScrollView>
 		);
 	};
-
+	/**
+	 * Master modal renderer - shows the appropriate modal based on current state
+	 *
+	 * LAYMAN TERMS: "This is the 'modal controller' that looks at what type of
+	 * popup should be showing and displays the right one. Could be an error popup,
+	 * success popup, preview popup, image popup, etc."
+	 *
+	 * TECHNICAL: Centralized modal render function with conditional content
+	 * based on modalState.type and comprehensive action button handling
+	 *
+	 * @function renderModal
+	 * @returns {JSX.Element | null} Current modal or null if no modal should show
+	 *
+	 * @example
+	 * Different modal types handled:
+	 * - 'preview': Shows renderPreviewModal()
+	 * - 'imagePreview': Shows renderImagePreviewModal()
+	 * - 'success': Shows green SuccessMessage
+	 * - 'error': Shows red ErrorMessage
+	 * - 'permission': Shows yellow WarningMessage
+	 * - 'info': Shows blue InfoMessage
+	 */
 	const renderModal = () => {
 		if (!modalState.show) return null;
 
@@ -691,16 +1247,41 @@ export default function CreatePinScreen() {
 	// ============================
 	//   MAIN COMPONENT RENDER
 	// ============================
+	/**
+	 * Main component render - builds the complete Create Memory Pin screen UI
+	 *
+	 * LAYMAN TERMS: "This is where we actually build the screen the user sees.
+	 * It's like assembling a car - we take all the parts (components) we've
+	 * prepared and put them together in the right order to make a complete
+	 * working screen."
+	 *
+	 * The screen flows logically from top to bottom:
+	 * 1. Header with title
+	 * 2. Scrollable form content (location, privacy, title, description, media)
+	 * 3. Footer with navigation buttons
+	 * 4. Popup system (invisible until needed)
+	 *
+	 * TECHNICAL: JSX render return combining layout components, form sections,
+	 * and modal system into complete user interface with proper data flow
+	 *
+	 * @returns {JSX.Element} Complete CreatePin screen interface
+	 */
 	return (
 		<View style={styles.container}>
+			{/* ==================== */}
+			{/*   HEADER SECTION     */}
+			{/* ==================== */}
 			<Header
 				title="Create Memory Pin"
 				subtitle="Capture this moment forever"
 			/>
-
-			{/* 🚀 SIMPLIFIED: MainContent handles ALL scroll complexity */}
+			{/* ==================== */}
+			{/*   MAIN FORM CONTENT  */}
+			{/* ==================== */}
 			<MainContent keyboardShouldPersistTaps="handled">
-				{/* Location Selection */}
+				{/* ======================== */}
+				{/*   LOCATION SELECTION     */}
+				{/* ======================== */}
 				<LocationSelector
 					value={locationQuery}
 					onChange={setLocationQuery}
@@ -708,26 +1289,27 @@ export default function CreatePinScreen() {
 					onCoordinateChange={handleCoordinateChange}
 					required={true}
 				/>
-
-				{/* Privacy & Visibility Settings */}
+				{/* ======================== */}
+				{/*   PRIVACY SETTINGS       */}
+				{/* ======================== */}
 				<VisibilitySelector
 					selectedVisibility={selectedVisibility}
 					onSelect={handleVisibilitySelect}
 					isSelected={isVisibilitySelected}
 					description={getVisibilityDescription()}
 				/>
-
-				{/* Social Circle Selection */}
 				<SocialCircleSelector
 					userSocialCircles={userSocialCircles}
 					selectedSocialCircles={selectedSocialCircles}
 					onToggle={handleSocialCircleToggle}
 					visible={
+						// NOTE: Show only when SOCIAL is selected
 						showSocialDropdown && isVisibilitySelected('social')
 					}
 				/>
-
-				{/* Memory Content Section */}
+				{/* ======================== */}
+				{/*   MEMORY CONTENT         */}
+				{/* ======================== */}
 				<View style={styles.section}>
 					<LabelText style={styles.sectionLabel}>
 						What happened here?
@@ -757,7 +1339,9 @@ export default function CreatePinScreen() {
 					/>
 				</View>
 
-				{/* Media Capture */}
+				{/* ======================== */}
+				{/*   MEDIA CAPTURE          */}
+				{/* ======================== */}
 				<MediaCapture
 					selectedMedia={selectedMedia}
 					audioUri={audioUri}
@@ -774,6 +1358,9 @@ export default function CreatePinScreen() {
 				/>
 			</MainContent>
 
+			{/* ==================== */}
+			{/*   FOOTER SECTION     */}
+			{/* ==================== */}
 			<Footer>
 				<View style={styles.buttonContainer}>
 					<View style={styles.navigationRow}>
@@ -796,8 +1383,9 @@ export default function CreatePinScreen() {
 					</View>
 				</View>
 			</Footer>
-
-			{/* Modal System */}
+			{/* ==================== */}
+			{/*   MODAL SYSTEM       */}
+			{/* ==================== */}
 			{renderModal()}
 		</View>
 	);

@@ -37,7 +37,7 @@ export default function WorldMapScreen() {
 
 	// Page Navigation
 	const goBack = () => {
-		router.back();
+		router.replace('/');
 	};
 	const navigateToWorldMap = () => {
 		router.replace('/worldmap');

@@ -1,13 +1,12 @@
-// components/createPin/SocialCircleSelector.tsx
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { LabelText, BodyText, CaptionText } from '@/components/ui/Typography';
 import { ReMapColors } from '@/constants/Colors';
 import type { SocialCircle } from '@/hooks/createPin/usePrivacySettings';
 
-// ==========================================
+// ==================
 // TYPE DEFINITIONS
-// ==========================================
+// ==================
 interface SocialCircleSelectorProps {
 	// Core state
 	userSocialCircles: SocialCircle[];
@@ -84,8 +83,8 @@ export function SocialCircleSelector({
 					{title} ({selectedSocialCircles.length} selected):
 				</LabelText>
 
-				{/* Selection Summary */}
-				{selectedSocialCircles.length > 0 && (
+				{/* DISABLED: Selection Summary */}
+				{/* {selectedSocialCircles.length > 0 && (
 					<View style={styles.selectionSummary}>
 						<CaptionText style={styles.summaryText}>
 							{getTotalMemberCount()} total members across{' '}
@@ -93,7 +92,7 @@ export function SocialCircleSelector({
 							{selectedSocialCircles.length !== 1 ? 's' : ''}
 						</CaptionText>
 					</View>
-				)}
+				)} */}
 			</View>
 
 			{/* Social Circles Grid */}
@@ -127,8 +126,9 @@ export function SocialCircleSelector({
 								<BodyText
 									style={[
 										styles.circleName,
-										isSelected(circle.id) &&
-											styles.selectedCircleText,
+										...(isSelected(circle.id)
+											? [styles.selectedCircleText]
+											: []),
 									]}
 								>
 									{circle.name}
@@ -174,8 +174,8 @@ export function SocialCircleSelector({
 				</View>
 			)}
 
-			{/* Selected Circles Preview */}
-			{selectedSocialCircles.length > 0 && (
+			{/* DISABLED: Selected Circles Preview */}
+			{/* {selectedSocialCircles.length > 0 && (
 				<View style={styles.selectedPreview}>
 					<LabelText style={styles.previewTitle}>
 						Sharing with:
@@ -199,7 +199,7 @@ export function SocialCircleSelector({
 						))}
 					</View>
 				</View>
-			)}
+			)} */}
 		</View>
 	);
 }
