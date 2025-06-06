@@ -95,7 +95,7 @@ import { SocialCircleSelector } from '@/components/createPin/SocialCircleSelecto
  * @since 1.0.0
  *
  * @example
- * // "Show me a red error popup"
+ * "Show me a red error popup"
  * const errorModal: ModalState = {
  *   show: true,                    // "Display it now"
  *   type: 'error',                 // "Make it red/scary"
@@ -106,7 +106,7 @@ import { SocialCircleSelector } from '@/components/createPin/SocialCircleSelecto
  *   ]
  * };
  *
- * // "Show me a simple info popup with just an OK button"
+ * "Show me a simple info popup with just an OK button"
  * const infoModal: ModalState = {
  *   show: true,
  *   type: 'info',                  // "Make it blue/informational"
@@ -158,7 +158,7 @@ interface ModalState {
  * @since 1.0.0
  *
  * @example
- * // A real memory someone might create
+ * A real memory someone might create
  * const someoneMemory: MemoryData = {
  *   id: '1642890123456',                           // Unique ID number
  *   timestamp: '2024-01-22T14:30:00.000Z',        // When they created it
@@ -230,7 +230,7 @@ interface MemoryData {
  * @returns {JSX.Element} Complete create pin form interface with modal system
  *
  * @example
- * // Used in app routing
+ * Used in app routing
  * <Stack.Screen name="createPin" component={CreatePinScreen} />
  */
 export default function CreatePinScreen() {
@@ -367,7 +367,7 @@ export default function CreatePinScreen() {
 	const privacySettings = usePrivacySettings();
 
 	// ===============================================
-	//   DESTRUCTURING [ Clean Variable Extraction ]
+	//   DESTRUCTURING [Clean Variable Extraction]
 	// ===============================================
 	/**
 	 * LAYMAN TERMS: "Get all the memory content functions and data from the hook"
@@ -543,7 +543,7 @@ export default function CreatePinScreen() {
 	 *
 	 * const memoryData = createMemoryData();
 	 *
-	 * // Result will be:
+	 * Result will be:
 	 * {
 	 *   id: "1642890123456",
 	 *   timestamp: "2024-01-22T14:30:00.000Z",
@@ -637,7 +637,7 @@ export default function CreatePinScreen() {
 	 *
 	 * const backendData = createBackendMemoryData();
 	 *
-	 * // Result will be (notice the different field names):
+	 * Result will be (notice the different field names):
 	 * {
 	 *   name: "Best coffee ever",                    // ← "title" became "name"
 	 *   description: "Found this amazing cafe...",
@@ -902,14 +902,12 @@ export default function CreatePinScreen() {
 	 * @param {string} error - Error message to display to user
 	 *
 	 * @example
-	 * ```typescript
-	 * // Different error scenarios:
+	 * Different error scenarios:
 	 * handleSaveError('Network connection failed');
 	 * handleSaveError('File too large to upload');
 	 * handleSaveError('Something went wrong. Please try again.');
 	 *
-	 * // All show red error popup with "Try Again" button
-	 * ```
+	 * All show red error popup with "Try Again" button
 	 */
 	const handleSaveError = (error: string) => {
 		showModal(
@@ -932,15 +930,13 @@ export default function CreatePinScreen() {
 	 * @function resetForm
 	 *
 	 * @example
-	 * ```typescript
-	 * // Called when user taps "Create Another" after successful save
-	 * // or when they want to start over
+	 *  Called when user taps "Create Another" after successful save
+	 *  or when they want to start over
 	 *
 	 * resetForm();
 	 *
-	 * // Result: All fields empty, back to default privacy settings,
-	 * // no photos/videos/audio, ready for new memory creation
-	 * ```
+	 *  Result: All fields empty, back to default privacy settings,
+	 *  no photos/videos/audio, ready for new memory creation
 	 *
 	 * @see {@link resetContent} from useMemoryContent hook
 	 * @see {@link resetMedia} from useMediaCapture hook
@@ -1391,9 +1387,9 @@ export default function CreatePinScreen() {
 	);
 }
 
-// =================
-//   MINIMAL STYLES
-// =================
+// ===============
+//   STYLE SHEET
+// ===============
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
