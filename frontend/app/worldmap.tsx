@@ -15,6 +15,7 @@ import {
 	Animated,
 	Dimensions,
 	TouchableOpacity,
+	ScrollView
 } from 'react-native';
 
 // =======================
@@ -58,15 +59,28 @@ import type { Suggestion } from '@/components/ui/FourSquareSearch';
 // ==================================
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js';
+import { instancedMesh } from 'three/tsl';
 
 
-const { height } = Dimensions.get('window');
+// ==================================
+//   DUMMY CIRCLES
+// ==================================
+const mockCircles = [
+  { name: 'Circle 1', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+  { name: 'Circle 2', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
+  { name: 'Circle 3', avatar: 'https://randomuser.me/api/portraits/men/56.jpg' },
+  { name: 'Circle 4', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+  { name: 'Circle 5', avatar: 'https://randomuser.me/api/portraits/men/72.jpg' },
+];
 
 
 // =========================================================================
 //   						COMPONENT DEFINITION
 // =========================================================================
 export default function WorldMapScreen() {
+	const { height } = Dimensions.get('window');
+	const insets = useSafeAreaInsets();
+
 	// ==================
 	//   EVENT HANDLERS
 	// ==================
@@ -118,7 +132,6 @@ export default function WorldMapScreen() {
 	}, []);
 
 
-
 	// ================
 	//   MAP SETTINGS
 	// ================
@@ -142,6 +155,24 @@ export default function WorldMapScreen() {
 		})
 	}
 
+	// =====================================
+	//   SOCIALS CIRCLES SLIDING OUT SETUP
+	// =====================================
+	const [showSocials, setShowSocials] = useState(false);
+	const socialsSlideAnim = useRef(new Animated.Value(-100)).current;
+
+	const toggleSocials = () => {
+		Animated.spring(socialsSlideAnim, {
+			toValue: showSocials ? -100 : 0,
+			useNativeDriver: true,
+			damping: 15,
+			stiffness: 120,
+			mass: 1,
+		}).start(() => {
+			setShowSocials(!showSocials);
+		});
+	};
+
 
 	// ===================================
 	//   AUTOCOMPLETE SEARCH SETUP
@@ -164,7 +195,7 @@ export default function WorldMapScreen() {
 			duration: 100,
 			useNativeDriver: true,
 		}).start(() => {
-		setSearchVisible(false);
+			setSearchVisible(false);
 		});
 	};
 
@@ -183,11 +214,9 @@ export default function WorldMapScreen() {
 				longitudeDelta: 0.01,
 			});
 			} else {
-			Alert.alert('Location data is not available');
+				Alert.alert('Location data is not available');
 			}
 		};
-
-	
 
 	// =========================
 	//   WORLDMAP PAGE RENDER
@@ -253,23 +282,77 @@ export default function WorldMapScreen() {
 							/>
 						</Marker>
 					</MapView>
+
+
 					{/* <View style={styles.mapContent}>
 						<Text></Text>
 					</View> */}
+
+					<View style={[styles.circlesContainer, { top: insets.top + 100 }]}>
+						<IconButton
+							icon="globe"
+							onPress={navigateToCreatePin}
+							size={28}
+							style={styles.circleSelections}
+						>
+						</IconButton>
+						<IconButton
+							icon="user"
+							onPress={navigateToCreatePin}
+							size={28}
+							style={styles.circleSelections}
+						>
+						</IconButton>
+						
+						<View style={{ alignItems: 'flex-end' }}>
+							<IconButton
+								icon="users"
+								onPress={toggleSocials}
+								size={28}
+								style={styles.socialSelection}
+							/>
+							<Animated.View
+								style={[
+									styles.socialsBacking,
+									{
+										transform: [{ translateY: socialsSlideAnim }],
+										opacity: socialsSlideAnim.interpolate({
+											inputRange: [-100, 0],
+											outputRange: [0, 1],
+											extrapolate: 'clamp',
+										}),
+									},
+								]}
+							>
+								<ScrollView contentContainerStyle={styles.socialsList}>
+									{mockCircles.map((circle, index) => (
+										<TouchableOpacity key={index} style={styles.socialCircleWrapper}>
+											<Image
+												source={{ uri: circle.avatar }}
+												style={styles.socialCircleImage}
+											/>
+										</TouchableOpacity>
+									))}
+								</ScrollView>
+							</Animated.View>
+						</View>
+					</View>
+
+
 				</View>
 
 				{/**********************************************/}
 				{/************ UNDER MAP CONTENT ***************/}
 				{/* *********************************************/}
 				<View style={styles.scrollContent}>
-											<TouchableOpacity 
-							style={searchVisible ? styles.fakeInputClose : styles.fakeInput} 
-							onPress={searchVisible ? closeSearch : openSearch}
-						>
-							<Text style={{ color: ReMapColors.ui.textSecondary }}>
-								{searchVisible ? 'Close' : 'Search Location'}
-							</Text>
-						</TouchableOpacity>
+					<TouchableOpacity 
+						style={searchVisible ? styles.fakeInputClose : styles.fakeInput} 
+						onPress={searchVisible ? closeSearch : openSearch}
+					>
+						<Text style={{ color: searchVisible? 'white' : ReMapColors.ui.textSecondary }}>
+							{searchVisible ? 'Close' : 'Search Location'}
+						</Text>
+					</TouchableOpacity>
 				</View>
 
 			</MainContent>
@@ -401,19 +484,66 @@ const styles = StyleSheet.create({
 	},
 	map: {
 		width: '100%',
-		height: 650,
+		height: 660,
 	},
-	mapContent: {
-		backgroundColor: ReMapColors.primary.accent, // this colour is just for examples sake - not gonna be purple
-		borderRadius: 16,
-		height: 35,
-		left:'25%',
+	// mapContent: {
+	// 	backgroundColor: ReMapColors.primary.accent, // this colour is just for examples sake - not gonna be purple
+	// 	borderRadius: 16,
+	// 	height: 35,
+	// 	left:'25%',
+	// 	position:'absolute',
+	// 	top:'8%',
+	// 	width:'50%',
+	// },
+	circlesContainer: {
+		paddingRight: 12,
+		alignItems:'flex-end',
+		height: 'auto',
 		position:'absolute',
-		top:'8%',
-		width:'50%',
+		width:'100%',
+	},
+	circleSelections: {
+		width: 54,
+		height: 54,
+		borderRadius: 27,
+		zIndex: 5,
+	},
+	socialSelection: {
+		width: 54,
+		height: 70,
+		borderRadius: 35,
+		zIndex: 5,
+	},
+	socialsBacking: {
+		marginTop: 8,
+		backgroundColor: ReMapColors.ui.grey,
+		opacity: 0.1,
+		borderRadius: 20,
+		maxHeight: 200,
+		width: 54,
+		overflow: 'hidden',
+	},
+	socialsList: {
+		alignItems: 'center',
+	},
+
+	socialCircleWrapper: {
+		marginBottom: 12,
+	},
+
+	socialCircleImage: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		borderWidth: 2,
+		borderColor: ReMapColors.primary.accent,
+	},
+	circleName: {
+		color: ReMapColors.ui.text,
+		fontSize: 14,
 	},
 	scrollContent: {
-		padding: 20,
+		padding: 10,
 	},
 	search: {
 		flexDirection: 'row',
@@ -482,16 +612,4 @@ const styles = StyleSheet.create({
 		top: 0,
 		zIndex: 1000,
 	},
-	closeButton: {
-		alignSelf: 'flex-end',
-		backgroundColor: '#2900E2',
-		borderRadius: 8,
-		marginTop: 10,
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-	},
-	closeButtonText: {
-		color: 'white',
-		fontWeight: 'bold',
-	}
 });
