@@ -53,6 +53,7 @@ import { HeaderText, BodyText, LabelText } from '@/components/ui/Typography';
 import axios from 'axios';
 import { FoursquareSearch } from '@/components/ui/FourSquareSearch';
 import type { Suggestion } from '@/components/ui/FourSquareSearch';
+import { Float } from 'react-native/Libraries/Types/CodegenTypes';
 
 
 const { height } = Dimensions.get('window');
@@ -97,6 +98,19 @@ export default function WorldMapScreen() {
 		longitudeDelta: 0.01,
 	};
 	const mapRef = useRef<MapView>(null);
+
+	const handleMarkerPress = (coordinate: {
+		latitude: number;
+		longitude: number
+	}) => {
+		mapRef.current?.animateToRegion({
+			latitude: coordinate.latitude,
+			longitude: coordinate.longitude,
+			latitudeDelta: 0.01,
+			longitudeDelta: 0.01,
+		})
+	}
+
 
 	// ===================================
 	//   AUTOCOMPLETE SEARCH SETUP
@@ -196,6 +210,10 @@ export default function WorldMapScreen() {
 								latitude: -37.817979,
 								longitude: 144.960408,
 							}}
+							onPress={() => handleMarkerPress({
+								latitude: -37.817979,
+								longitude: 144.960408
+							})}
 						>
 							<Image
 								source={require('../assets/images/holberton_logo.jpg')}
