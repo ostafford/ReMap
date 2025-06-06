@@ -1,7 +1,7 @@
 // ================
 //   CORE IMPORTS
 // ================
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
 import {
 	Alert,
 	Image,
@@ -50,17 +50,22 @@ import { HeaderText, BodyText, LabelText } from '@/components/ui/Typography';
 // ==================================
 //   FOURSQUARE AUTOCOMPLETE IMPORTS
 // ==================================
-import axios from 'axios';
 import { FoursquareSearch } from '@/components/ui/FourSquareSearch';
 import type { Suggestion } from '@/components/ui/FourSquareSearch';
-import { Float } from 'react-native/Libraries/Types/CodegenTypes';
+
+// ==================================
+//   SUPABASE FOR USER AUTH IMPORTS
+// ==================================
+import { supabase } from '@/lib/supabase'
+import type { User } from '@supabase/supabase-js';
 
 
 const { height } = Dimensions.get('window');
 
-// ========================
-//   COMPONENT DEFINITION
-// ========================
+
+// =========================================================================
+//   						COMPONENT DEFINITION
+// =========================================================================
 export default function WorldMapScreen() {
 	// ==================
 	//   EVENT HANDLERS
@@ -75,18 +80,44 @@ export default function WorldMapScreen() {
 		router.navigate('/createPin');
 	};
 
-	// ==================
-	//   MODAL STATE
-	// ==================
+	// =============================
+	//   MODAL, LOGIN & AUTH STATE
+	// =============================
 	const [isModalVisible, setIsModalVisible] = React.useState(false);
-	const [modalMode, setModalMode] = React.useState<'login' | 'signup'>(
-		'login'
-	);
+	const [modalMode, setModalMode] = React.useState<'login' | 'signup'>('login');
 
 	const openLoginModal = () => {
+		if (user) {
+			console.log('User logged in:', user.email);
+		}
 		setModalMode('login');
 		setIsModalVisible(true);
 	};
+
+	// =====================
+	//   USER AUTH SETUP
+	// =====================
+	const [user, setUser] = useState<User | null>(null);
+	const [loadingSession, setLoadingSession] = useState<boolean>(true);
+
+	useEffect(() => {
+		const checkSession = async () => {
+			const { data, error } = await supabase.auth.getSession();
+
+			if (error) {
+				console.log("Error fetching session:", error.message);
+				setUser(null);
+			} else if (data?.session?.user) {
+				setUser(data.session.user);
+			} else {
+				setUser(null);
+			}
+			setLoadingSession(false);
+		};
+		checkSession();
+	}, []);
+
+
 
 	// ================
 	//   MAP SETTINGS
@@ -222,15 +253,17 @@ export default function WorldMapScreen() {
 							/>
 						</Marker>
 					</MapView>
-					<View style={styles.mapContent}>
+					{/* <View style={styles.mapContent}>
 						<Text></Text>
-					</View>
+					</View> */}
 				</View>
 
-				{/* NOTE: Under map content with Typography components */}
+				{/**********************************************/}
+				{/************ UNDER MAP CONTENT ***************/}
+				{/* *********************************************/}
 				<View style={styles.scrollContent}>
 											<TouchableOpacity 
-							style={styles.fakeInput} 
+							style={searchVisible ? styles.fakeInputClose : styles.fakeInput} 
 							onPress={searchVisible ? closeSearch : openSearch}
 						>
 							<Text style={{ color: ReMapColors.ui.textSecondary }}>
@@ -247,19 +280,17 @@ export default function WorldMapScreen() {
 			<Footer>
 				<View style={styles.footerContainer}>
 					<IconButton
-						icon="reply"
+						icon={user ? "address-card" : "reply"}
 						onPress={goBack}>
 					</IconButton>
 					<IconButton
-						icon="map-pin"
-						onPress={navigateToCreatePin}
+						icon={user ? "map-pin" : 'user'}
+						onPress={user ? navigateToCreatePin: openLoginModal}
+						size={36}
+						style={styles.bigCenterButton}
 					></IconButton>
 					<IconButton
-						icon="user"
-						onPress={openLoginModal}
-					></IconButton>
-					<IconButton
-						icon="list"
+						icon="sliders"
 						onPress={navigateToCreatePin}
 					></IconButton>
 
@@ -402,6 +433,14 @@ const styles = StyleSheet.create({
 	},
 	footerContainer: {
 		flexDirection: 'row',
+		justifyContent: 'space-evenly',
+		alignItems: 'center',
+		width: '55%',
+	},
+	bigCenterButton: {
+		width: 72,
+		height: 72,
+		borderRadius: 36,
 	},
 	modalButtonContainer: {
 		flexDirection: 'column',
@@ -417,6 +456,16 @@ const styles = StyleSheet.create({
 		marginTop: 10,
 		padding: 12,
   	},
+	fakeInputClose: {
+		backgroundColor: ReMapColors.primary.black,
+		borderRadius: 20,
+		marginHorizontal: 20,
+		marginTop: 10,
+		padding: 12,
+		width: 120, 
+		alignItems: 'center',
+		alignSelf: 'center',
+	},
 	animatedSearchContainer: {
 		backgroundColor: 'white',
 		borderRadius: 30,

@@ -262,8 +262,10 @@ export default function OnboardingAccountScreen() {
 
 			if (userInfo.user) {
 				console.log('👤 Current user found:', userInfo.user.email);
+				return true;
 			} else {
 				console.log('👤 No current user session');
+				return false;
 			}
 		} catch (error) {
 			console.error('Error checking current user:', error);

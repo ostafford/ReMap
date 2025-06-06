@@ -27,7 +27,7 @@ export const Footer = ({
 	children,
 	style,
 	backgroundColor = ReMapColors.ui.cardBackground,
-	padding = 10,
+	padding = 5,
 }: FooterProps) => {
 	// NOTE: Allowing space for iphones navigation bar
 	const insets = useSafeAreaInsets();
@@ -39,7 +39,7 @@ export const Footer = ({
 				{
 					backgroundColor,
 					padding,
-					paddingBottom: Math.max(insets.bottom, padding),
+					paddingBottom: Math.max(padding, insets.bottom - 10),
 				},
 				style,
 			]}
@@ -53,15 +53,15 @@ const styles = StyleSheet.create({
 	container: {
 		justifyContent: 'center',
 		alignItems: 'center',
-		borderTopWidth: 1,
-		borderTopColor: ReMapColors.ui.border,
-		shadowColor: '#000',
-		shadowOffset: {
-			width: 0,
-			height: -2,
-		},
-		shadowOpacity: 0.1,
-		shadowRadius: 3.84,
-		elevation: 5,
+		// borderTopWidth: 1,
+		// borderTopColor: ReMapColors.ui.border,
+		// shadowColor: '#000',
+		// shadowOffset: {
+		// 	width: 0,
+		// 	height: -2,
+		// },
+		// shadowOpacity: 0.1,
+		// shadowRadius: 3.84,
+		// elevation: 3,
 	},
 });
