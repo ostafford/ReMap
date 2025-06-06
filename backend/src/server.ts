@@ -1,37 +1,43 @@
 // Entry point
-import dotenv from 'dotenv';
-dotenv.config();
+// import dotenv from "dotenv";
+// dotenv.config();
 
-import express from 'express';
+import express from "express";
 // routes
-import profiles from './routers/profiles';
-import auth from './routers/sign_up_in';
-import pins from './routers/pins';
-import groups from './routers/groups';
+import auth from "./routes/auth";
+import profiles from "./routes/profiles";
+import pins from "./routes/pins";
+import groups from "./routes/groups";
 
-const port = process.env.BackPORT || 3000;
+// middleware
+import logger from "./middleware/logger";
+
+const port = Number(process.env.BackPORT) || 3000;
 
 const app = express();
 
-// Body parser middleware
+/* --------------- Middleware ----------------- */
+// Body parser
 // Enable json
 app.use(express.json());
 // Enable x-www-formurlencoded
 app.use(express.urlencoded({ extended: false }));
+// Logger
+app.use(logger);
 
+/* --------------- Routes ----------------- */
 // Sign up/in routes middleware
-app.use('/api/auth', auth);
+app.use("/api/auth", auth);
 
 // Profile routes middleware
-app.use('/api/profiles', profiles);
+app.use("/api/profiles", profiles);
 
 // Pins routes middleware
-app.use('/api/pins', pins);
+app.use("/api/pins", pins);
 
 // Groups routes middleware
-app.use('/api/groups', groups);
-
+app.use("/api/groups", groups);
 
 app.listen(port, () => {
-    console.log(`Port active: ${port}`);
+    console.log(`Server running on port: ${port}`);
 });
