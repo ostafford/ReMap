@@ -63,7 +63,7 @@ import {
 //   CUSTOM HOOKS
 // =================
 import { useMemoryContent } from '@/hooks/createPin/useMemoryContent';
-import { useMediaCapture } from '@/hooks/createPin/useMediaCapture';
+import { MediaItem, useMediaCapture } from '@/hooks/createPin/useMediaCapture';
 import { usePrivacySettings } from '@/hooks/createPin/usePrivacySettings';
 
 // =======================
@@ -199,8 +199,8 @@ interface MemoryData {
 	visibility: string[];
 	socialCircles: string[];
 	media: {
-		photos: any[];
-		videos: any[];
+		photos: MediaItem[];
+		videos: MediaItem[];
 		audio: {
 			uri: string;
 			recorded: string;

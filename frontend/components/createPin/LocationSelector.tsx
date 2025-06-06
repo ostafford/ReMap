@@ -1,34 +1,113 @@
+// ================
+//   CORE IMPORTS
+// ================
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
+
+// ================================
+//   INTERNAL 'UI' COMPONENTS
+// ================================
 import { Input } from '@/components/ui/TextInput';
 import { LabelText, CaptionText } from '@/components/ui/Typography';
+
+// ================================
+//   INTERNAL 'CONSTANTS' IMPORTS
+// ================================
 import { ReMapColors } from '@/constants/Colors';
+
+// ================================
+//   COMPONENT IMPORTS
+// ================================
 import { MiniMap } from './MiniMap';
 
 // ==========================================
 // TYPE DEFINITIONS
 // ==========================================
+
+/**
+ * Props interface for LocationSelector component
+ *
+ * LAYMAN TERMS: "This is the contract defining what the LocationSelector needs
+ * from the parent component (createPin.tsx) to work properly. It's like a
+ * shopping list of required and optional items."
+ *
+ * TECHNICAL: Comprehensive props interface supporting text input, map integration,
+ * validation feedback, and coordinate management with flexible customization options
+ *
+ * @interface LocationSelectorProps
+ */
 interface LocationSelectorProps {
-	// Core props
+	/**
+	 * LAYMAN TERMS: "The current location text that the user has typed"
+	 *
+	 * TECHNICAL: Current input value from parent component state
+	 */
 	value: string;
+	/**
+	 * LAYMAN TERMS: "Function to call when user types in the location field"
+	 *
+	 * TECHNICAL: Change handler function for updating parent component state
+	 */
 	onChange: (value: string) => void;
-
-	// Input management
+	/**
+	 * LAYMAN TERMS: "Reference to the actual input field for focusing"
+	 *
+	 * TECHNICAL: React ref for programmatic input focus management
+	 */
 	inputRef: React.RefObject<any>;
+	/**
+	 * LAYMAN TERMS: "Function to call when user taps into the input field (optional)"
+	 *
+	 * TECHNICAL: Optional focus event handler
+	 */
 	onFocus?: () => void;
+	/**
+	 * LAYMAN TERMS: "Function to call when user taps out of the input field (optional)"
+	 *
+	 * TECHNICAL: Optional blur event handler
+	 */
 	onBlur?: () => void;
-
-	// Customization
+	/**
+	 * LAYMAN TERMS: "Custom text for the field label (optional)"
+	 *
+	 * TECHNICAL: Customizable field label with default fallback
+	 */
 	label?: string;
+	/**
+	 * LAYMAN TERMS: "Custom hint text inside the input field (optional)"
+	 *
+	 * TECHNICAL: Customizable placeholder text with default fallback
+	 */
 	placeholder?: string;
+	/**
+	 * LAYMAN TERMS: "Custom help text below the input field (optional)"
+	 *
+	 * TECHNICAL: Customizable helper text with default fallback
+	 */
 	helperText?: string;
+	/**
+	 * LAYMAN TERMS: "Should this field show a red asterisk for required? (optional)"
+	 *
+	 * TECHNICAL: Required field indicator flag
+	 */
 	required?: boolean;
-
-	// Styling
+	/**
+	 * LAYMAN TERMS: "Custom styling for the whole component (optional)"
+	 *
+	 * TECHNICAL: Additional StyleSheet styles for container customization
+	 */
 	style?: any;
+	/**
+	 * LAYMAN TERMS: "Should the input field be grayed out and non-editable? (optional)"
+	 *
+	 * TECHNICAL: Disabled state flag for input field
+	 */
 	disabled?: boolean;
-
-	// Coordinats for Minimap
+	/**
+	 * LAYMAN TERMS: "Function to call when user moves the map pin and we get GPS coordinates"
+	 *
+	 * TECHNICAL: Coordinate change handler for map interaction integration
+	 */
 	onCoordinateChange?: (coords: {
 		latitude: number;
 		longitude: number;
@@ -39,6 +118,45 @@ interface LocationSelectorProps {
 // ==========================================
 // COMPONENT IMPLEMENTATION
 // ==========================================
+
+/**
+ * LocationSelector - Combined location input and mini-map component
+ *
+ * LAYMAN TERMS: "This component gives users a text field to search for locations
+ * and shows a little map underneath when they start typing. Users can either
+ * type a location name OR drag a pin on the map to set the exact spot. It's
+ * like having Google Maps built into your form."
+ *
+ * Key user interactions:
+ * 1. User types location → Map appears and shows that location
+ * 2. User drags map pin → Updates coordinates and sends them back to parent
+ * 3. Parent gets both the text they typed AND the exact GPS coordinates
+ *
+ * TECHNICAL: Composite component combining text input with integrated map functionality.
+ * Manages local map visibility state while coordinating with parent component for
+ * location data and coordinate management. Provides real-time geocoding feedback.
+ *
+ * @component LocationSelector
+ * @param {LocationSelectorProps} props - Component configuration object
+ * @returns {JSX.Element} Combined location input and map interface
+ *
+ * @example
+ * ```tsx
+ * // In createPin.tsx:
+ * const { locationQuery, setLocationQuery, handleCoordinateChange } = useMemoryContent();
+ *
+ * <LocationSelector
+ *   value={locationQuery}                    // What user has typed
+ *   onChange={setLocationQuery}              // Update hook when they type
+ *   onCoordinateChange={handleCoordinateChange} // Update hook when they drag pin
+ *   inputRef={locationInputRef}              // For focusing the field
+ *   required={true}                          // Show red asterisk
+ * />
+ * ```
+ *
+ * @see {@link useMemoryContent} for parent hook integration
+ * @see {@link MiniMap} for map functionality details
+ */
 export function LocationSelector({
 	value,
 	onChange,
@@ -53,6 +171,9 @@ export function LocationSelector({
 	style,
 	disabled = false,
 }: LocationSelectorProps) {
+	// ==========================================
+	// LOCAL STATE MANAGEMENT
+	// ==========================================
 	const [showMap, setShowMap] = useState(false);
 	const [coordinates, setCoordinates] = useState<{
 		latitude: number;
@@ -60,31 +181,88 @@ export function LocationSelector({
 		address: string;
 	} | null>(null);
 
+	// ==========================================
+	// EVENT HANDLERS
+	// ==========================================
+
+	/**
+	 * Handle coordinate updates from MiniMap component
+	 *
+	 * LAYMAN TERMS: "When the user drags the pin on the mini-map, this function
+	 * saves the new coordinates locally (for showing to user) and passes them
+	 * up to the parent component (for actual memory creation)"
+	 *
+	 * TECHNICAL: Coordinate change handler managing both local state for UI feedback
+	 * and parent component integration via callback
+	 *
+	 * @function handleLocationChange
+	 * @param {Object} coords - Coordinate object from MiniMap interaction
+	 * @param {number} coords.latitude - GPS latitude value
+	 * @param {number} coords.longitude - GPS longitude value
+	 * @param {string} coords.address - Human-readable address string
+	 *
+	 * @example
+	 * Called by MiniMap when user drags pin:
+	 * handleLocationChange({
+	 *   latitude: -37.8154,
+	 *   longitude: 144.9636,
+	 *   address: "Patricia Coffee Brewers, Melbourne"
+	 * });
+	 *
+	 * Results in:
+	 * 1. Local coordinates state updated (for coordinate display) [setCoordinates(coords)]
+	 * 2. Parent component handleCoordinateChange called (for memory data) [onCoordinateChange?.(coords);]
+	 * 3. Debug log for development tracking
+	 */
 	const handleLocationChange = (coords: {
 		latitude: number;
 		longitude: number;
 		address: string;
 	}) => {
 		setCoordinates(coords);
-		// Optionally update the input field with the address
 		onCoordinateChange?.(coords);
 		console.log('📍 LocationSelector passing coordinates:', coords);
 	};
 
+	// ==========================================
+	// SIDE EFFECTS
+	// ==========================================
+
+	/**
+	 * Auto-show map when user starts typing
+	 *
+	 * LAYMAN TERMS: "Watch what the user types. When they've typed at least 3
+	 * characters, show the mini-map. If they clear the field, hide the map."
+	 *
+	 * TECHNICAL: Effect managing map visibility based on input value length
+	 * with debounced triggering at 3+ characters
+	 */
 	useEffect(() => {
-		// Show map when user starts typing
 		setShowMap(value.length > 2);
 	}, [value]);
+
 	// ==========================================
 	// RENDER COMPONENT
 	// ==========================================
+
+	/**
+	 * LAYMAN TERMS: "Build the complete location selection interface"
+	 *
+	 * TECHNICAL: Render method combining input field, conditional map, helper text,
+	 * and coordinate feedback in structured layout
+	 */
 	return (
 		<View style={[styles.section, style]}>
+			{/* ==================== */}
+			{/*   FIELD LABEL        */}
+			{/* ==================== */}
 			<LabelText style={styles.sectionLabel}>
 				{label}
 				{required && <LabelText style={styles.required}> *</LabelText>}
 			</LabelText>
-
+			{/* ==================== */}
+			{/*   TEXT INPUT FIELD   */}
+			{/* ==================== */}
 			<Input
 				ref={inputRef}
 				label="Search Location"
@@ -96,21 +274,25 @@ export function LocationSelector({
 				style={styles.fullWidth}
 				editable={!disabled}
 			/>
-
-			{/* Mini Map */}
+			{/* ==================== */}
+			{/*   MINI MAP           */}
+			{/* ==================== */}
 			<MiniMap
 				locationQuery={value}
 				onLocationChange={handleLocationChange}
 				visible={showMap}
 			/>
-
+			{/* ==================== */}
+			{/*   HELPER TEXT        */}
+			{/* ==================== */}
 			{helperText && (
 				<CaptionText style={styles.helperText}>
 					{helperText}
 				</CaptionText>
 			)}
-
-			{/* Coordinate display */}
+			{/* ==================== */}
+			{/*   COORDINATE DISPLAY */}
+			{/* ==================== */}
 			{coordinates && (
 				<CaptionText style={styles.coordinateDisplay}>
 					📍 Pin will be placed at: {coordinates.latitude.toFixed(4)},{' '}
@@ -124,6 +306,7 @@ export function LocationSelector({
 // ==========================================
 // COMPONENT STYLES
 // ==========================================
+
 const styles = StyleSheet.create({
 	section: {
 		marginBottom: 24,
@@ -142,14 +325,6 @@ const styles = StyleSheet.create({
 		marginTop: 8,
 		paddingHorizontal: 4,
 	},
-	validationIndicator: {
-		marginTop: 6,
-		paddingHorizontal: 4,
-	},
-	validationText: {
-		color: ReMapColors.semantic.success,
-		fontSize: 12,
-	},
 	coordinateDisplay: {
 		marginTop: 6,
 		padding: 6,
@@ -164,3 +339,27 @@ const styles = StyleSheet.create({
 // DEFAULT EXPORT
 // ==========================================
 export default LocationSelector;
+
+/**
+ * LOCATIONSELCTOR ARCHITECTURE INSIGHTS
+ * =====================================
+ *
+ * LAYMAN TERMS: "This component is like a smart location picker that gives
+ * users two ways to set their location:
+ * 1. Type it in (like searching Google Maps)
+ * 2. Drag a pin on a map (for exact positioning)
+ *
+ * It talks to both the parent component (to save the location) and the
+ * MiniMap child component (to show/update the map)."
+ *
+ *
+ * DATA FLOW SUMMARY:
+ * ==================
+ * 1. User types → onChange → parent's setLocationQuery → value prop updates
+ * 2. value.length > 2 → showMap becomes true → MiniMap appears
+ * 3. MiniMap geocodes text → finds coordinates → shows pin on map
+ * 4. User drags pin → handleLocationChange → coordinates update locally + sent to parent
+ * 5. Parent receives coordinates via onCoordinateChange → useMemoryContent updates
+ * 6. Component shows coordinate feedback to user for confirmation
+ *
+ */
