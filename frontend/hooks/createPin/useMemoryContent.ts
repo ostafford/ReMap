@@ -17,9 +17,9 @@
 // ================
 import { useState, useCallback, useRef } from 'react';
 
-// ==========================================
+// ==================
 // TYPE DEFINITIONS
-// ==========================================
+// ==================
 
 /**
  * Return interface for useMemoryContent hook
@@ -108,9 +108,9 @@ interface UseMemoryContentProps {
 	) => void;
 }
 
-// ==========================================
+// =============================
 // CUSTOM HOOK IMPLEMENTATION
-// ==========================================
+// =============================
 
 /**
  * Custom hook for managing memory content state and validation
@@ -163,9 +163,9 @@ interface UseMemoryContentProps {
 export function useMemoryContent({
 	showModal,
 }: UseMemoryContentProps): UseMemoryContentReturn {
-	// ==========================================
+	// ==================
 	// STATE MANAGEMENT
-	// ==========================================
+	// ==================
 	const [memoryTitle, setMemoryTitle] = useState('');
 	const [locationQuery, setLocationQuery] = useState('');
 	const [coordinates, setCoordinates] = useState<{
@@ -175,9 +175,9 @@ export function useMemoryContent({
 	} | null>(null);
 	const [memoryDescription, setMemoryDescription] = useState('');
 
-	// ==========================================
+	// ===========================
 	// REFS FOR INPUT MANAGEMENT
-	// ==========================================
+	// ===========================
 	/**
 	 * LAYMAN TERMS: "References to the actual input fields so we can focus them"
 	 *
@@ -187,9 +187,9 @@ export function useMemoryContent({
 	const locationInputRef = useRef<any>(null);
 	const descriptionInputRef = useRef<any>(null);
 
-	// ==========================================
+	// ======================
 	// COORDINATE HANDLERS
-	// ==========================================
+	// ======================
 
 	/**
 	 * Handle coordinate updates from mini-map interaction
@@ -221,9 +221,9 @@ export function useMemoryContent({
 		[] // No dependencies - function never changes
 	);
 
-	// ==========================================
+	// ===================
 	// VALIDATION LOGIC
-	// ==========================================
+	// ===================
 
 	/**
 	 * Validate that required content fields are completed
@@ -278,9 +278,9 @@ export function useMemoryContent({
 		return true;
 	}, [memoryTitle, locationQuery, memoryDescription, showModal]);
 
-	// ==========================================
+	// ====================
 	// UTILITY FUNCTIONS
-	// ==========================================
+	// ====================
 
 	/**
 	 * Reset all content fields to empty state
@@ -305,9 +305,9 @@ export function useMemoryContent({
 		setCoordinates(null);
 	}, []);
 
-	// ==========================================
+	// ======================
 	// COMPUTED PROPERTIES
-	// ==========================================
+	// ======================
 
 	/**
 	 * LAYMAN TERMS: "Quick check: did they fill out the minimum required stuff?"
@@ -319,9 +319,9 @@ export function useMemoryContent({
 		locationQuery.trim() !== '' &&
 		memoryDescription.trim() !== '';
 
-	// ==========================================
+	// =======================
 	// RETURN HOOK INTERFACE
-	// ==========================================
+	// =======================
 
 	/**
 	 * LAYMAN TERMS: "Give back everything the component needs to work with content"
@@ -355,9 +355,9 @@ export function useMemoryContent({
 	};
 }
 
-// ==========================================
+// ================================
 // HELPER TYPES FOR EXTERNAL USE
-// ==========================================
+// ================================
 
 /**
  * Type alias for the complete hook return type

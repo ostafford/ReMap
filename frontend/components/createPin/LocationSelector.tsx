@@ -15,14 +15,14 @@ import { LabelText, CaptionText } from '@/components/ui/Typography';
 // ================================
 import { ReMapColors } from '@/constants/Colors';
 
-// ================================
+// ======================
 //   COMPONENT IMPORTS
-// ================================
+// ======================
 import { MiniMap } from './MiniMap';
 
-// ==========================================
+// ===================
 // TYPE DEFINITIONS
-// ==========================================
+// ===================
 
 /**
  * Props interface for LocationSelector component
@@ -37,77 +37,17 @@ import { MiniMap } from './MiniMap';
  * @interface LocationSelectorProps
  */
 interface LocationSelectorProps {
-	/**
-	 * LAYMAN TERMS: "The current location text that the user has typed"
-	 *
-	 * TECHNICAL: Current input value from parent component state
-	 */
 	value: string;
-	/**
-	 * LAYMAN TERMS: "Function to call when user types in the location field"
-	 *
-	 * TECHNICAL: Change handler function for updating parent component state
-	 */
 	onChange: (value: string) => void;
-	/**
-	 * LAYMAN TERMS: "Reference to the actual input field for focusing"
-	 *
-	 * TECHNICAL: React ref for programmatic input focus management
-	 */
 	inputRef: React.RefObject<any>;
-	/**
-	 * LAYMAN TERMS: "Function to call when user taps into the input field (optional)"
-	 *
-	 * TECHNICAL: Optional focus event handler
-	 */
 	onFocus?: () => void;
-	/**
-	 * LAYMAN TERMS: "Function to call when user taps out of the input field (optional)"
-	 *
-	 * TECHNICAL: Optional blur event handler
-	 */
 	onBlur?: () => void;
-	/**
-	 * LAYMAN TERMS: "Custom text for the field label (optional)"
-	 *
-	 * TECHNICAL: Customizable field label with default fallback
-	 */
 	label?: string;
-	/**
-	 * LAYMAN TERMS: "Custom hint text inside the input field (optional)"
-	 *
-	 * TECHNICAL: Customizable placeholder text with default fallback
-	 */
 	placeholder?: string;
-	/**
-	 * LAYMAN TERMS: "Custom help text below the input field (optional)"
-	 *
-	 * TECHNICAL: Customizable helper text with default fallback
-	 */
 	helperText?: string;
-	/**
-	 * LAYMAN TERMS: "Should this field show a red asterisk for required? (optional)"
-	 *
-	 * TECHNICAL: Required field indicator flag
-	 */
 	required?: boolean;
-	/**
-	 * LAYMAN TERMS: "Custom styling for the whole component (optional)"
-	 *
-	 * TECHNICAL: Additional StyleSheet styles for container customization
-	 */
 	style?: any;
-	/**
-	 * LAYMAN TERMS: "Should the input field be grayed out and non-editable? (optional)"
-	 *
-	 * TECHNICAL: Disabled state flag for input field
-	 */
 	disabled?: boolean;
-	/**
-	 * LAYMAN TERMS: "Function to call when user moves the map pin and we get GPS coordinates"
-	 *
-	 * TECHNICAL: Coordinate change handler for map interaction integration
-	 */
 	onCoordinateChange?: (coords: {
 		latitude: number;
 		longitude: number;
@@ -115,9 +55,9 @@ interface LocationSelectorProps {
 	}) => void;
 }
 
-// ==========================================
+// ==========================
 // COMPONENT IMPLEMENTATION
-// ==========================================
+// ==========================
 
 /**
  * LocationSelector - Combined location input and mini-map component
@@ -171,9 +111,9 @@ export function LocationSelector({
 	style,
 	disabled = false,
 }: LocationSelectorProps) {
-	// ==========================================
+	// ========================
 	// LOCAL STATE MANAGEMENT
-	// ==========================================
+	// ========================
 	const [showMap, setShowMap] = useState(false);
 	const [coordinates, setCoordinates] = useState<{
 		latitude: number;
@@ -181,9 +121,9 @@ export function LocationSelector({
 		address: string;
 	} | null>(null);
 
-	// ==========================================
+	// ================
 	// EVENT HANDLERS
-	// ==========================================
+	// ================
 
 	/**
 	 * Handle coordinate updates from MiniMap component
@@ -224,9 +164,9 @@ export function LocationSelector({
 		console.log('📍 LocationSelector passing coordinates:', coords);
 	};
 
-	// ==========================================
+	// ===============
 	// SIDE EFFECTS
-	// ==========================================
+	// ===============
 
 	/**
 	 * Auto-show map when user starts typing
@@ -241,9 +181,9 @@ export function LocationSelector({
 		setShowMap(value.length > 2);
 	}, [value]);
 
-	// ==========================================
+	// =================
 	// RENDER COMPONENT
-	// ==========================================
+	// =================
 
 	/**
 	 * LAYMAN TERMS: "Build the complete location selection interface"
@@ -303,9 +243,9 @@ export function LocationSelector({
 	);
 }
 
-// ==========================================
+// ==================
 // COMPONENT STYLES
-// ==========================================
+// ==================
 
 const styles = StyleSheet.create({
 	section: {
@@ -335,9 +275,9 @@ const styles = StyleSheet.create({
 	},
 });
 
-// ==========================================
+// ================
 // DEFAULT EXPORT
-// ==========================================
+// ================
 export default LocationSelector;
 
 /**

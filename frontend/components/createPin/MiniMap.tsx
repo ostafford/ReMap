@@ -19,9 +19,9 @@ import { CaptionText } from '@/components/ui/Typography';
 // ================================
 import { ReMapColors } from '@/constants/Colors';
 
-// ==========================================
+// ==================
 // TYPE DEFINITIONS
-// ==========================================
+// ==================
 
 /**
  * Props interface for MiniMap component
@@ -46,9 +46,9 @@ interface MiniMapProps {
 	style?: any;
 }
 
-// ==========================================
+// ===========================
 // COMPONENT IMPLEMENTATION
-// ==========================================
+// ===========================
 
 /**
  * MiniMap - Embedded geocoding map with draggable pin functionality
@@ -100,9 +100,9 @@ export function MiniMap({
 	visible,
 	style,
 }: MiniMapProps) {
-	// ==========================================
+	// =========================
 	// LOCAL STATE MANAGEMENT
-	// ==========================================
+	// =========================
 	/**
 	 * LAYMAN TERMS: "The current map view area (what part of the world we're looking at)"
 	 *
@@ -130,9 +130,9 @@ export function MiniMap({
 	 */
 	const [isGeocoding, setIsGeocoding] = useState(false);
 
-	// ==========================================
+	// =========================
 	// GEOCODING FUNCTIONALITY
-	// ==========================================
+	// =========================
 
 	/**
 	 * Convert location text to GPS coordinates using geocoding API
@@ -202,9 +202,9 @@ export function MiniMap({
 		}
 	};
 
-	// ==========================================
+	// ==========================
 	// DEBOUNCED SEARCH EFFECT
-	// ==========================================
+	// ==========================
 
 	/**
 	 * Debounced geocoding trigger based on location query changes
@@ -224,9 +224,9 @@ export function MiniMap({
 		return () => clearTimeout(timeoutId);
 	}, [locationQuery]);
 
-	// ==========================================
+	// ===================
 	// PIN DRAG HANDLER
-	// ==========================================
+	// ===================
 
 	/**
 	 * Handle user dragging the map pin to new coordinates
@@ -267,9 +267,9 @@ export function MiniMap({
 
 	if (!visible) return null;
 
-	// ==========================================
+	// ==================
 	// RENDER COMPONENT
-	// ==========================================
+	// ==================
 
 	/**
 	 * LAYMAN TERMS: "Build the complete mini-map interface"
@@ -279,7 +279,7 @@ export function MiniMap({
 	return (
 		<View style={[styles.container, style]}>
 			{/* ==================== */}
-			{/*   MAP HEADER         */}
+			{/*     MAP HEADER       */}
 			{/* ==================== */}
 			<View style={styles.header}>
 				<CaptionText style={styles.title}>
@@ -324,9 +324,9 @@ export function MiniMap({
 	);
 }
 
-// ==========================================
+// ===================
 // COMPONENT STYLES
-// ==========================================
+// ===================
 
 const styles = StyleSheet.create({
 	container: {
