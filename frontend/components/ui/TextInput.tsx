@@ -105,13 +105,11 @@ export const Input = forwardRef<InputRef, InputProps>(
 
 		const handleFocus = (e: any) => {
 			setIsFocused(true);
-			// IMPORTANT: Call the external onFocus prop if provided
 			onFocus?.(e);
 		};
 
 		const handleBlur = (e: any) => {
 			setIsFocused(false);
-			// IMPORTANT: Call the external onBlur prop if provided
 			onBlur?.(e);
 		};
 

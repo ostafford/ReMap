@@ -44,6 +44,10 @@ interface MiniMapProps {
 	}) => void;
 	visible: boolean;
 	style?: any;
+	initialCoordinates?: {
+		latitude: number;
+		longitude: number;
+	} | null;
 }
 
 // ===========================
@@ -99,6 +103,7 @@ export function MiniMap({
 	onLocationChange,
 	visible,
 	style,
+	initialCoordinates,
 }: MiniMapProps) {
 	// =========================
 	// LOCAL STATE MANAGEMENT
@@ -223,6 +228,64 @@ export function MiniMap({
 
 		return () => clearTimeout(timeoutId);
 	}, [locationQuery]);
+
+	/**
+	 *
+	 * LAYMAN TERMS: "When LocationSelector tells MiniMap 'here are the GPS coordinates',
+	 * this effect immediately updates the map view to show that exact location. It moves
+	 * the map camera and places the red pin at the GPS coordinates without making any
+	 * internet requests or triggering callbacks that could cause infinite loops."
+	 *
+	 * TECHNICAL: React effect managing direct coordinate injection for GPS functionality.
+	 * Handles map region updates and marker positioning while avoiding callback loops
+	 * that could violate Nominatim API rate limits. Designed for one-way data flow
+	 * from GPS source to map display.
+	 *
+	 * @description
+	 * This effect is triggered when:
+	 * - User taps GPS button in LocationSelector
+	 * - initialCoordinates prop receives new GPS data
+	 * - Component needs to display user's current location
+	 *
+	 * @example
+	 * Typical GPS workflow:
+	 * 1. User taps GPS button → LocationSelector gets coordinates
+	 * 2. LocationSelector sets gpsCoordinates state
+	 * 3. LocationSelector passes coordinates via initialCoordinates prop
+	 * 4. THIS EFFECT triggers → updates map region and marker
+	 * 5. User sees map centered on their exact location
+	 *
+	 * @example
+	 * Coordinate transformation:
+	 * Input: initialCoordinates = { latitude: -37.986, longitude: 145.062 }
+	 * Effect processes:
+	 * setRegion({
+	 *   latitude: -37.986,
+	 *   longitude: 145.062,
+	 *   latitudeDelta: 0.01,  // ← Zoom level (smaller = more zoomed in)
+	 *   longitudeDelta: 0.01  // ← Zoom level
+	 * });
+	 *
+	 *
+	 * @see {@link LocationSelector.handleGPSLocation} for GPS coordinate source
+	 * @see {@link useCurrentLocation} for GPS coordinate acquisition
+	 */
+	useEffect(() => {
+		if (initialCoordinates) {
+			const coordinates = {
+				latitude: initialCoordinates.latitude,
+				longitude: initialCoordinates.longitude,
+			};
+
+			setRegion({
+				...coordinates,
+				latitudeDelta: 0.01,
+				longitudeDelta: 0.01,
+			});
+
+			setMarkerCoordinate(coordinates);
+		}
+	}, [initialCoordinates]);
 
 	// ===================
 	// PIN DRAG HANDLER
