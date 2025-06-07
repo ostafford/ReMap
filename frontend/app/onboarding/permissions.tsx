@@ -410,58 +410,64 @@ export default function OnboardingPermissionsScreen() {
 							← Previous
 						</Button>
 
-						<Button
-							style={styles.secondaryButton}
-							onPress={navigateToStarterPack}
-						>
-							{locationStatus === 'granted'
-								? 'Skip for Now'
-								: 'Skip for Now'}
-						</Button>
+						{/* Primary Action Button - Changes based on state */}
+						{locationStatus === 'not_requested' && (
+							<Button
+								style={styles.secondaryButton}
+								onPress={requestLocationPermission}
+								disabled={isRequesting}
+							>
+								{isRequesting
+									? 'Requesting...'
+									: 'Enable Location Services'}
+							</Button>
+						)}
+
+						{locationStatus === 'checking' && (
+							<Button
+								style={[
+									styles.secondaryButton,
+									styles.disabledButton,
+								]}
+								disabled={true}
+							>
+								Checking Permissions...
+							</Button>
+						)}
+
+						{locationStatus === 'granted' && (
+							<Button
+								style={[
+									styles.secondaryButton,
+									styles.successButton,
+								]}
+								onPress={navigateToStarterPack}
+							>
+								Continue →
+							</Button>
+						)}
+
+						{locationStatus === 'denied' && (
+							<Button
+								style={[
+									styles.secondaryButton,
+									styles.warningButton,
+								]}
+								onPress={navigateToStarterPack}
+							>
+								Continue Without Location
+							</Button>
+						)}
 					</View>
 
-					{/* Primary Action Button - Changes based on state */}
-					{locationStatus === 'not_requested' && (
-						<Button
-							style={styles.primaryButton}
-							onPress={requestLocationPermission}
-							disabled={isRequesting}
-						>
-							{isRequesting
-								? 'Requesting...'
-								: 'Enable Location Services'}
-						</Button>
-					)}
-
-					{locationStatus === 'checking' && (
-						<Button
-							style={[
-								styles.primaryButton,
-								styles.disabledButton,
-							]}
-							disabled={true}
-						>
-							Checking Permissions...
-						</Button>
-					)}
-
-					{locationStatus === 'granted' && (
-						<Button
-							style={[styles.primaryButton, styles.successButton]}
-							onPress={navigateToStarterPack}
-						>
-							✅ Location Enabled - Continue
-						</Button>
-					)}
-
-					{locationStatus === 'denied' && (
-						<Button
-							style={[styles.primaryButton, styles.warningButton]}
-							onPress={navigateToStarterPack}
-						>
-							Continue Without Location
-						</Button>
-					)}
+					<Button
+						style={styles.primaryButton}
+						onPress={navigateToStarterPack}
+					>
+						{locationStatus === 'granted'
+							? 'Skip for Now'
+							: 'Skip for Now'}
+					</Button>
 				</View>
 			</Footer>
 		</View>
@@ -548,7 +554,7 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	primaryButton: {
-		backgroundColor: ReMapColors.primary.violet,
+		backgroundColor: ReMapColors.primary.testing,
 		width: '100%',
 		// marginBottom: 10,
 	},

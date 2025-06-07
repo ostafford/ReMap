@@ -37,6 +37,7 @@ import {
 //   INTERNAL 'CONSTANTS' IMPORTS
 // ================================
 import { ReMapColors } from '@/constants/Colors';
+import { AuthError } from '@supabase/supabase-js';
 
 // =========================
 //   TYPE DEFINITIONS
@@ -384,30 +385,29 @@ export default function OnboardingStarterPackScreen() {
 						<Button style={styles.secondaryButton} onPress={goBack}>
 							← Previous
 						</Button>
-
-						<Button
-							style={styles.secondaryButton}
-							onPress={navigateToAccount}
-						>
-							Skip for Now
-						</Button>
+						{hasSelections ? (
+							<Button
+								style={styles.packButton}
+								onPress={navigateToAccount}
+							>
+								Continue with {selectionCount} pack
+								{selectionCount !== 1 ? 's' : ''} →
+							</Button>
+						) : (
+							<Button
+								style={styles.packButton}
+								onPress={navigateToAccount}
+							>
+								Continue Without Selections →
+							</Button>
+						)}
 					</View>
-					{hasSelections ? (
-						<Button
-							style={styles.primaryButton}
-							onPress={navigateToAccount}
-						>
-							Continue with {selectionCount} pack
-							{selectionCount !== 1 ? 's' : ''} →
-						</Button>
-					) : (
-						<Button
-							style={styles.primaryButton}
-							onPress={navigateToAccount}
-						>
-							Continue Without Selections →
-						</Button>
-					)}
+					<Button
+						style={styles.primaryButton}
+						onPress={navigateToAccount}
+					>
+						Skip for Now
+					</Button>
 				</View>
 			</Footer>
 		</View>
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	primaryButton: {
-		backgroundColor: ReMapColors.primary.violet,
+		backgroundColor: ReMapColors.primary.testing,
 		width: '100%',
 	},
 	secondaryActions: {
@@ -551,5 +551,9 @@ const styles = StyleSheet.create({
 	secondaryButton: {
 		backgroundColor: ReMapColors.primary.cadet,
 		flex: 1,
+	},
+	packButton: {
+		backgroundColor: ReMapColors.primary.cadet,
+		width: 'auto',
 	},
 });

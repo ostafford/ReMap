@@ -245,16 +245,18 @@ export default function OnboardingWelcomeScreen() {
 						<Button style={styles.secondaryButton} onPress={goBack}>
 							{currentStep > 0 ? '← Previous' : '← Previous'}
 						</Button>
-
 						<Button
 							style={styles.secondaryButton}
-							onPress={skipToPermissions}
+							onPress={nextStep}
 						>
-							Skip Intro →
+							{isLastStep ? 'Location Services' : 'Continue →'}
 						</Button>
 					</View>
-					<Button style={styles.primaryButton} onPress={nextStep}>
-						{isLastStep ? 'Enable Location Services' : 'Continue'}
+					<Button
+						style={styles.primaryButton}
+						onPress={skipToPermissions}
+					>
+						Skip Intro
 					</Button>
 				</View>
 			</Footer>
@@ -346,7 +348,8 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	primaryButton: {
-		backgroundColor: ReMapColors.primary.violet,
+		// backgroundColor: ReMapColors.primary.violet,
+		backgroundColor: ReMapColors.primary.testing,
 		width: '100%',
 	},
 	secondaryActions: {

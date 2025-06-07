@@ -1,21 +1,8 @@
-/**
- * LAYMAN TERMS: "Content" = Everything the user types or selects about their memory story
- *
- * This hook manages 3 types of "content":
- * 1. TEXT CONTENT = Title, description (what user types)
- * 2. LOCATION CONTENT = Location search, GPS coordinates (where it happened)
- * 3. FORM VALIDATION = Making sure required stuff is filled out
- *
- * It does NOT manage:
- * - Photos/videos/audio (that's useMediaCapture)
- * - Privacy settings (that's usePrivacySettings)
- * - Saving to database (that's in createPin.tsx)
- */
-
 // ================
 //   CORE IMPORTS
 // ================
 import { useState, useCallback, useRef } from 'react';
+import { ScrollView } from 'react-native';
 
 // ==================
 // TYPE DEFINITIONS
@@ -218,7 +205,7 @@ export function useMemoryContent({
 			setCoordinates(coords);
 			console.log('📍 Coordinates updated:', coords); // Debug log for development
 		},
-		[] // No dependencies - function never changes
+		[]
 	);
 
 	// ===================

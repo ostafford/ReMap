@@ -443,16 +443,16 @@ export default function OnboardingAccountScreen() {
 
 						<Button
 							style={styles.secondaryButton}
-							onPress={toggleSkipAuth}
+							onPress={toggleSignupModal}
 						>
-							Skip for Now
+							Create New Account
 						</Button>
 					</View>
 					<Button
 						style={styles.primaryButton}
-						onPress={toggleSignupModal}
+						onPress={toggleSkipAuth}
 					>
-						Create New Account
+						Skip for Now
 					</Button>
 				</View>
 			</Footer>
@@ -547,18 +547,18 @@ export default function OnboardingAccountScreen() {
 
 					<Modal.Footer>
 						<Button
-							onPress={handleSignUp}
-							style={[styles.modalButton, styles.signUpButton]}
-							disabled={isLoading}
-						>
-							{isLoading ? 'Creating...' : 'Create'}
-						</Button>
-						<Button
 							onPress={toggleSignupModal}
 							style={[styles.modalButton, styles.cancelButton]}
 							disabled={isLoading}
 						>
 							Cancel
+						</Button>
+						<Button
+							onPress={handleSignUp}
+							style={[styles.modalButton, styles.signUpButton]}
+							disabled={isLoading}
+						>
+							{isLoading ? 'Creating...' : 'Create'}
 						</Button>
 					</Modal.Footer>
 				</Modal.Container>
@@ -585,6 +585,12 @@ export default function OnboardingAccountScreen() {
 
 					<Modal.Footer>
 						<Button
+							onPress={cancelSkip}
+							style={[styles.modalButton, styles.cancelButton]}
+						>
+							Go Back
+						</Button>
+						<Button
 							onPress={confirmSkip}
 							style={[
 								styles.modalButton,
@@ -592,12 +598,6 @@ export default function OnboardingAccountScreen() {
 							]}
 						>
 							Skip for Now
-						</Button>
-						<Button
-							onPress={cancelSkip}
-							style={[styles.modalButton, styles.cancelButton]}
-						>
-							Go Back
 						</Button>
 					</Modal.Footer>
 				</Modal.Container>
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	primaryButton: {
-		backgroundColor: ReMapColors.primary.violet,
+		backgroundColor: ReMapColors.primary.testing,
 		width: '100%',
 	},
 	secondaryButton: {
