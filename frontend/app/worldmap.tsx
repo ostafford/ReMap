@@ -62,9 +62,9 @@ import type { User } from '@supabase/supabase-js';
 import { instancedMesh } from 'three/tsl';
 
 
-// ==================================
+// ==================
 //   DUMMY CIRCLES
-// ==================================
+// ==================
 const mockCircles = [
   { name: 'Circle 1', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
   { name: 'Circle 2', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
@@ -242,12 +242,12 @@ export default function WorldMapScreen() {
 				</Animated.View>
 			)}
 
-			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-				<KeyboardAvoidingView 
+			{/* <TouchableWithoutFeedback onPress={Keyboard.dismiss}> */}
+				{/* <KeyboardAvoidingView 
 					style={styles.keyboardAvoidingView}
 					behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
 					keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
-				>
+				> */}
 
 
 			{/**********************************************/}
@@ -345,6 +345,9 @@ export default function WorldMapScreen() {
 				{/************ UNDER MAP CONTENT ***************/}
 				{/* *********************************************/}
 				<View style={styles.scrollContent}>
+					<Text style={styles.remapTitle}>
+						ReMap Your Journey
+					</Text>
 					<TouchableOpacity 
 						style={searchVisible ? styles.fakeInputClose : styles.fakeInput} 
 						onPress={searchVisible ? closeSearch : openSearch}
@@ -453,8 +456,8 @@ export default function WorldMapScreen() {
 
 			
 
-			</KeyboardAvoidingView>
-			</TouchableWithoutFeedback>
+			{/* </KeyboardAvoidingView> */}
+			{/* </TouchableWithoutFeedback> */}
 		</GestureHandlerRootView>
 		
 			
@@ -484,7 +487,7 @@ const styles = StyleSheet.create({
 	},
 	map: {
 		width: '100%',
-		height: 660,
+		height: 600,
 	},
 	// mapContent: {
 	// 	backgroundColor: ReMapColors.primary.accent, // this colour is just for examples sake - not gonna be purple
@@ -543,7 +546,22 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 	},
 	scrollContent: {
-		padding: 10,
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 35,
+		borderTopLeftRadius: 30,
+		borderTopRightRadius: 30,
+		marginTop: -5,
+		padding: 20,
+		shadowColor: ReMapColors.primary.black,
+		shadowOffset: { width: 0, height: -2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+	},
+	remapTitle: {
+		fontSize: 34,
+		alignSelf: 'center',
+		padding: 8,
+		fontWeight: 'bold',
 	},
 	search: {
 		flexDirection: 'row',
