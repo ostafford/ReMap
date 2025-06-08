@@ -103,8 +103,6 @@ export default function OnboardingPermissionsScreen() {
 	// NOTE: Auto-hide (moves on) success messages and navigate
 	useEffect(() => {
 		if (locationStatus === 'granted' && messageState.type === 'success') {
-			hideMessage();
-			continueToAccount();
 		}
 	}, [locationStatus, messageState.type]);
 
@@ -127,7 +125,7 @@ export default function OnboardingPermissionsScreen() {
 				);
 			} else {
 				setLocationStatus('not_requested');
-				hideMessage(); // NOTE: Clear the checking message
+				// hideMessage(); // NOTE: Clear the checking message
 			}
 		} catch (error) {
 			console.error('Error checking permissions:', error);
@@ -194,10 +192,14 @@ export default function OnboardingPermissionsScreen() {
 	// ====================
 	//   NAVIGATION LOGIC
 	// ====================
-	const validRoutes = ['/onboarding', '/onboarding/account'];
+	const validRoutes = [
+		'/onboarding',
+		'/onboarding/account',
+		'/onboarding/starterpack',
+	];
 
-	const continueToAccount = () => {
-		const route = '/onboarding/account';
+	const navigateToStarterPack = () => {
+		const route = '/onboarding/starterpack';
 
 		if (!validRoutes.includes(route)) {
 			showMessage(
@@ -208,7 +210,7 @@ export default function OnboardingPermissionsScreen() {
 		}
 
 		try {
-			router.navigate(route);
+			router.replace(route);
 		} catch (error) {
 			console.error('Navigation failed:', error);
 			showMessage(
@@ -218,15 +220,15 @@ export default function OnboardingPermissionsScreen() {
 		}
 	};
 
-	const skipPermissions = () => {
-		showMessage(
-			"You can enable location services later in Settings, but you'll miss out on ReMap's core location-based features like automatic memory pinning and discovering nearby stories.",
-			'warning',
-			'Skip Location Access?'
-		);
+	// const skipPermissions = () => {
+	// 	showMessage(
+	// 		"You can enable location services later in Settings, but you'll miss out on ReMap's core location-based features like automatic memory pinning and discovering nearby stories.",
+	// 		'warning',
+	// 		'Skip Location Access?'
+	// 	);
 
-		continueToAccount();
-	};
+	// 	navigateToStarterPack();
+	// };
 
 	const goBack = () => {
 		const route = '/onboarding';
@@ -240,7 +242,7 @@ export default function OnboardingPermissionsScreen() {
 		}
 
 		try {
-			router.navigate(route);
+			router.replace(route);
 		} catch (error) {
 			console.error('Navigation failed:', error);
 			showMessage('Could not go back. Please try again.', 'error');
@@ -259,7 +261,7 @@ export default function OnboardingPermissionsScreen() {
 					description:
 						"We're checking your current location settings.",
 					buttonText: 'Checking...',
-					buttonDisabled: true,
+					buttonDisabled: false,
 				};
 			case 'granted':
 				return {
@@ -267,7 +269,7 @@ export default function OnboardingPermissionsScreen() {
 					title: 'Location Access Granted!',
 					description:
 						'Perfect! ReMap can now help you pin memories to specific places and discover stories around you.',
-					buttonText: 'Continue to Account Setup →',
+					buttonText: 'Next →',
 					buttonDisabled: false,
 				};
 			case 'denied':
@@ -298,7 +300,7 @@ export default function OnboardingPermissionsScreen() {
 	// ============================
 	return (
 		<View style={styles.container}>
-			<Header title="Location Permissions" subtitle="Step 2 of 3" />
+			<Header title="Location Permissions" />
 
 			<MainContent>
 				<View style={styles.content}>
@@ -403,42 +405,69 @@ export default function OnboardingPermissionsScreen() {
 
 			<Footer>
 				<View style={styles.buttonContainer}>
-					{locationStatus === 'not_requested' && (
-						<Button
-							style={styles.primaryButton}
-							onPress={requestLocationPermission}
-							disabled={isRequesting}
-						>
-							{isRequesting
-								? 'Requesting...'
-								: statusInfo.buttonText}
-						</Button>
-					)}
-
-					{(locationStatus === 'granted' ||
-						locationStatus === 'denied') && (
-						<Button
-							style={styles.primaryButton}
-							onPress={continueToAccount}
-						>
-							{statusInfo.buttonText}
-						</Button>
-					)}
-
 					<View style={styles.secondaryActions}>
 						<Button style={styles.secondaryButton} onPress={goBack}>
 							← Previous
 						</Button>
 
+						{/* Primary Action Button - Changes based on state */}
 						{locationStatus === 'not_requested' && (
 							<Button
-								style={styles.tertiaryButton}
-								onPress={skipPermissions}
+								style={styles.secondaryButton}
+								onPress={requestLocationPermission}
+								disabled={isRequesting}
 							>
-								Skip for Now
+								{isRequesting
+									? 'Requesting...'
+									: 'Enable Location Services'}
+							</Button>
+						)}
+
+						{locationStatus === 'checking' && (
+							<Button
+								style={[
+									styles.secondaryButton,
+									styles.disabledButton,
+								]}
+								disabled={true}
+							>
+								Checking Permissions...
+							</Button>
+						)}
+
+						{locationStatus === 'granted' && (
+							<Button
+								style={[
+									styles.secondaryButton,
+									styles.successButton,
+								]}
+								onPress={navigateToStarterPack}
+							>
+								Continue →
+							</Button>
+						)}
+
+						{locationStatus === 'denied' && (
+							<Button
+								style={[
+									styles.secondaryButton,
+									styles.warningButton,
+								]}
+								onPress={navigateToStarterPack}
+							>
+								Continue Without Location
 							</Button>
 						)}
 					</View>
+
+					<Button
+						style={styles.primaryButton}
+						onPress={navigateToStarterPack}
+					>
+						{locationStatus === 'granted'
+							? 'Skip for Now'
+							: 'Skip for Now'}
+					</Button>
 				</View>
 			</Footer>
 		</View>
@@ -522,23 +551,30 @@ const styles = StyleSheet.create({
 	},
 	buttonContainer: {
 		width: '100%',
+		gap: 10,
 	},
 	primaryButton: {
-		backgroundColor: ReMapColors.primary.violet,
+		backgroundColor: ReMapColors.primary.testing,
 		width: '100%',
-		marginBottom: 10,
+		// marginBottom: 10,
 	},
 	secondaryActions: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
-		gap: 10,
+		gap: 12,
 	},
 	secondaryButton: {
-		backgroundColor: ReMapColors.ui.textSecondary,
+		backgroundColor: ReMapColors.primary.cetacean,
 		flex: 1,
 	},
-	tertiaryButton: {
-		backgroundColor: ReMapColors.primary.blue,
-		flex: 1,
+	successButton: {
+		backgroundColor: ReMapColors.semantic.success,
+	},
+	warningButton: {
+		backgroundColor: ReMapColors.semantic.warning,
+	},
+	disabledButton: {
+		backgroundColor: ReMapColors.semantic.error,
+		opacity: 0.6,
 	},
 });

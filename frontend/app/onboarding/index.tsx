@@ -90,9 +90,9 @@ export default function OnboardingWelcomeScreen() {
 		setMessageState({ show: true, message, type });
 	};
 
-	const hideMessage = () => {
-		setMessageState((prev) => ({ ...prev, show: false }));
-	};
+	// const hideMessage = () => {
+	// 	setMessageState((prev) => ({ ...prev, show: false }));
+	// };
 
 	// ==================
 	//   EVENT HANDLERS
@@ -101,7 +101,7 @@ export default function OnboardingWelcomeScreen() {
 		'/',
 		'/onboarding',
 		'/onboarding/permissions',
-		'/onboarding/account',
+		'/onboarding/starterpack',
 	];
 
 	const nextStep = () => {
@@ -114,8 +114,8 @@ export default function OnboardingWelcomeScreen() {
 		}
 	};
 
-	const skipToAuth = () => {
-		navigateToRoute('/onboarding/account');
+	const skipToPermissions = () => {
+		navigateToRoute('/onboarding/permissions');
 	};
 
 	const goBack = () => {
@@ -166,22 +166,7 @@ export default function OnboardingWelcomeScreen() {
 			<MainContent scrollable={false}>
 				<View style={styles.content}>
 					{messageState.show && (
-						<View style={styles.messageContainer}>
-							{messageState.type === 'error' && (
-								<ErrorMessage onDismiss={hideMessage}>
-									{messageState.message}
-								</ErrorMessage>
-							)}
-
-							{messageState.type === 'warning' && (
-								<WarningMessage
-									title="Skip Introduction?"
-									onDismiss={hideMessage}
-								>
-									{messageState.message}
-								</WarningMessage>
-							)}
-						</View>
+						<View style={styles.messageContainer}></View>
 					)}
 
 					<View style={styles.progressContainer}>
@@ -200,12 +185,12 @@ export default function OnboardingWelcomeScreen() {
 					</View>
 
 					{/* Globe Display */}
-					<View style={styles.globeContainer}>
+					{/* <View style={styles.globeContainer}>
 						<Canvas style={styles.canvas}>
 							<ambientLight intensity={3} />
 							<SpinningGlobe position={[0, 0, 0]} scale={1.2} />
 						</Canvas>
-					</View>
+					</View> */}
 
 					<View style={styles.stepContent}>
 						<BodyText style={styles.stepIcon}>
@@ -256,22 +241,23 @@ export default function OnboardingWelcomeScreen() {
 
 			<Footer>
 				<View style={styles.buttonContainer}>
-					<Button style={styles.primaryButton} onPress={nextStep}>
-						{isLastStep ? '🚀 Get Started' : 'Continue'}
-					</Button>
-
 					<View style={styles.secondaryActions}>
 						<Button style={styles.secondaryButton} onPress={goBack}>
-							{currentStep > 0 ? '← Previous' : '← Back to Home'}
+							{currentStep > 0 ? '← Previous' : '← Previous'}
 						</Button>
-
 						<Button
-							style={styles.tertiaryButton}
-							onPress={skipToAuth}
+							style={styles.secondaryButton}
+							onPress={nextStep}
 						>
-							Skip Intro →
+							{isLastStep ? 'Location Services' : 'Continue →'}
 						</Button>
 					</View>
+					<Button
+						style={styles.primaryButton}
+						onPress={skipToPermissions}
+					>
+						Skip Intro
+					</Button>
 				</View>
 			</Footer>
 		</View>
@@ -284,7 +270,7 @@ export default function OnboardingWelcomeScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: ReMapColors.ui.background,
+		backgroundColor: ReMapColors.ui.cardBackground,
 	},
 	content: {
 		flex: 1,
@@ -345,25 +331,26 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		justifyContent: 'space-around',
 		width: '100%',
-		paddingHorizontal: 20,
-		marginTop: 20,
+		margin: 12,
 	},
 	featureItem: {
 		alignItems: 'center',
 		flex: 1,
 	},
 	featureIcon: {
-		fontSize: 24,
+		fontSize: 30,
+		lineHeight: 38,
 		marginBottom: 8,
 	},
 	featureText: {},
 	buttonContainer: {
 		width: '100%',
+		gap: 10,
 	},
 	primaryButton: {
-		backgroundColor: ReMapColors.primary.violet,
+		// backgroundColor: ReMapColors.primary.violet,
+		backgroundColor: ReMapColors.primary.testing,
 		width: '100%',
-		marginBottom: 10,
 	},
 	secondaryActions: {
 		flexDirection: 'row',
@@ -371,11 +358,7 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	secondaryButton: {
-		backgroundColor: ReMapColors.ui.textSecondary,
-		flex: 1,
-	},
-	tertiaryButton: {
-		backgroundColor: ReMapColors.primary.blue,
+		backgroundColor: ReMapColors.primary.cadet,
 		flex: 1,
 	},
 });

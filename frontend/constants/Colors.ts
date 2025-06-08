@@ -49,6 +49,7 @@ export const ReMapColors = {
 		blue: '#2B2F77', // St. Patrick's Blue
 		cadet: '#141852', // Space Cadet
 		cetacean: '#070B34', // Cetacean Blue
+		testing: '#6c7075',
 	},
 
 	// UI Colors
@@ -58,6 +59,7 @@ export const ReMapColors = {
 		text: '#1F2937',
 		textSecondary: '#6B7280',
 		border: '#E5E7EB',
+		grey: '#D9D9D9',
 	},
 
 	// Semantic Colors

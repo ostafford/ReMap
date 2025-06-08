@@ -7,7 +7,7 @@ import { View, StyleSheet, Alert } from 'react-native';
 // =======================
 //   THIRD-PARTY IMPORTS
 // =======================
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 // ================================
 //   INTERNAL 'LAYOUT' COMPONENTS
@@ -38,6 +38,7 @@ import {
 	SubheaderText,
 	BodySmallText,
 	LabelText,
+	CaptionText,
 } from '@/components/ui/Typography';
 
 // ================================
@@ -56,14 +57,37 @@ import {
 	isSignedIn,
 } from '@/services/auth';
 
+// =========================
+//   TYPE DEFINITIONS
+// =========================
+interface StarterPackSelection {
+	id: string;
+	name: string;
+	icon: string;
+	description: string;
+	category: string;
+	color: string;
+}
+
+interface StarterPackData {
+	starterPacks: StarterPackSelection[];
+	selectedIds: string[];
+	timestamp: string;
+	skipped?: boolean;
+}
+
 // ========================
 //   COMPONENT DEFINITION
 // ========================
 export default function OnboardingAccountScreen() {
 	// ==================
+	//   ROUTE PARAMS
+	// ==================
+	const { starterPackSelections } = useLocalSearchParams();
+
+	// ==================
 	//   MODAL STATE
 	// ==================
-	const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
 	const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
 	const [isSkipModalVisible, setIsSkipModalVisible] = useState(false);
 
@@ -91,12 +115,34 @@ export default function OnboardingAccountScreen() {
 	const [currentUser, setCurrentUser] = useState<any>(null);
 	const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+	// ==================
+	//   STARTER PACK STATE
+	// ==================
+	const [starterPackData, setStarterPackData] =
+		useState<StarterPackData | null>(null);
+
+	// ===========================
+	//   PARSE STARTER PACK DATA
+	// ===========================
+	// [ CONSOLE/SERVER DEBUGGING RELATED ]
+	useEffect(() => {
+		if (starterPackSelections) {
+			try {
+				const parsedData = JSON.parse(starterPackSelections as string);
+				setStarterPackData(parsedData);
+				console.log('📦 Received starter pack data:', parsedData);
+			} catch (error) {
+				console.error('Error parsing starter pack selections:', error);
+			}
+		}
+	}, [starterPackSelections]);
+
 	// ====================
 	//   AUTH DEFINITIONS
 	// ====================
-	useEffect(() => {
-		checkCurrentUser();
-	}, []);
+	// useEffect(() => {
+	// 	checkCurrentUser();
+	// }, []);
 
 	// ==================
 	//   HELPER FUNCTIONS
@@ -162,6 +208,20 @@ export default function OnboardingAccountScreen() {
 
 		try {
 			await signUp({ email, password });
+
+			// Create user profile data including starter pack preferences
+			const userProfileData = {
+				fullName,
+				email,
+				starterPackPreferences: starterPackData,
+				accountCreatedAt: new Date().toISOString(),
+			};
+
+			console.log(
+				'📋 User account data with starter packs:',
+				userProfileData
+			);
+
 			showMessage(
 				'Welcome to ReMap! Account created successfully.',
 				'success'
@@ -181,66 +241,7 @@ export default function OnboardingAccountScreen() {
 		}
 	};
 
-	const handleSignIn = async () => {
-		if (!email || !password) {
-			showMessage('Please fill out all required fields', 'warning');
-			return;
-		}
-
-		const emailValidation = validateEmail(email);
-		if (emailValidation) {
-			setEmailError(emailValidation);
-			showMessage('Please check your email format', 'error');
-			return;
-		}
-
-		setIsLoading(true);
-
-		try {
-			await signIn({ email, password });
-			showMessage('Welcome back! Successfully signed in.', 'success');
-
-			// Refresh current user info
-			await checkCurrentUser();
-
-			navigateToWorldMap();
-		} catch (error: any) {
-			console.error('Login error:', error);
-			const errorMessage =
-				error?.message ||
-				'Could not sign in. Please check your credentials.';
-			showMessage(errorMessage, 'error');
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
-	const handleSignOut = async () => {
-		Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-			{ text: 'Cancel', style: 'cancel' },
-			{
-				text: 'Sign Out',
-				style: 'destructive',
-				onPress: async () => {
-					setIsLoading(true);
-					try {
-						await signOut();
-						setCurrentUser(null);
-						showMessage('Successfully signed out', 'success');
-					} catch (error: any) {
-						console.error('Sign out error:', error);
-						showMessage(
-							error.message || 'Failed to sign out',
-							'error'
-						);
-					} finally {
-						setIsLoading(false);
-					}
-				},
-			},
-		]);
-	};
-
+	// NOTE: Console/Server Debugging related. THIS IS NOT FOR USER
 	const checkCurrentUser = async () => {
 		setIsCheckingAuth(true);
 		try {
@@ -249,8 +250,10 @@ export default function OnboardingAccountScreen() {
 
 			if (userInfo.user) {
 				console.log('👤 Current user found:', userInfo.user.email);
+				return true;
 			} else {
 				console.log('👤 No current user session');
+				return false;
 			}
 		} catch (error) {
 			console.error('Error checking current user:', error);
@@ -264,31 +267,19 @@ export default function OnboardingAccountScreen() {
 	// ==================
 	const navigateToWorldMap = () => {
 		resetForm();
-		setIsLoginModalVisible(false);
 		setIsSignupModalVisible(false);
-		router.replace('/worldmap');
-	};
 
-	const skipAuth = () => {
-		setIsSkipModalVisible(true);
-	};
-
-	const confirmSkip = () => {
-		setIsSkipModalVisible(false);
-		router.replace('/worldmap');
-	};
-
-	const cancelSkip = () => {
-		setIsSkipModalVisible(false);
-	};
-
-	const goBack = () => {
-		router.back();
-	};
-
-	const toggleLoginModal = () => {
-		setIsLoginModalVisible(!isLoginModalVisible);
-		resetForm();
+		// Pass starter pack data to world map
+		if (starterPackData && starterPackData.starterPacks.length > 0) {
+			router.replace({
+				pathname: '/worldmap',
+				params: {
+					userPreferences: JSON.stringify(starterPackData),
+				},
+			});
+		} else {
+			router.replace('/worldmap');
+		}
 	};
 
 	const toggleSignupModal = () => {
@@ -296,23 +287,44 @@ export default function OnboardingAccountScreen() {
 		resetForm();
 	};
 
-	if (isCheckingAuth) {
-		return (
-			<View style={styles.container}>
-				<Header
-					title="Loading..."
-					subtitle="Checking authentication status"
-				/>
-				<MainContent>
-					<View style={styles.loadingContainer}>
-						<BodyText align="center">
-							Checking your authentication status...
-						</BodyText>
-					</View>
-				</MainContent>
-			</View>
-		);
-	}
+	const toggleSkipAuth = () => {
+		setIsSkipModalVisible(true);
+	};
+
+	const confirmSkip = () => {
+		setIsSkipModalVisible(false);
+		navigateToWorldMap();
+	};
+
+	const cancelSkip = () => {
+		setIsSkipModalVisible(false);
+	};
+
+	const validRoutes = ['/onboarding/starterpack'];
+	const goBack = () => {
+		const route = '/onboarding/starterpack';
+
+		if (!validRoutes.includes(route)) {
+			showMessage(
+				'Navigation error: Previous page is not available.',
+				'error'
+			);
+			return;
+		}
+
+		try {
+			router.replace(route);
+		} catch (error) {
+			console.error('Navigation failed:', error);
+			showMessage('Could not go back. Please try again.', 'error');
+		}
+	};
+	// ==================
+	//   COMPUTED VALUES
+	// ==================
+	const hasStarterPackSelections =
+		starterPackData && starterPackData.starterPacks.length > 0;
+	const selectionCount = starterPackData?.starterPacks.length || 0;
 
 	// ============================
 	//   COMPONENT RENDER SECTION
@@ -323,173 +335,127 @@ export default function OnboardingAccountScreen() {
 
 			<MainContent>
 				<View style={styles.content}>
-					{/* NEW: Current User Status */}
-					{currentUser && (
-						<View style={styles.currentUserContainer}>
-							<InfoMessage title="Already Signed In">
-								You are currently signed in as:{' '}
-								{currentUser.email}
-								{'\n'}
-								To create a new account, please sign out first.
-							</InfoMessage>
+					{/* Welcome section - only show if not signed in */}
+					<View style={styles.welcomeSection}>
+						<BodyText style={styles.welcomeIcon}>🎉</BodyText>
+						<HeaderText align="center" style={styles.welcomeTitle}>
+							You're Almost Ready!
+						</HeaderText>
+						<BodyText
+							align="center"
+							style={styles.welcomeDescription}
+						>
+							Create your ReMap account to start building your
+							interactive memory atlas and connect with the
+							community.
+						</BodyText>
+					</View>
 
-							<Button
-								style={styles.signOutButton}
-								onPress={handleSignOut}
-								disabled={isLoading}
-								variant="danger"
-							>
-								🚪 Sign Out
-							</Button>
-						</View>
-					)}
+					<View style={styles.benefitsContainer}>
+						<SubheaderText style={styles.benefitsTitle}>
+							With a ReMap account:
+						</SubheaderText>
 
-					{/* Existing welcome section - only show if not signed in */}
-					{!currentUser && (
-						<>
-							<View style={styles.welcomeSection}>
-								<BodyText style={styles.welcomeIcon}>
-									🎉
-								</BodyText>
-								<HeaderText
-									align="center"
-									style={styles.welcomeTitle}
-								>
-									You're Almost Ready!
-								</HeaderText>
-								<BodyText
-									align="center"
-									style={styles.welcomeDescription}
-								>
-									Create your ReMap account to start building
-									your interactive memory atlas and connect
-									with the community.
-								</BodyText>
-							</View>
+						{/* Starter Pack Summary */}
+						{hasStarterPackSelections && (
+							<View style={styles.selectionSummary}>
+								<InfoMessage title="Your Selections">
+									You've selected {selectionCount} starter
+									pack
+									{selectionCount !== 1 ? 's' : ''}. We'll
+									personalize your map experience with these
+									preferences!
+								</InfoMessage>
 
-							<View style={styles.benefitsContainer}>
-								<SubheaderText style={styles.benefitsTitle}>
-									With a ReMap account:
-								</SubheaderText>
-
-								<View style={styles.benefitsList}>
-									<View style={styles.benefitItem}>
-										<BodyText style={styles.benefitIcon}>
-											💾
-										</BodyText>
-										<BodySmallText
-											style={styles.benefitText}
-										>
-											Save and sync your memories across
-											devices
-										</BodySmallText>
-									</View>
-
-									<View style={styles.benefitItem}>
-										<BodyText style={styles.benefitIcon}>
-											🤝
-										</BodyText>
-										<BodySmallText
-											style={styles.benefitText}
-										>
-											Share special moments with friends
-											and family
-										</BodySmallText>
-									</View>
-
-									<View style={styles.benefitItem}>
-										<BodyText style={styles.benefitIcon}>
-											🌍
-										</BodyText>
-										<BodySmallText
-											style={styles.benefitText}
-										>
-											Discover and contribute to the
-											global memory map
-										</BodySmallText>
-									</View>
-
-									<View style={styles.benefitItem}>
-										<BodyText style={styles.benefitIcon}>
-											🔒
-										</BodyText>
-										<BodySmallText
-											style={styles.benefitText}
-										>
-											Full control over your privacy and
-											sharing settings
-										</BodySmallText>
-									</View>
+								<View style={styles.selectedPacks}>
+									{starterPackData?.starterPacks.map(
+										(pack) => (
+											<View
+												key={pack.id}
+												style={styles.packChip}
+											>
+												<BodySmallText
+													style={styles.packChipText}
+												>
+													{pack.icon} {pack.name}
+												</BodySmallText>
+											</View>
+										)
+									)}
 								</View>
 							</View>
+						)}
 
-							<View style={styles.accountOptions}>
-								<LabelText
-									align="center"
-									style={styles.optionsTitle}
-								>
-									How would you like to proceed?
-								</LabelText>
+						<View style={styles.benefitsList}>
+							<View style={styles.benefitItem}>
+								<BodyText style={styles.benefitIcon}>
+									💾
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
+									Save and sync your memories across devices
+								</BodySmallText>
 							</View>
-						</>
-					)}
+
+							<View style={styles.benefitItem}>
+								<BodyText style={styles.benefitIcon}>
+									🤝
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
+									Share special moments with friends and
+									family
+								</BodySmallText>
+							</View>
+
+							<View style={styles.benefitItem}>
+								<BodyText style={styles.benefitIcon}>
+									🌍
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
+									Discover and contribute to the global memory
+									map
+								</BodySmallText>
+							</View>
+
+							<View style={styles.benefitItem}>
+								<BodyText style={styles.benefitIcon}>
+									🔒
+								</BodyText>
+								<BodySmallText style={styles.benefitText}>
+									Full control over your privacy and sharing
+									settings
+								</BodySmallText>
+							</View>
+						</View>
+					</View>
+
+					<View style={styles.accountOptions}>
+						<LabelText align="center" style={styles.optionsTitle}>
+							How would you like to proceed?
+						</LabelText>
+					</View>
 				</View>
 			</MainContent>
 
 			<Footer>
 				<View style={styles.buttonContainer}>
-					{/* Show different buttons based on auth state */}
-					{currentUser ? (
-						<>
-							<Button
-								style={styles.primaryButton}
-								onPress={navigateToWorldMap}
-							>
-								🗺️ Continue to World Map
-							</Button>
+					<View style={styles.secondaryActions}>
+						<Button style={styles.secondaryButton} onPress={goBack}>
+							← Previous
+						</Button>
 
-							<View style={styles.navigationActions}>
-								<Button
-									style={styles.backButton}
-									onPress={goBack}
-								>
-									← Previous
-								</Button>
-							</View>
-						</>
-					) : (
-						<>
-							<Button
-								style={styles.primaryButton}
-								onPress={toggleSignupModal}
-							>
-								Create New Account
-							</Button>
-
-							<Button
-								style={styles.secondaryButton}
-								onPress={toggleLoginModal}
-							>
-								Sign In
-							</Button>
-
-							<View style={styles.navigationActions}>
-								<Button
-									style={styles.backButton}
-									onPress={goBack}
-								>
-									← Previous
-								</Button>
-
-								<Button
-									style={styles.skipButton}
-									onPress={skipAuth}
-								>
-									Skip for Now
-								</Button>
-							</View>
-						</>
-					)}
+						<Button
+							style={styles.secondaryButton}
+							onPress={toggleSignupModal}
+						>
+							Create New Account
+						</Button>
+					</View>
+					<Button
+						style={styles.primaryButton}
+						onPress={toggleSkipAuth}
+					>
+						Skip for Now
+					</Button>
 				</View>
 			</Footer>
 
@@ -527,6 +493,27 @@ export default function OnboardingAccountScreen() {
 								</WarningMessage>
 							)}
 
+						{/* Starter Pack Preview in Modal */}
+						{hasStarterPackSelections && (
+							<View style={styles.modalStarterPacks}>
+								<LabelText style={styles.modalPacksTitle}>
+									Your selected interests:
+								</LabelText>
+								<View style={styles.modalPacksList}>
+									{starterPackData?.starterPacks.map(
+										(pack) => (
+											<CaptionText
+												key={pack.id}
+												style={styles.modalPackItem}
+											>
+												{pack.icon} {pack.name}
+											</CaptionText>
+										)
+									)}
+								</View>
+							</View>
+						)}
+
 						{/* Form Inputs */}
 						<Input
 							label="Full Name"
@@ -562,94 +549,18 @@ export default function OnboardingAccountScreen() {
 
 					<Modal.Footer>
 						<Button
-							onPress={handleSignUp}
-							style={[styles.modalButton, styles.signUpButton]}
-							disabled={isLoading}
-						>
-							{isLoading ? 'Creating...' : 'Create'}
-						</Button>
-						<Button
 							onPress={toggleSignupModal}
 							style={[styles.modalButton, styles.cancelButton]}
 							disabled={isLoading}
 						>
 							Cancel
 						</Button>
-					</Modal.Footer>
-				</Modal.Container>
-			</Modal>
-
-			{/* ===============
-			      LOGIN MODAL
-			    =============== */}
-			<Modal
-				isVisible={isLoginModalVisible}
-				onBackdropPress={toggleLoginModal}
-			>
-				<Modal.Container>
-					<Modal.Header title="Welcome Back!" />
-					<Modal.Body>
-						{/* Message Display */}
-						{messageState.show &&
-							messageState.type === 'success' && (
-								<SuccessMessage
-									title="Welcome Back!"
-									onDismiss={hideMessage}
-								>
-									{messageState.message}
-								</SuccessMessage>
-							)}
-
-						{messageState.show && messageState.type === 'error' && (
-							<ErrorMessage onDismiss={hideMessage}>
-								{messageState.message}
-							</ErrorMessage>
-						)}
-
-						{messageState.show &&
-							messageState.type === 'warning' && (
-								<WarningMessage onDismiss={hideMessage}>
-									{messageState.message}
-								</WarningMessage>
-							)}
-
-						{/* Form Inputs */}
-						<Input
-							value={email}
-							onChangeText={(text) => {
-								setEmail(text);
-								setEmailError(validateEmail(text));
-							}}
-							error={emailError}
-							label="Email"
-							placeholder="Enter your email"
-							keyboardType="email-address"
-							autoCapitalize="none"
-						/>
-						<Input
-							value={password}
-							onChangeText={setPassword}
-							label="Password"
-							placeholder="Enter your password"
-							secureTextEntry
-							secureToggle
-						/>
-					</Modal.Body>
-
-					<Modal.Footer>
 						<Button
-							onPress={handleSignIn}
-							style={[styles.modalButton, styles.loginButton]}
+							onPress={handleSignUp}
+							style={[styles.modalButton, styles.signUpButton]}
 							disabled={isLoading}
 						>
-							{isLoading ? 'Signing In...' : 'Sign In'}
-						</Button>
-						<Button
-							onPress={toggleLoginModal}
-							style={[styles.modalButton, styles.cancelButton]}
-							disabled={isLoading}
-						>
-							Cancel
+							{isLoading ? 'Creating...' : 'Create'}
 						</Button>
 					</Modal.Footer>
 				</Modal.Container>
@@ -669,10 +580,18 @@ export default function OnboardingAccountScreen() {
 							{'\n'}• Sharing with friends and family
 							{'\n'}• Contributing to the global memory map
 							{'\n'}• Privacy controls for your content
+							{hasStarterPackSelections &&
+								'\n\n• Your personalized starter pack preferences'}
 						</WarningMessage>
 					</Modal.Body>
 
 					<Modal.Footer>
+						<Button
+							onPress={cancelSkip}
+							style={[styles.modalButton, styles.cancelButton]}
+						>
+							Go Back
+						</Button>
 						<Button
 							onPress={confirmSkip}
 							style={[
@@ -681,12 +600,6 @@ export default function OnboardingAccountScreen() {
 							]}
 						>
 							Skip for Now
-						</Button>
-						<Button
-							onPress={cancelSkip}
-							style={[styles.modalButton, styles.cancelButton]}
-						>
-							Go Back
 						</Button>
 					</Modal.Footer>
 				</Modal.Container>
@@ -714,6 +627,56 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		paddingVertical: 20,
 	},
+
+	// Starter Pack Selection Summary
+	selectionSummary: {
+		marginBottom: 20,
+	},
+	selectedPacks: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 8,
+		marginTop: 10,
+	},
+	packChip: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 16,
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderWidth: 1,
+		borderColor: ReMapColors.primary.violet,
+	},
+	packChipText: {
+		color: ReMapColors.primary.violet,
+		fontSize: 12,
+	},
+
+	// Modal Starter Pack Display
+	modalStarterPacks: {
+		backgroundColor: ReMapColors.ui.background,
+		padding: 12,
+		borderRadius: 8,
+		marginBottom: 16,
+		borderLeftWidth: 4,
+		borderLeftColor: ReMapColors.primary.violet,
+	},
+	modalPacksTitle: {
+		marginBottom: 8,
+		color: ReMapColors.primary.violet,
+	},
+	modalPacksList: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 8,
+	},
+	modalPackItem: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 12,
+	},
+
+	// Existing styles
 	currentUserContainer: {
 		marginBottom: 30,
 	},
@@ -736,6 +699,7 @@ const styles = StyleSheet.create({
 	},
 	benefitsContainer: {
 		marginBottom: 30,
+		marginTop: 20,
 	},
 	benefitsTitle: {
 		marginBottom: 16,
@@ -765,21 +729,20 @@ const styles = StyleSheet.create({
 	optionsTitle: {},
 	buttonContainer: {
 		width: '100%',
+		gap: 10,
 	},
 	primaryButton: {
-		backgroundColor: ReMapColors.primary.violet,
+		backgroundColor: ReMapColors.primary.testing,
 		width: '100%',
-		marginBottom: 10,
 	},
 	secondaryButton: {
-		backgroundColor: ReMapColors.primary.blue,
-		width: '100%',
-		marginBottom: 15,
+		backgroundColor: ReMapColors.primary.cetacean,
+		flex: 1,
 	},
-	navigationActions: {
+	secondaryActions: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
-		gap: 10,
+		gap: 12,
 	},
 	backButton: {
 		backgroundColor: ReMapColors.ui.textSecondary,
@@ -803,31 +766,5 @@ const styles = StyleSheet.create({
 	},
 	skipConfirmButton: {
 		backgroundColor: ReMapColors.semantic.warning,
-	},
-
-	// Add to your existing styles
-	navIconButton: {
-		backgroundColor: ReMapColors.ui.textSecondary,
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-	},
-
-	secondaryIconButton: {
-		backgroundColor: ReMapColors.ui.textSecondary,
-		flex: 0, // Don't grow like text buttons
-	},
-
-	// Optional: Icon + text combination
-	backGroup: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 8,
-		flex: 1,
-	},
-
-	navLabel: {
-		color: ReMapColors.ui.text,
-		fontSize: 14,
 	},
 });

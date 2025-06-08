@@ -187,6 +187,35 @@ ensure_frontend_dependencies() {
     fi
 }
 
+prompt_cache_reset() {
+    echo ""
+    echo -e "${BLUE}🔄 Development Options:${NC}"
+    echo -e "${YELLOW}   Reset cache? This helps if you're experiencing build issues${NC}"
+    echo -e "${YELLOW}   or components aren't updating properly.${NC}"
+    echo ""
+    echo -e "${CYAN}Reset Expo/Metro cache? (y/N): ${NC}"
+    
+    # Read user input with timeout
+    read -t 10 -n 1 reset_choice
+    echo ""
+    
+    # Handle the response
+    if [[ $reset_choice =~ ^[Yy]$ ]]; then
+        EXPO_CACHE_FLAG="--clear"
+        echo -e "${GREEN}✅ Will reset cache - this may take a bit longer${NC}"
+        echo -e "${BLUE}💡 Cache reset helps with: outdated components, build errors, hot reload issues${NC}"
+    elif [[ -z $reset_choice ]]; then
+        # Timeout occurred
+        EXPO_CACHE_FLAG=""
+        echo -e "${GREEN}✅ Using existing cache (timed out - continuing normally)${NC}"
+    else
+        EXPO_CACHE_FLAG=""
+        echo -e "${GREEN}✅ Using existing cache for faster startup${NC}"
+    fi
+    
+    echo ""
+}
+
 # Main setup function
 main() {
     # Get IP address
@@ -216,6 +245,8 @@ main() {
     
     # Ensure dependencies are installed
     ensure_frontend_dependencies
+
+    prompt_cache_reset
     
     echo ""
     echo -e "${CYAN}📱 Starting Expo development server...${NC}"
@@ -242,7 +273,7 @@ main() {
         echo '  REACT_NATIVE_PACKAGER_HOSTNAME='$HOST_IP &&
         echo '  EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0' &&
         echo '' &&
-        npx expo start --host lan
+        npx expo start --host lan $EXPO_CACHE_FLAG
     "
 }
 
