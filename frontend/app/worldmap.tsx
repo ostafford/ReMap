@@ -1,152 +1,163 @@
-// ================
-//   CORE IMPORTS
-// ================
-import React, { useRef, useMemo, useEffect, useState } from 'react';
+// =========================================================================
+//   						EXTERNAL IMPORTS
+// =========================================================================
+import React, { useRef, useMemo, useState, useEffect } from 'react';
 import {
 	Alert,
+	Animated,
+	Dimensions,
 	Image,
 	Keyboard,
 	KeyboardAvoidingView,
 	Platform,
+	ScrollView,
 	StyleSheet,
 	Text,
+	TouchableOpacity,
 	TouchableWithoutFeedback,
 	View,
-	Animated,
-	Dimensions,
-	TouchableOpacity,
 } from 'react-native';
 
-// =======================
-//   THIRD-PARTY IMPORTS
-// =======================
+// ==================================
+//   SUPABASE FOR USER AUTH IMPORTS
+// ==================================
+import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
+
+// ===============================
+//   EXPO/NAVIGATION IMPORTS
+// ===============================
 import { router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+
+// ===============================
+//   OTHER THIRD-PARTY IMPORTS
+// ===============================
+import axios from 'axios';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useLocalSearchParams } from 'expo-router';
+import { instancedMesh } from 'three/tsl';
+import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 
 // ===========================
 //   FOURSQUARE API IMPORTS
 // ===========================
-import axios from 'axios';
 import { FoursquareSearch } from '@/components/ui/FourSquareSearch';
 import type { Suggestion } from '@/components/ui/FourSquareSearch';
 
-// ================================
-//   INTERNAL 'LAYOUT' COMPONENTS
-// ================================
+// =========================================================================
+//   						INTERNAL IMPORTS
+// =========================================================================
+
+// =========================
+//   CUSTOM HOOKS IMPORTS
+// =========================
+// TODO: Add custom hooks here when/if we want to do them
+
+// ======================
+//  LAYOUT COMPONENTS
+// ======================
 import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
 import { Footer } from '@/components/layout/Footer';
 
-// ============================
-//   INTERNAL 'UI' COMPONENTS
-// ============================
+// =================
+//   UI COMPONENTS
+// =================
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
-import { Input } from '@/components/ui/TextInput';
 import { IconButton } from '@/components/ui/IconButton';
+import { Input } from '@/components/ui/TextInput';
+import { Modal } from '@/components/ui/Modal';
 
-// ==================================
-//   INTERNAL 'TYPOGRAPHY' IMPORTS
-// ==================================
+// ======================
+//   TYPOGRAPHY IMPORTS
+// ======================
 import {
-	HeaderText,
 	BodyText,
-	LabelText,
 	CaptionText,
+	HeaderText,
+	LabelText,
 } from '@/components/ui/Typography';
 
-// ================================
-//   INTERNAL 'CONSTANTS' IMPORTS
-// ================================
+// =====================
+//   CONSTANTS IMPORTS
+// =====================
 import { ReMapColors } from '@/constants/Colors';
 
-// ===============================
-//   INTERNAL 'SERVICES' IMPORTS
-// ===============================
-import { getCurrentUser } from '@/services/auth';
-import { signOut } from '@/services/auth';
+// ===================
+//   SERVICES IMPORTS
+// ===================
+import { getCurrentUser, signOut } from '@/services/auth';
 
-// =================================
-//   INTERNAL 'DUMMY DATA' IMPORTS
-// =================================
+// ======================
+//   DUMMY DATA IMPORTS
+// ======================
 import {
 	DUMMY_PINS,
-	filterPinsByStarterPacks,
 	convertToMapMarker,
+	filterPinsByStarterPacks,
 	type DummyPin,
 } from '@/assets/dummyPinData';
 
-// ===============================
-//   UTILITY CONSTANTS
-// ===============================
-const { height } = Dimensions.get('window');
-
-// ====================
-//   TYPE DEFINITIONS
-// ====================
-
-// JUST MAKING SPACE FOR POTENTIAL TYPE'S FOR THE FUTURE
-
-// ==============================
-//   CONSTANTS & CONFIGURATION
-// ==============================
-
-//   MAP SETTINGS
-// ================
-const INITIAL_REGION = {
-	latitude: -37.817979,
-	longitude: 144.960408,
-	latitudeDelta: 0.01,
-	longitudeDelta: 0.01,
-};
-
-// ========================
-//   COMPONENT DEFINITION
-// ========================
+// =========================================================================
+//   						COMPONENT DEFINITION
+// =========================================================================
 export default function WorldMapScreen() {
-	// =====================
-	//   STATE MANAGEMENT
-	// =====================
-
-	//   MODAL STATE
-	// ==================
-	const [isModalVisible, setIsModalVisible] = React.useState(false);
-	const [modalMode, setModalMode] = React.useState<'login' | 'signup'>(
-		'login'
-	);
-
-	//   AUTHENTICATION STATE
-	// =========================
-	const [currentUser, setCurrentUser] = useState<any>(null);
-	const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-	const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
-
-	//   USER PREFERENCES & FILTERING STATE
-	// =======================================
+	// ===============================
+	//   UTILITY CONSTANTS & SETUP
+	// ===============================
+	const { height } = Dimensions.get('window');
+	const insets = useSafeAreaInsets();
 	const { userPreferences } = useLocalSearchParams();
-	const [userStarterPacks, setUserStarterPacks] = useState<any>(null);
-	const [filteredPins, setFilteredPins] = useState<DummyPin[]>(DUMMY_PINS);
-	const [showPersonalizedPins, setShowPersonalizedPins] = useState(false);
 
-	//   AUTOCOMPLETE SEARCH SETUP
-	// ==============================
-	const [searchVisible, setSearchVisible] = useState(false);
-	const slideAnim = useRef(new Animated.Value(-100)).current;
+	// ================
+	//   MAP SETTINGS
+	// ================
+	const INITIAL_REGION = {
+		latitude: -37.817979,
+		longitude: 144.960408,
+		latitudeDelta: 0.01,
+		longitudeDelta: 0.01,
+	};
 
-	//   MAP REFERENCES
-	// ==================
 	const mapRef = useRef<MapView>(null);
 
-	// ===================
-	//   useEffect HOOKS
-	// ===================
+	// ==================
+	//   MOCK CIRCLE DATA
+	// ==================
+	const mockCircles = [
+		{
+			name: 'Circle 1',
+			avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+		},
+		{
+			name: 'Circle 2',
+			avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+		},
+		{
+			name: 'Circle 3',
+			avatar: 'https://randomuser.me/api/portraits/men/56.jpg',
+		},
+		{
+			name: 'Circle 4',
+			avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
+		},
+		{
+			name: 'Circle 5',
+			avatar: 'https://randomuser.me/api/portraits/men/72.jpg',
+		},
+	];
 
-	//   AUTHENTICATION CHECK
-	// ========================
+	// =============================
+	//   AUTHENTICATION SECTION
+	// =============================
+	const [currentUser, setCurrentUser] = useState<any>(null);
+	const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+	const [user, setUser] = useState<User | null>(null);
+	const [loadingSession, setLoadingSession] = useState<boolean>(true);
+
+	// Authentication useEffect hooks
 	useEffect(() => {
 		const checkUserAuth = async () => {
 			try {
@@ -162,8 +173,62 @@ export default function WorldMapScreen() {
 		checkUserAuth();
 	}, []);
 
-	//  USER PREFERENCES PARSING
-	// ===========================
+	useEffect(() => {
+		const checkSession = async () => {
+			const { data, error } = await supabase.auth.getSession();
+
+			if (error) {
+				console.log('Error fetching session:', error.message);
+				setUser(null);
+			} else if (data?.session?.user) {
+				setUser(data.session.user);
+			} else {
+				setUser(null);
+			}
+			setLoadingSession(false);
+		};
+		checkSession();
+	}, []);
+
+	// Authentication handlers
+	const openLoginModal = () => {
+		if (user) {
+			console.log('User logged in:', user.email);
+		}
+		setModalMode('login');
+		setIsModalVisible(true);
+	};
+
+	const handleSignOut = async () => {
+		try {
+			await signOut();
+			setCurrentUser(null);
+			closeProfileModal();
+			router.replace('/');
+		} catch (error) {
+			console.error('Sign out error:', error);
+		}
+	};
+
+	// =============================
+	//   MODAL MANAGEMENT SECTION
+	// =============================
+	const [isModalVisible, setIsModalVisible] = useState(false);
+	const [modalMode, setModalMode] = useState<'login' | 'signup'>('login');
+	const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
+
+	// Modal handlers
+	const openProfileModal = () => setIsProfileModalVisible(true);
+	const closeProfileModal = () => setIsProfileModalVisible(false);
+
+	// =============================
+	//   USER PREFERENCES & FILTERING SECTION
+	// =============================
+	const [userStarterPacks, setUserStarterPacks] = useState<any>(null);
+	const [filteredPins, setFilteredPins] = useState<DummyPin[]>(DUMMY_PINS);
+	const [showPersonalizedPins, setShowPersonalizedPins] = useState(false);
+
+	// User preferences useEffect
 	useEffect(() => {
 		if (userPreferences) {
 			try {
@@ -195,45 +260,7 @@ export default function WorldMapScreen() {
 		}
 	}, [userPreferences]);
 
-	// ==================
-	//   EVENT HANDLERS
-	// ==================
-
-	//   NAVIGATION HANDLERS
-	// ==================
-	const goBack = () => {
-		router.replace('/');
-	};
-	const navigateToWorldMap = () => {
-		router.replace('/worldmap');
-	};
-	const navigateToCreatePin = () => {
-		router.replace('/createPin');
-	};
-
-	//   AUTHENTICATION HANDLERS
-	// ===========================
-	const openLoginModal = () => {
-		setModalMode('login');
-		setIsModalVisible(true);
-	};
-
-	const openProfileModal = () => setIsProfileModalVisible(true);
-	const closeProfileModal = () => setIsProfileModalVisible(false);
-
-	const handleSignOut = async () => {
-		try {
-			await signOut();
-			setCurrentUser(null);
-			closeProfileModal();
-			router.replace('/'); // Navigate back to splash
-		} catch (error) {
-			console.error('Sign out error:', error);
-		}
-	};
-
-	//   FILTERING HANDLERS
-	// ======================
+	// Filtering handlers
 	const togglePersonalizedView = () => {
 		if (showPersonalizedPins && userStarterPacks?.selectedIds?.length > 0) {
 			// Switch to all pins
@@ -251,6 +278,7 @@ export default function WorldMapScreen() {
 		}
 	};
 
+	// Filter helper functions
 	const getFilterStatusText = () => {
 		if (!userStarterPacks?.selectedIds?.length) {
 			return 'Showing all locations';
@@ -263,6 +291,23 @@ export default function WorldMapScreen() {
 		return `Showing all locations (${filteredPins.length} pins)`;
 	};
 
+	// =============================
+	//   MAP INTERACTION SECTION
+	// =============================
+	// Map handlers
+	const handleMarkerPress = (coordinate: {
+		latitude: number;
+		longitude: number;
+	}) => {
+		mapRef.current?.animateToRegion({
+			latitude: coordinate.latitude,
+			longitude: coordinate.longitude,
+			latitudeDelta: 0.01,
+			longitudeDelta: 0.01,
+		});
+	};
+
+	// Map helper functions
 	const getMarkerColor = (category: string): string => {
 		const colorMap: { [key: string]: string } = {
 			cafes: '#8B4513',
@@ -275,8 +320,13 @@ export default function WorldMapScreen() {
 		return colorMap[category] || '#666666';
 	};
 
-	//   SEARCH HANDLERS
-	// ===================
+	// =============================
+	//   SEARCH FUNCTIONALITY SECTION
+	// =============================
+	const [searchVisible, setSearchVisible] = useState(false);
+	const slideAnim = useRef(new Animated.Value(-100)).current;
+
+	// Search handlers
 	const openSearch = () => {
 		setSearchVisible(true);
 		Animated.timing(slideAnim, {
@@ -315,186 +365,253 @@ export default function WorldMapScreen() {
 		}
 	};
 
-	// ###############################################################################################
+	// =============================
+	//   SOCIAL CIRCLES SECTION
+	// =============================
+	const [showSocials, setShowSocials] = useState(false);
+	const socialsSlideAnim = useRef(new Animated.Value(-100)).current;
 
-	// ###############################################################################################
+	// Social circles handlers
+	const toggleSocials = () => {
+		Animated.spring(socialsSlideAnim, {
+			toValue: showSocials ? -100 : 0,
+			useNativeDriver: true,
+			damping: 15,
+			stiffness: 120,
+			mass: 1,
+		}).start(() => {
+			setShowSocials(!showSocials);
+		});
+	};
+
+	// =============================
+	//   NAVIGATION SECTION
+	// =============================
+	// Navigation handlers
+	const goBack = () => {
+		router.replace('/');
+	};
+
+	const navigateToWorldMap = () => {
+		router.replace('/worldmap');
+	};
+
+	const navigateToCreatePin = () => {
+		router.replace('/createPin');
+	};
 
 	// =========================
 	//   WORLDMAP PAGE RENDER
 	// =========================
 	return (
-		<>
-			<GestureHandlerRootView style={styles.container}>
-				{/**********************************************/}
-				{/******** AUTOCOMPLETE SLIDE FROM TOP *********/}
-				{/* *********************************************/}
-				{searchVisible && (
-					<Animated.View
-						style={[
-							styles.animatedSearchContainer,
-							{ transform: [{ translateY: slideAnim }] },
-						]}
-					>
-						<FoursquareSearch
-							onSelect={onSelectSuggestion}
-							placeholder="Search location..."
-						/>
-					</Animated.View>
-				)}
+		<GestureHandlerRootView style={styles.container}>
+			{/**********************************************/}
+			{/******** AUTOCOMPLETE SLIDE FROM TOP *********/}
+			{/* *********************************************/}
+			{searchVisible && (
+				<Animated.View
+					style={[
+						styles.animatedSearchContainer,
+						{ transform: [{ translateY: slideAnim }] },
+					]}
+				>
+					<FoursquareSearch
+						onSelect={onSelectSuggestion}
+						placeholder="Search location..."
+					/>
+				</Animated.View>
+			)}
 
-				<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-					<KeyboardAvoidingView
-						style={styles.keyboardAvoidingView}
-						behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-						keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
-					>
-						{/**********************************************/}
-						{/**************** MAIN CONTENT ****************/}
-						{/* *********************************************/}
-						<MainContent>
-							<View>
-								{/* ************ */}
-								{/*   MAP VIEW   */}
-								{/* ************ */}
-								<MapView
-									ref={mapRef}
-									style={styles.map}
-									provider={PROVIDER_GOOGLE}
-									initialRegion={INITIAL_REGION}
-									showsUserLocation
-									showsMyLocationButton
+			<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+				<KeyboardAvoidingView
+					style={styles.keyboardAvoidingView}
+					behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+					keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+				>
+					{/**********************************************/}
+					{/**************** MAIN CONTENT ****************/}
+					{/* *********************************************/}
+					<MainContent>
+						<View>
+							{/* ************ */}
+							{/*   MAP VIEW   */}
+							{/* ************ */}
+							<MapView
+								ref={mapRef}
+								style={styles.map}
+								provider={PROVIDER_GOOGLE}
+								initialRegion={INITIAL_REGION}
+								showsUserLocation
+								showsMyLocationButton
+							>
+								<Marker
+									title="Holberton School"
+									description="Holberton Campus - Collins Street"
+									coordinate={{
+										latitude: -37.817979,
+										longitude: 144.960408,
+									}}
+									// onPress={() =>
+									// 	handleMarkerPress({
+									// 		latitude: -37.817979,
+									// 		longitude: 144.960408,
+									// 	})
+									// }
 								>
-									{/* Existing Holberton marker */}
-									<Marker
-										title="Holberton School"
-										description="Holberton Campus - Collins Street"
-										coordinate={{
-											latitude: -37.817979,
-											longitude: 144.960408,
-										}}
-									>
-										<Image
-											source={require('../assets/images/holberton_logo.jpg')}
-											style={{ width: 60, height: 60 }}
-											resizeMode="contain"
-										/>
-									</Marker>
+									<Image
+										source={require('../assets/images/holberton_logo.jpg')}
+										style={{ width: 60, height: 60 }}
+										resizeMode="contain"
+									/>
+								</Marker>
 
-									{/* Dynamic pins based on user preferences (STARTER PACK DUMMY TEST) */}
-									{filteredPins.map((pin) => {
-										const marker = convertToMapMarker(pin);
-										return (
-											<Marker
-												key={marker.id}
-												coordinate={marker.coordinate}
-												title={marker.title}
-												description={marker.description}
-												onPress={() => {
-													// Optional: Handle pin press to show memory details
-													// console.log(
-													// 	'Pin pressed:',
-													// 	pin.name,
-													// 	pin.memory?.title
-													// );
-												}}
+								{/* Dynamic pins based on user preferences with press handlers */}
+								{filteredPins.map((pin) => {
+									const marker = convertToMapMarker(pin);
+									return (
+										<Marker
+											key={marker.id}
+											coordinate={marker.coordinate}
+											title={marker.title}
+											description={marker.description}
+											onPress={() => {
+												// Handle pin press with both marker press animation AND optional memory details
+												handleMarkerPress(
+													marker.coordinate
+												);
+												// Optional: Handle pin press to show memory details
+												// console.log(
+												// 	'Pin pressed:',
+												// 	pin.name,
+												// 	pin.memory?.title
+												// );
+											}}
+										>
+											<View
+												style={[
+													styles.customMarker,
+													{
+														backgroundColor:
+															getMarkerColor(
+																pin.starterPackCategory
+															),
+													},
+												]}
 											>
-												<View
-													style={[
-														styles.customMarker,
+												<Text style={styles.markerIcon}>
+													{marker.icon}
+												</Text>
+											</View>
+										</Marker>
+									);
+								})}
+							</MapView>
+
+							{/* ************************ */}
+							{/*   OVERLAY UI CONTROLS    */}
+							{/* ************************ */}
+							<View
+								style={[
+									styles.circlesContainer,
+									{ top: insets.top + 100 },
+								]}
+							>
+								<IconButton
+									icon="globe"
+									onPress={navigateToCreatePin}
+									size={28}
+									style={styles.circleSelections}
+								/>
+								<IconButton
+									icon="user"
+									onPress={navigateToCreatePin}
+									size={28}
+									style={styles.circleSelections}
+								/>
+
+								{/* Social Circles with Animation (Drop-Down) */}
+								<View style={{ alignItems: 'flex-end' }}>
+									<IconButton
+										icon="users"
+										onPress={toggleSocials}
+										size={28}
+										style={styles.socialSelection}
+									/>
+									<Animated.View
+										style={[
+											styles.socialsBacking,
+											{
+												transform: [
+													{
+														translateY:
+															socialsSlideAnim,
+													},
+												],
+												opacity:
+													socialsSlideAnim.interpolate(
 														{
-															backgroundColor:
-																getMarkerColor(
-																	pin.starterPackCategory
-																),
-														},
-													]}
-												>
-													<Text
+															inputRange: [
+																-100, 0,
+															],
+															outputRange: [0, 1],
+															extrapolate:
+																'clamp',
+														}
+													),
+											},
+										]}
+									>
+										<ScrollView
+											contentContainerStyle={
+												styles.socialsList
+											}
+										>
+											{mockCircles.map(
+												(circle, index) => (
+													<TouchableOpacity
+														key={index}
 														style={
-															styles.markerIcon
+															styles.socialCircleWrapper
 														}
 													>
-														{marker.icon}
-													</Text>
-												</View>
-											</Marker>
-										);
-									})}
-								</MapView>
-								<View style={styles.mapContent}>
-									<Text>
-										THIS IS THE OVERLAY AT THE TOP, MISSING
-										UPDATE FROM ANNA
-									</Text>
-								</View>
-
-								{/* ***************** */}
-								{/*  FILTER CONTROLS  */}
-								{/* ***************** */}
-								{userStarterPacks &&
-									userStarterPacks.selectedIds?.length >
-										0 && (
-										<View style={styles.filterControls}>
-											<View style={styles.filterHeader}>
-												<CaptionText
-													style={styles.filterStatus}
-												>
-													{getFilterStatusText()}
-												</CaptionText>
-												<Button
-													onPress={
-														togglePersonalizedView
-													}
-													style={styles.filterToggle}
-													size="small"
-												>
-													{showPersonalizedPins
-														? 'Show All'
-														: 'My Interests'}
-												</Button>
-											</View>
-
-											{/* Show selected categories */}
-											<View
-												style={
-													styles.selectedCategories
-												}
-											>
-												{userStarterPacks.starterPacks.map(
-													(pack: any) => (
-														<View
-															key={pack.id}
+														<Image
+															source={{
+																uri: circle.avatar,
+															}}
 															style={
-																styles.categoryChip
+																styles.socialCircleImage
 															}
-														>
-															<CaptionText
-																style={
-																	styles.categoryChipText
-																}
-															>
-																{pack.icon}{' '}
-																{pack.name}
-															</CaptionText>
-														</View>
-													)
-												)}
-											</View>
-										</View>
-									)}
+														/>
+													</TouchableOpacity>
+												)
+											)}
+										</ScrollView>
+									</Animated.View>
+								</View>
 							</View>
 
-							{/* NOTE: Under map content with Typography components */}
+							{/**********************************************/}
+							{/************ UNDER MAP CONTENT ***************/}
+							{/**********************************************/}
 							<View style={styles.scrollContent}>
+								<Text style={styles.remapTitle}>
+									ReMap Your Journey
+								</Text>
 								<TouchableOpacity
-									style={styles.fakeInput}
+									style={
+										searchVisible
+											? styles.fakeInputClose
+											: styles.fakeInput
+									}
 									onPress={
 										searchVisible ? closeSearch : openSearch
 									}
 								>
 									<Text
 										style={{
-											color: ReMapColors.ui.textSecondary,
+											color: searchVisible
+												? 'white'
+												: ReMapColors.ui.textSecondary,
 										}}
 									>
 										{searchVisible
@@ -503,173 +620,213 @@ export default function WorldMapScreen() {
 									</Text>
 								</TouchableOpacity>
 							</View>
-						</MainContent>
 
-						{/**************/}
-						{/*** FOOTER ***/}
-						{/**************/}
-						<Footer>
-							<View style={styles.footerContainer}>
-								<IconButton
-									icon="reply"
-									onPress={goBack}
-								></IconButton>
-								<IconButton
-									icon="map-pin"
-									onPress={navigateToCreatePin}
-								></IconButton>
-								<IconButton
-									icon="user"
-									onPress={openLoginModal}
-								></IconButton>
-								<IconButton
-									icon="list"
-									onPress={navigateToCreatePin}
-								></IconButton>
-
-								{/**********************/}
-								{/* LOGIN/SIGNUP MODAL */}
-								{/**********************/}
-								<Modal
-									isVisible={isModalVisible}
-									onBackdropPress={() =>
-										setIsModalVisible(false)
-									}
-								>
-									<Modal.Container>
-										<Modal.Header
-											title={
-												modalMode === 'login'
-													? 'Welcome Back!'
-													: 'Join ReMap Community'
-											}
-										/>
-										<Modal.Body>
-											{modalMode === 'signup' && (
-												<Input
-													label="Full Name"
-													placeholder="Enter your full name"
-												/>
-											)}
-											<Input
-												label="Email"
-												placeholder="Enter your email"
-												keyboardType="email-address"
-											/>
-											<Input
-												label="Password"
-												placeholder={
-													modalMode === 'login'
-														? 'Enter password'
-														: 'Create a password'
-												}
-												secureTextEntry
-												secureToggle
-											/>
-										</Modal.Body>
-										<Modal.Footer>
-											<View
-												style={
-													styles.modalButtonContainer
-												}
+							{/* ******************************** */}
+							{/*  FILTER CONTROLS (STARTER PACK)  */}
+							{/* ******************************** */}
+							{userStarterPacks &&
+								userStarterPacks.selectedIds?.length > 0 && (
+									<View style={styles.filterControls}>
+										<View style={styles.filterHeader}>
+											<CaptionText
+												style={styles.filterStatus}
 											>
-												<Button
-													onPress={() =>
-														setModalMode(
-															modalMode ===
-																'login'
-																? 'signup'
-																: 'login'
-														)
-													}
-													style={[
-														styles.modalButton,
-														styles.cancelButton,
-													]}
-												>
-													{modalMode === 'login'
-														? 'New User'
-														: 'Back to Login'}
-												</Button>
-												<Button
-													onPress={navigateToWorldMap}
-													style={[
-														styles.modalButton,
-														modalMode ===
-															'signup' &&
-															styles.signUpButton,
-													]}
-												>
-													{modalMode === 'login'
-														? 'Sign In'
-														: 'Create Account'}
-												</Button>
-											</View>
-										</Modal.Footer>
-									</Modal.Container>
-								</Modal>
-							</View>
-						</Footer>
+												{getFilterStatusText()}
+											</CaptionText>
+											<Button
+												onPress={togglePersonalizedView}
+												style={styles.filterToggle}
+												size="small"
+											>
+												{showPersonalizedPins
+													? 'Show All'
+													: 'My Interests'}
+											</Button>
+										</View>
 
-						{/********************/}
-						{/*   PROFILE MODAL  */}
-						{/********************/}
-						<Modal
-							isVisible={isProfileModalVisible}
-							onBackdropPress={closeProfileModal}
-						>
-							<Modal.Container>
-								<Modal.Header
-									title={`Hello, ${
-										currentUser?.email?.split('@')[0] ||
-										'User'
-									}! 👋`}
-								/>
-								<Modal.Body>
-									<View style={styles.profileContent}>
-										<BodyText style={styles.profileEmail}>
-											📧 {currentUser?.email}
-										</BodyText>
-										<CaptionText style={styles.profileMeta}>
-											Member since{' '}
-											{currentUser
-												? new Date(
-														currentUser.created_at
-												  ).toLocaleDateString()
-												: ''}
-										</CaptionText>
-										<BodyText style={styles.profileMessage}>
-											Full profile page coming soon! For
-											now, you can sign out if needed.
-										</BodyText>
+										{/* Show selected categories */}
+										<View style={styles.selectedCategories}>
+											{userStarterPacks.starterPacks.map(
+												(pack: any) => (
+													<View
+														key={pack.id}
+														style={
+															styles.categoryChip
+														}
+													>
+														<CaptionText
+															style={
+																styles.categoryChipText
+															}
+														>
+															{pack.icon}{' '}
+															{pack.name}
+														</CaptionText>
+													</View>
+												)
+											)}
+										</View>
 									</View>
-								</Modal.Body>
-								<Modal.Footer>
+								)}
+						</View>
+					</MainContent>
+
+					{/**********************************************/}
+					{/****************** FOOTER *******************/}
+					{/* *********************************************/}
+					<Footer>
+						<View style={styles.footerContainer}>
+							{/* FOOTER OPTION 1: More features, conditional logic */}
+							<IconButton
+								icon={user ? 'address-card' : 'reply'}
+								onPress={goBack}
+							/>
+							<IconButton
+								icon={user ? 'map-pin' : 'user'}
+								onPress={
+									user ? navigateToCreatePin : openLoginModal
+								}
+								size={36}
+								style={styles.bigCenterButton}
+							/>
+							<IconButton
+								icon="sliders"
+								onPress={navigateToCreatePin}
+							/>
+						</View>
+					</Footer>
+
+					{/**********************/}
+					{/* LOGIN/SIGNUP MODAL */}
+					{/**********************/}
+					<Modal
+						isVisible={isModalVisible}
+						onBackdropPress={() => setIsModalVisible(false)}
+					>
+						<Modal.Container>
+							<Modal.Header
+								title={
+									modalMode === 'login'
+										? 'Welcome Back!'
+										: 'Join ReMap Community'
+								}
+							/>
+							<Modal.Body>
+								{modalMode === 'signup' && (
+									<Input
+										label="Full Name"
+										placeholder="Enter your full name"
+									/>
+								)}
+								<Input
+									label="Email"
+									placeholder="Enter your email"
+									keyboardType="email-address"
+								/>
+								<Input
+									label="Password"
+									placeholder={
+										modalMode === 'login'
+											? 'Enter password'
+											: 'Create a password'
+									}
+									secureTextEntry
+									secureToggle
+								/>
+							</Modal.Body>
+							<Modal.Footer>
+								<View style={styles.modalButtonContainer}>
 									<Button
-										onPress={handleSignOut}
-										style={[
-											styles.modalButton,
-											styles.signOutButton,
-										]}
-									>
-										🚪 Sign Out
-									</Button>
-									<Button
-										onPress={closeProfileModal}
+										onPress={() =>
+											setModalMode(
+												modalMode === 'login'
+													? 'signup'
+													: 'login'
+											)
+										}
 										style={[
 											styles.modalButton,
 											styles.cancelButton,
 										]}
 									>
-										Stay Signed In
+										{modalMode === 'login'
+											? 'New User'
+											: 'Back to Login'}
 									</Button>
-								</Modal.Footer>
-							</Modal.Container>
-						</Modal>
-					</KeyboardAvoidingView>
-				</TouchableWithoutFeedback>
-			</GestureHandlerRootView>
-		</>
+									<Button
+										onPress={navigateToWorldMap}
+										style={[
+											styles.modalButton,
+											modalMode === 'signup' &&
+												styles.signUpButton,
+										]}
+									>
+										{modalMode === 'login'
+											? 'Sign In'
+											: 'Create Account'}
+									</Button>
+								</View>
+							</Modal.Footer>
+						</Modal.Container>
+					</Modal>
+
+					{/********************/}
+					{/*   PROFILE MODAL  */}
+					{/********************/}
+					<Modal
+						isVisible={isProfileModalVisible}
+						onBackdropPress={closeProfileModal}
+					>
+						<Modal.Container>
+							<Modal.Header
+								title={`Hello, ${
+									currentUser?.email?.split('@')[0] || 'User'
+								}! 👋`}
+							/>
+							<Modal.Body>
+								<View style={styles.profileContent}>
+									<BodyText style={styles.profileEmail}>
+										📧 {currentUser?.email}
+									</BodyText>
+									<CaptionText style={styles.profileMeta}>
+										Member since{' '}
+										{currentUser
+											? new Date(
+													currentUser.created_at
+											  ).toLocaleDateString()
+											: ''}
+									</CaptionText>
+									<BodyText style={styles.profileMessage}>
+										Full profile page coming soon! For now,
+										you can sign out if needed.
+									</BodyText>
+								</View>
+							</Modal.Body>
+							<Modal.Footer>
+								<Button
+									onPress={handleSignOut}
+									style={[
+										styles.modalButton,
+										styles.signOutButton,
+									]}
+								>
+									🚪 Sign Out
+								</Button>
+								<Button
+									onPress={closeProfileModal}
+									style={[
+										styles.modalButton,
+										styles.cancelButton,
+									]}
+								>
+									Stay Signed In
+								</Button>
+							</Modal.Footer>
+						</Modal.Container>
+					</Modal>
+				</KeyboardAvoidingView>
+			</TouchableWithoutFeedback>
+		</GestureHandlerRootView>
 	);
 }
 
@@ -700,13 +857,23 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 		marginBottom: 30,
 	},
+	remapTitle: {
+		fontSize: 34,
+		alignSelf: 'center',
+		padding: 8,
+		fontWeight: 'bold',
+	},
+	circleName: {
+		color: ReMapColors.ui.text,
+		fontSize: 14,
+	},
 
 	// ===============
 	//   MAP STYLES
 	// ===============
 	map: {
 		width: '100%',
-		height: 650,
+		height: 600,
 	},
 	mapContent: {
 		backgroundColor: ReMapColors.primary.accent, // this colour is just for examples sake - not gonna be purple
@@ -740,11 +907,70 @@ const styles = StyleSheet.create({
 		color: '#FFFFFF',
 	},
 
+	// ==========================
+	//   OVERLAY UI CONTROLS
+	// ==========================
+	circlesContainer: {
+		paddingRight: 12,
+		alignItems: 'flex-end',
+		justifyContent: 'center',
+		height: 'auto',
+		position: 'absolute',
+		width: '100%',
+	},
+	circleSelections: {
+		width: 54,
+		height: 54,
+		borderRadius: 27,
+		zIndex: 5,
+	},
+
+	// ==========================
+	//   SOCIAL CIRCLES STYLES
+	// ==========================
+	socialSelection: {
+		width: 54,
+		height: 54,
+		borderRadius: 35,
+		zIndex: 5,
+	},
+	socialsBacking: {
+		marginTop: 8,
+		backgroundColor: ReMapColors.ui.grey,
+		opacity: 0.1,
+		borderRadius: 20,
+		maxHeight: 200,
+		width: 54,
+		overflow: 'hidden',
+	},
+	socialsList: {
+		alignItems: 'center',
+	},
+	socialCircleWrapper: {
+		marginBottom: 12,
+	},
+	socialCircleImage: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		borderWidth: 2,
+		borderColor: ReMapColors.primary.accent,
+	},
+
 	// =================
 	//   SEARCH STYLES
 	// =================
 	scrollContent: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 35,
+		borderTopLeftRadius: 30,
+		borderTopRightRadius: 30,
+		marginTop: -5,
 		padding: 20,
+		shadowColor: ReMapColors.primary.black,
+		shadowOffset: { width: 0, height: -2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
 	},
 	search: {
 		flexDirection: 'row',
@@ -758,6 +984,16 @@ const styles = StyleSheet.create({
 		marginHorizontal: 20,
 		marginTop: 10,
 		padding: 12,
+	},
+	fakeInputClose: {
+		backgroundColor: ReMapColors.primary.black,
+		borderRadius: 20,
+		marginHorizontal: 20,
+		marginTop: 10,
+		padding: 12,
+		width: 120,
+		alignItems: 'center',
+		alignSelf: 'center',
 	},
 	animatedSearchContainer: {
 		backgroundColor: 'white',
@@ -833,21 +1069,39 @@ const styles = StyleSheet.create({
 		fontSize: 11,
 	},
 
+	// ==================
+	//   FOOTER STYLES
+	// ==================
+	footerContainer: {
+		flexDirection: 'row',
+		justifyContent: 'space-evenly',
+		alignItems: 'center',
+		width: '55%',
+	},
+	backButton: {
+		backgroundColor: ReMapColors.primary.black,
+	},
+	bigCenterButton: {
+		width: 72,
+		height: 72,
+		borderRadius: 36,
+	},
+
 	// ================
 	//   MODAL STYLES
 	// ================
 	modalButton: {
 		width: 'auto',
 	},
+	modalButtonContainer: {
+		flexDirection: 'column',
+		alignItems: 'center',
+	},
 	signUpButton: {
 		backgroundColor: '#2900E2',
 	},
 	cancelButton: {
 		backgroundColor: ReMapColors.ui.textSecondary,
-	},
-	modalButtonContainer: {
-		flexDirection: 'column',
-		alignItems: 'center',
 	},
 
 	// =======================
@@ -872,15 +1126,5 @@ const styles = StyleSheet.create({
 	},
 	signOutButton: {
 		backgroundColor: ReMapColors.semantic.error,
-	},
-
-	// ==================
-	//   FOOTER STYLES
-	// ==================
-	footerContainer: {
-		flexDirection: 'row',
-	},
-	backButton: {
-		backgroundColor: ReMapColors.primary.black,
 	},
 });
