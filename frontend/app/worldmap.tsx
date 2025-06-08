@@ -1,11 +1,3 @@
-import { useLocalSearchParams } from 'expo-router';
-import {
-	DUMMY_PINS,
-	filterPinsByStarterPacks,
-	convertToMapMarker,
-	type DummyPin,
-} from '@/assets/dummyPinData';
-
 // ================
 //   CORE IMPORTS
 // ================
@@ -29,61 +21,97 @@ import {
 //   THIRD-PARTY IMPORTS
 // =======================
 import { router } from 'expo-router';
-import { ReMapColors } from '@/constants/Colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useLocalSearchParams } from 'expo-router';
+
+// ===========================
+//   FOURSQUARE API IMPORTS
+// ===========================
+import axios from 'axios';
+import { FoursquareSearch } from '@/components/ui/FourSquareSearch';
+import type { Suggestion } from '@/components/ui/FourSquareSearch';
 
 // ================================
-//   INTERNAL 'UI' COMPONENTS
+//   INTERNAL 'LAYOUT' COMPONENTS
 // ================================
+import { Header } from '@/components/layout/Header';
+import { MainContent } from '@/components/layout/MainContent';
+import { Footer } from '@/components/layout/Footer';
+
+// ============================
+//   INTERNAL 'UI' COMPONENTS
+// ============================
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
 import { IconButton } from '@/components/ui/IconButton';
 
-// ============================
-//   INTERNAL 'LAYOUT' COMPONENTS
-// ============================
-import { Header } from '@/components/layout/Header';
-import { MainContent } from '@/components/layout/MainContent';
-import { Footer } from '@/components/layout/Footer';
+// ==================================
+//   INTERNAL 'TYPOGRAPHY' IMPORTS
+// ==================================
+import {
+	HeaderText,
+	BodyText,
+	LabelText,
+	CaptionText,
+} from '@/components/ui/Typography';
+
+// ================================
+//   INTERNAL 'CONSTANTS' IMPORTS
+// ================================
+import { ReMapColors } from '@/constants/Colors';
+
+// ===============================
+//   INTERNAL 'SERVICES' IMPORTS
+// ===============================
 import { getCurrentUser } from '@/services/auth';
 import { signOut } from '@/services/auth';
 
-// ================================
-//   INTERNAL 'TYPOGRAPHY' IMPORTS
-// ================================
-import { HeaderText, BodyText, LabelText } from '@/components/ui/Typography';
+// =================================
+//   INTERNAL 'DUMMY DATA' IMPORTS
+// =================================
+import {
+	DUMMY_PINS,
+	filterPinsByStarterPacks,
+	convertToMapMarker,
+	type DummyPin,
+} from '@/assets/dummyPinData';
 
-// ==================================
-//   FOURSQUARE AUTOCOMPLETE IMPORTS
-// ==================================
-import axios from 'axios';
-import { FoursquareSearch } from '@/components/ui/FourSquareSearch';
-import type { Suggestion } from '@/components/ui/FourSquareSearch';
-
+// ===============================
+//   UTILITY CONSTANTS
+// ===============================
 const { height } = Dimensions.get('window');
+
+// ====================
+//   TYPE DEFINITIONS
+// ====================
+
+// JUST MAKING SPACE FOR POTENTIAL TYPE'S FOR THE FUTURE
+
+// ==============================
+//   CONSTANTS & CONFIGURATION
+// ==============================
+
+//   MAP SETTINGS
+// ================
+const INITIAL_REGION = {
+	latitude: -37.817979,
+	longitude: 144.960408,
+	latitudeDelta: 0.01,
+	longitudeDelta: 0.01,
+};
 
 // ========================
 //   COMPONENT DEFINITION
 // ========================
 export default function WorldMapScreen() {
-	// ==================
-	//   EVENT HANDLERS
-	// ==================
-	const goBack = () => {
-		router.replace('/');
-	};
-	const navigateToWorldMap = () => {
-		router.replace('/worldmap');
-	};
-	const navigateToCreatePin = () => {
-		router.replace('/createPin');
-	};
+	// =====================
+	//   STATE MANAGEMENT
+	// =====================
 
-	// ==================
 	//   MODAL STATE
 	// ==================
 	const [isModalVisible, setIsModalVisible] = React.useState(false);
@@ -91,28 +119,34 @@ export default function WorldMapScreen() {
 		'login'
 	);
 
-	const openLoginModal = () => {
-		setModalMode('login');
-		setIsModalVisible(true);
-	};
-
-	// ================
-	//   MAP SETTINGS
-	// ================
-	const INITIAL_REGION = {
-		latitude: -37.817979,
-		longitude: 144.960408,
-		latitudeDelta: 0.01,
-		longitudeDelta: 0.01,
-	};
-
-	// =========================================
-	//   \/\/\/ OKKY DOING SOME TESTING \/\/\/
-	// =========================================
-	// Auth Checks
+	//   AUTHENTICATION STATE
+	// =========================
 	const [currentUser, setCurrentUser] = useState<any>(null);
 	const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+	const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
 
+	//   USER PREFERENCES & FILTERING STATE
+	// =======================================
+	const { userPreferences } = useLocalSearchParams();
+	const [userStarterPacks, setUserStarterPacks] = useState<any>(null);
+	const [filteredPins, setFilteredPins] = useState<DummyPin[]>(DUMMY_PINS);
+	const [showPersonalizedPins, setShowPersonalizedPins] = useState(false);
+
+	//   AUTOCOMPLETE SEARCH SETUP
+	// ==============================
+	const [searchVisible, setSearchVisible] = useState(false);
+	const slideAnim = useRef(new Animated.Value(-100)).current;
+
+	//   MAP REFERENCES
+	// ==================
+	const mapRef = useRef<MapView>(null);
+
+	// ===================
+	//   useEffect HOOKS
+	// ===================
+
+	//   AUTHENTICATION CHECK
+	// ========================
 	useEffect(() => {
 		const checkUserAuth = async () => {
 			try {
@@ -128,32 +162,8 @@ export default function WorldMapScreen() {
 		checkUserAuth();
 	}, []);
 
-	// Profile Modal
-	const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
-
-	const openProfileModal = () => setIsProfileModalVisible(true);
-	const closeProfileModal = () => setIsProfileModalVisible(false);
-
-	const handleSignOut = async () => {
-		try {
-			await signOut();
-			setCurrentUser(null);
-			closeProfileModal();
-			router.replace('/'); // Navigate back to splash
-		} catch (error) {
-			console.error('Sign out error:', error);
-		}
-	};
-	const { userPreferences } = useLocalSearchParams();
-	const [userStarterPacks, setUserStarterPacks] = useState<any>(null);
-	const [filteredPins, setFilteredPins] = useState<DummyPin[]>(DUMMY_PINS);
-	const [showPersonalizedPins, setShowPersonalizedPins] = useState(false);
-
-	// ===============================
-	//   ADD THIS USEEFFECT
-	// ===============================
-	// Add this useEffect to parse user preferences and filter pins:
-
+	//  USER PREFERENCES PARSING
+	// ===========================
 	useEffect(() => {
 		if (userPreferences) {
 			try {
@@ -185,11 +195,45 @@ export default function WorldMapScreen() {
 		}
 	}, [userPreferences]);
 
-	// ===============================
-	//   ADD THESE HELPER FUNCTIONS
-	// ===============================
-	// Add these functions to your component:
+	// ==================
+	//   EVENT HANDLERS
+	// ==================
 
+	//   NAVIGATION HANDLERS
+	// ==================
+	const goBack = () => {
+		router.replace('/');
+	};
+	const navigateToWorldMap = () => {
+		router.replace('/worldmap');
+	};
+	const navigateToCreatePin = () => {
+		router.replace('/createPin');
+	};
+
+	//   AUTHENTICATION HANDLERS
+	// ===========================
+	const openLoginModal = () => {
+		setModalMode('login');
+		setIsModalVisible(true);
+	};
+
+	const openProfileModal = () => setIsProfileModalVisible(true);
+	const closeProfileModal = () => setIsProfileModalVisible(false);
+
+	const handleSignOut = async () => {
+		try {
+			await signOut();
+			setCurrentUser(null);
+			closeProfileModal();
+			router.replace('/'); // Navigate back to splash
+		} catch (error) {
+			console.error('Sign out error:', error);
+		}
+	};
+
+	//   FILTERING HANDLERS
+	// ======================
 	const togglePersonalizedView = () => {
 		if (showPersonalizedPins && userStarterPacks?.selectedIds?.length > 0) {
 			// Switch to all pins
@@ -231,17 +275,8 @@ export default function WorldMapScreen() {
 		return colorMap[category] || '#666666';
 	};
 
-	// ====================================
-	//   ^^^ OKKY DOING SOME TESTING ^^^
-	// ====================================
-	const mapRef = useRef<MapView>(null);
-
-	// ===================================
-	//   AUTOCOMPLETE SEARCH SETUP
-	// ===================================
-	const [searchVisible, setSearchVisible] = useState(false);
-	const slideAnim = useRef(new Animated.Value(-100)).current;
-
+	//   SEARCH HANDLERS
+	// ===================
 	const openSearch = () => {
 		setSearchVisible(true);
 		Animated.timing(slideAnim, {
@@ -280,6 +315,10 @@ export default function WorldMapScreen() {
 		}
 	};
 
+	// ###############################################################################################
+
+	// ###############################################################################################
+
 	// =========================
 	//   WORLDMAP PAGE RENDER
 	// =========================
@@ -314,6 +353,9 @@ export default function WorldMapScreen() {
 						{/* *********************************************/}
 						<MainContent>
 							<View>
+								{/* ************ */}
+								{/*   MAP VIEW   */}
+								{/* ************ */}
 								<MapView
 									ref={mapRef}
 									style={styles.map}
@@ -338,7 +380,7 @@ export default function WorldMapScreen() {
 										/>
 									</Marker>
 
-									{/* Dynamic pins based on user preferences */}
+									{/* Dynamic pins based on user preferences (STARTER PACK DUMMY TEST) */}
 									{filteredPins.map((pin) => {
 										const marker = convertToMapMarker(pin);
 										return (
@@ -349,11 +391,11 @@ export default function WorldMapScreen() {
 												description={marker.description}
 												onPress={() => {
 													// Optional: Handle pin press to show memory details
-													console.log(
-														'Pin pressed:',
-														pin.name,
-														pin.memory?.title
-													);
+													// console.log(
+													// 	'Pin pressed:',
+													// 	pin.name,
+													// 	pin.memory?.title
+													// );
 												}}
 											>
 												<View
@@ -380,10 +422,15 @@ export default function WorldMapScreen() {
 									})}
 								</MapView>
 								<View style={styles.mapContent}>
-									<Text></Text>
+									<Text>
+										THIS IS THE OVERLAY AT THE TOP, MISSING
+										UPDATE FROM ANNA
+									</Text>
 								</View>
 
-								{/* Filter Controls Section */}
+								{/* ***************** */}
+								{/*  FILTER CONTROLS  */}
+								{/* ***************** */}
 								{userStarterPacks &&
 									userStarterPacks.selectedIds?.length >
 										0 && (
@@ -458,9 +505,9 @@ export default function WorldMapScreen() {
 							</View>
 						</MainContent>
 
-						{/**********************************************/}
-						{/****************** FOOTER *******************/}
-						{/* *********************************************/}
+						{/**************/}
+						{/*** FOOTER ***/}
+						{/**************/}
 						<Footer>
 							<View style={styles.footerContainer}>
 								<IconButton
@@ -480,7 +527,9 @@ export default function WorldMapScreen() {
 									onPress={navigateToCreatePin}
 								></IconButton>
 
-								{/* Login/Signup Modal */}
+								{/**********************/}
+								{/* LOGIN/SIGNUP MODAL */}
+								{/**********************/}
 								<Modal
 									isVisible={isModalVisible}
 									onBackdropPress={() =>
@@ -562,7 +611,9 @@ export default function WorldMapScreen() {
 							</View>
 						</Footer>
 
-						{/* ATTN OKKY: Profile Modal fof signed in users to sign out */}
+						{/********************/}
+						{/*   PROFILE MODAL  */}
+						{/********************/}
 						<Modal
 							isVisible={isProfileModalVisible}
 							onBackdropPress={closeProfileModal}
@@ -623,12 +674,19 @@ export default function WorldMapScreen() {
 }
 
 const styles = StyleSheet.create({
+	// ==================
+	//   CONTAINER STYLES
+	// ==================
 	container: {
 		flex: 1,
 	},
 	keyboardAvoidingView: {
 		flex: 1,
 	},
+
+	// =====================
+	//   TYPOGRAPHY STYLES
+	// =====================
 	title: {
 		fontSize: 24,
 		fontWeight: 'bold',
@@ -642,6 +700,10 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 		marginBottom: 30,
 	},
+
+	// ===============
+	//   MAP STYLES
+	// ===============
 	map: {
 		width: '100%',
 		height: 650,
@@ -655,6 +717,32 @@ const styles = StyleSheet.create({
 		top: '8%',
 		width: '50%',
 	},
+
+	// ==================
+	//   CUSTOM MARKERS
+	// ==================
+	customMarker: {
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		alignItems: 'center',
+		justifyContent: 'center',
+		borderWidth: 2,
+		borderColor: '#FFFFFF',
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.3,
+		shadowRadius: 3,
+		elevation: 5,
+	},
+	markerIcon: {
+		fontSize: 16,
+		color: '#FFFFFF',
+	},
+
+	// =================
+	//   SEARCH STYLES
+	// =================
 	scrollContent: {
 		padding: 20,
 	},
@@ -662,26 +750,6 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 	},
-	backButton: {
-		backgroundColor: ReMapColors.primary.black,
-	},
-	modalButton: {
-		width: 'auto',
-	},
-	signUpButton: {
-		backgroundColor: '#2900E2',
-	},
-	cancelButton: {
-		backgroundColor: ReMapColors.ui.textSecondary,
-	},
-	footerContainer: {
-		flexDirection: 'row',
-	},
-	modalButtonContainer: {
-		flexDirection: 'column',
-		alignItems: 'center',
-	},
-
 	fakeInput: {
 		backgroundColor: ReMapColors.ui.grey,
 		borderColor: ReMapColors.ui.grey,
@@ -715,28 +783,14 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingVertical: 8,
 	},
+	closeButtonText: {
+		color: 'white',
+		fontWeight: 'bold',
+	},
 
-	// Okky's Sign Out Testing Modal
-	profileContent: {
-		alignItems: 'center',
-		padding: 10,
-	},
-	profileEmail: {
-		marginBottom: 4,
-		fontSize: 16,
-	},
-	profileMeta: {
-		marginBottom: 20,
-		color: ReMapColors.ui.textSecondary,
-	},
-	profileMessage: {
-		textAlign: 'center',
-		color: ReMapColors.ui.textSecondary,
-		lineHeight: 22,
-	},
-	signOutButton: {
-		backgroundColor: ReMapColors.semantic.error,
-	},
+	// ==================
+	//  FILTER CONTROLS
+	// ==================
 	filterControls: {
 		backgroundColor: ReMapColors.ui.cardBackground,
 		padding: 16,
@@ -779,27 +833,54 @@ const styles = StyleSheet.create({
 		fontSize: 11,
 	},
 
-	// Custom Markers
-	customMarker: {
-		width: 36,
-		height: 36,
-		borderRadius: 18,
+	// ================
+	//   MODAL STYLES
+	// ================
+	modalButton: {
+		width: 'auto',
+	},
+	signUpButton: {
+		backgroundColor: '#2900E2',
+	},
+	cancelButton: {
+		backgroundColor: ReMapColors.ui.textSecondary,
+	},
+	modalButtonContainer: {
+		flexDirection: 'column',
 		alignItems: 'center',
-		justifyContent: 'center',
-		borderWidth: 2,
-		borderColor: '#FFFFFF',
-		shadowColor: '#000',
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.3,
-		shadowRadius: 3,
-		elevation: 5,
 	},
-	markerIcon: {
+
+	// =======================
+	// 	PROFILE MODAL STYLES
+	// =======================
+	profileContent: {
+		alignItems: 'center',
+		padding: 10,
+	},
+	profileEmail: {
+		marginBottom: 4,
 		fontSize: 16,
-		color: '#FFFFFF',
 	},
-	closeButtonText: {
-		color: 'white',
-		fontWeight: 'bold',
+	profileMeta: {
+		marginBottom: 20,
+		color: ReMapColors.ui.textSecondary,
+	},
+	profileMessage: {
+		textAlign: 'center',
+		color: ReMapColors.ui.textSecondary,
+		lineHeight: 22,
+	},
+	signOutButton: {
+		backgroundColor: ReMapColors.semantic.error,
+	},
+
+	// ==================
+	//   FOOTER STYLES
+	// ==================
+	footerContainer: {
+		flexDirection: 'row',
+	},
+	backButton: {
+		backgroundColor: ReMapColors.primary.black,
 	},
 });
