@@ -53,15 +53,15 @@ const styles = StyleSheet.create({
 	container: {
 		justifyContent: 'center',
 		alignItems: 'center',
-		// borderTopWidth: 1,
-		// borderTopColor: ReMapColors.ui.border,
-		// shadowColor: '#000',
-		// shadowOffset: {
-		// 	width: 0,
-		// 	height: -2,
-		// },
-		// shadowOpacity: 0.1,
-		// shadowRadius: 3.84,
-		// elevation: 3,
+		borderTopWidth: 1,
+		borderTopColor: ReMapColors.ui.border,
+		shadowColor: '#000',
+		shadowOffset: {
+			width: 0,
+			height: -2,
+		},
+		shadowOpacity: 0.1,
+		shadowRadius: 3.84,
+		elevation: 3,
 	},
 });

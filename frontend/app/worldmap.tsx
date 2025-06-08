@@ -501,9 +501,12 @@ const styles = StyleSheet.create({
 	circlesContainer: {
 		paddingRight: 12,
 		alignItems:'flex-end',
+		// flexDirection:'row',
+		justifyContent: 'center',
 		height: 'auto',
 		position:'absolute',
 		width:'100%',
+
 	},
 	circleSelections: {
 		width: 54,
@@ -513,7 +516,7 @@ const styles = StyleSheet.create({
 	},
 	socialSelection: {
 		width: 54,
-		height: 70,
+		height: 54,
 		borderRadius: 35,
 		zIndex: 5,
 	},
