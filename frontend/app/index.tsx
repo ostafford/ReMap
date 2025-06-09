@@ -22,13 +22,8 @@ import { Footer } from '@/components/layout/Footer';
 // ============================
 import { Button } from '@/components/ui/Button';
 import { SpinningGlobe } from '@/components/ui/Globe';
-import {
-	ErrorMessage,
-	SuccessMessage,
-	WarningMessage,
-} from '@/components/ui/Messages';
+import { ErrorMessage } from '@/components/ui/Messages';
 import { Modal } from '@/components/ui/Modal';
-import { Input } from '@/components/ui/TextInput';
 
 // ================================
 //   INTERNAL 'TYPOGRAPHY' IMPORTS
@@ -45,11 +40,6 @@ import {
 // ================================
 import { ReMapColors } from '@/constants/Colors';
 
-// =============================
-//   INTERNAL 'SERVICES' IMPORTS
-// =============================
-import { signIn, getCurrentUser } from '@/services/auth';
-
 // =========================
 //   TYPE DEFINITIONS
 // =========================
@@ -58,6 +48,9 @@ interface MessageState {
 	message: string;
 	type?: 'success' | 'error' | 'warning' | 'info';
 }
+
+import { AuthModal } from '@/components/ui/AuthModal';
+import { getCurrentUser } from '@/services/auth';
 
 // ========================
 //   TESTING CONFIGURATION
@@ -89,11 +82,6 @@ export default function SplashScreen() {
 	//   MODAL STATE
 	// ==================
 	const [isSignInModalVisible, setIsSignInModalVisible] = useState(false);
-	const [email, setEmail] = useState('');
-	const [password, setPassword] = useState('');
-	const [emailError, setEmailError] = useState('');
-	const [isLoading, setIsLoading] = useState(false);
-
 	// ====================
 	//   AUTH DEFINITIONS
 	// ====================
@@ -135,21 +123,6 @@ export default function SplashScreen() {
 	// ==================
 	//   HELPER FUNCTIONS
 	// ==================
-	const validateEmail = (email: string) => {
-		if (!email) return 'Email is required';
-		if (!email.includes('@')) return 'Invalid email format';
-		if (email.length < 5) return 'Email too short';
-		return '';
-	};
-
-	const resetSignInForm = () => {
-		setEmail('');
-		setPassword('');
-		setEmailError('');
-		setIsLoading(false);
-		hideMessage();
-	};
-
 	const getUserDisplayName = () => {
 		if (!currentUser) return 'User';
 
@@ -195,43 +168,6 @@ export default function SplashScreen() {
 			console.error('Error checking current user:', error);
 		} finally {
 			setIsCheckingAuth(false);
-		}
-	};
-
-	const handleSignIn = async () => {
-		if (!email || !password) {
-			showMessage('Please fill out all required fields', 'warning');
-			return;
-		}
-
-		const emailValidation = validateEmail(email);
-		if (emailValidation) {
-			setEmailError(emailValidation);
-			showMessage('Please check your email format', 'error');
-			return;
-		}
-
-		setIsLoading(true);
-
-		try {
-			await signIn({ email, password });
-			showMessage('Welcome back! Successfully signed in.', 'success');
-
-			// Refresh current user info
-			await checkCurrentUser();
-
-			// Close modal and navigate
-			setIsSignInModalVisible(false);
-			resetSignInForm();
-			navigateToWorldMap();
-		} catch (error: any) {
-			console.error('Login error:', error);
-			const errorMessage =
-				error?.message ||
-				'Could not sign in. Please check your credentials.';
-			showMessage(errorMessage, 'error');
-		} finally {
-			setIsLoading(false);
 		}
 	};
 
@@ -286,7 +222,6 @@ export default function SplashScreen() {
 
 	const toggleSignInModal = () => {
 		setIsSignInModalVisible(!isSignInModalVisible);
-		resetSignInForm();
 	};
 
 	const handleWelcomeBackClose = () => {
@@ -428,81 +363,14 @@ export default function SplashScreen() {
 			</Footer>
 
 			{/* ===============
-			      SIGN IN MODAL
+			      SIGN IN MODAL UI
 			    =============== */}
-			<Modal
+			<AuthModal
 				isVisible={isSignInModalVisible}
-				onBackdropPress={toggleSignInModal}
-			>
-				<Modal.Container>
-					<Modal.Header title="Welcome Back!" />
-					<Modal.Body>
-						{/* Message Display */}
-						{messageState.show &&
-							messageState.type === 'success' && (
-								<SuccessMessage
-									title="Welcome Back!"
-									onDismiss={hideMessage}
-								>
-									{messageState.message}
-								</SuccessMessage>
-							)}
-
-						{messageState.show && messageState.type === 'error' && (
-							<ErrorMessage onDismiss={hideMessage}>
-								{messageState.message}
-							</ErrorMessage>
-						)}
-
-						{messageState.show &&
-							messageState.type === 'warning' && (
-								<WarningMessage onDismiss={hideMessage}>
-									{messageState.message}
-								</WarningMessage>
-							)}
-
-						{/* Form Inputs */}
-						<Input
-							value={email}
-							onChangeText={(text) => {
-								setEmail(text);
-								setEmailError(validateEmail(text));
-							}}
-							error={emailError}
-							label="Email"
-							placeholder="Enter your email"
-							keyboardType="email-address"
-							autoCapitalize="none"
-						/>
-						<Input
-							value={password}
-							onChangeText={setPassword}
-							label="Password"
-							placeholder="Enter your password"
-							secureTextEntry
-							secureToggle
-						/>
-					</Modal.Body>
-
-					<Modal.Footer>
-						<Button
-							onPress={handleSignIn}
-							style={[styles.modalButton, styles.signInButton]}
-							disabled={isLoading}
-						>
-							{isLoading ? 'Signing In...' : 'Sign In'}
-						</Button>
-						<Button
-							onPress={toggleSignInModal}
-							style={[styles.modalButton, styles.cancelButton]}
-							disabled={isLoading}
-						>
-							Cancel
-						</Button>
-					</Modal.Footer>
-				</Modal.Container>
-			</Modal>
-
+				onToggle={() => setIsSignInModalVisible(false)}
+				onSignInSuccess={navigateToWorldMap}
+				styles={styles}
+			/>
 			{/* ===============
 				WELCOME BACK MODAL
 			    =============== */}
@@ -638,8 +506,6 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: ReMapColors.ui.textSecondary,
 	},
-
-	// Option 4: Enhanced Loading State Styles
 	welcomeBackInfo: {
 		alignItems: 'center',
 		paddingHorizontal: 20,
@@ -669,8 +535,6 @@ const styles = StyleSheet.create({
 	userMeta: {
 		color: ReMapColors.ui.textSecondary,
 	},
-
-	// Option 1: Modal Styles
 	welcomeModalContent: {
 		alignItems: 'center',
 	},
@@ -722,10 +586,6 @@ const styles = StyleSheet.create({
 		backgroundColor: ReMapColors.primary.cadet,
 		flex: 1,
 	},
-	// tertiaryButton: {
-	// 	backgroundColor: ReMapColors.primary.cadet,
-	// 	flex: 1,
-	// },
 	modalButton: {
 		width: 150,
 	},

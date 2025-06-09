@@ -53,6 +53,7 @@ import type { Suggestion } from '@/components/ui/FourSquareSearch';
 // =========================
 //   CUSTOM HOOKS IMPORTS
 // =========================
+import { AuthModal } from '@/components/ui/AuthModal';
 // TODO: Add custom hooks here when/if we want to do them
 
 // ======================
@@ -220,6 +221,11 @@ export default function WorldMapScreen() {
 	// Modal handlers
 	const openProfileModal = () => setIsProfileModalVisible(true);
 	const closeProfileModal = () => setIsProfileModalVisible(false);
+
+	const [isSignInModalVisible, setIsSignInModalVisible] = useState(false);
+	const toggleSignInModal = () => {
+		setIsSignInModalVisible(!isSignInModalVisible);
+	};
 
 	// =============================
 	//   USER PREFERENCES & FILTERING SECTION
@@ -679,12 +685,14 @@ export default function WorldMapScreen() {
 							{/* FOOTER OPTION 1: More features, conditional logic */}
 							<IconButton
 								icon={user ? 'address-card' : 'reply'}
-								onPress={goBack}
+								onPress={user ? openProfileModal : goBack}
 							/>
 							<IconButton
 								icon={user ? 'map-pin' : 'user'}
 								onPress={
-									user ? navigateToCreatePin : openLoginModal
+									user
+										? navigateToCreatePin
+										: toggleSignInModal
 								}
 								size={36}
 								style={styles.bigCenterButton}
@@ -697,79 +705,14 @@ export default function WorldMapScreen() {
 					</Footer>
 
 					{/**********************/}
-					{/* LOGIN/SIGNUP MODAL */}
+					{/* LOGIN/SIGNUP MODAL UI */}
 					{/**********************/}
-					<Modal
-						isVisible={isModalVisible}
-						onBackdropPress={() => setIsModalVisible(false)}
-					>
-						<Modal.Container>
-							<Modal.Header
-								title={
-									modalMode === 'login'
-										? 'Welcome Back!'
-										: 'Join ReMap Community'
-								}
-							/>
-							<Modal.Body>
-								{modalMode === 'signup' && (
-									<Input
-										label="Full Name"
-										placeholder="Enter your full name"
-									/>
-								)}
-								<Input
-									label="Email"
-									placeholder="Enter your email"
-									keyboardType="email-address"
-								/>
-								<Input
-									label="Password"
-									placeholder={
-										modalMode === 'login'
-											? 'Enter password'
-											: 'Create a password'
-									}
-									secureTextEntry
-									secureToggle
-								/>
-							</Modal.Body>
-							<Modal.Footer>
-								<View style={styles.modalButtonContainer}>
-									<Button
-										onPress={() =>
-											setModalMode(
-												modalMode === 'login'
-													? 'signup'
-													: 'login'
-											)
-										}
-										style={[
-											styles.modalButton,
-											styles.cancelButton,
-										]}
-									>
-										{modalMode === 'login'
-											? 'New User'
-											: 'Back to Login'}
-									</Button>
-									<Button
-										onPress={navigateToWorldMap}
-										style={[
-											styles.modalButton,
-											modalMode === 'signup' &&
-												styles.signUpButton,
-										]}
-									>
-										{modalMode === 'login'
-											? 'Sign In'
-											: 'Create Account'}
-									</Button>
-								</View>
-							</Modal.Footer>
-						</Modal.Container>
-					</Modal>
-
+					<AuthModal
+						isVisible={isSignInModalVisible}
+						onToggle={() => setIsSignInModalVisible(false)}
+						onSignInSuccess={navigateToWorldMap}
+						styles={styles}
+					/>
 					{/********************/}
 					{/*   PROFILE MODAL  */}
 					{/********************/}
