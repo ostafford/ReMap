@@ -8,7 +8,6 @@ import auth from "./routes/auth";
 import profiles from "./routes/profiles";
 import pins from "./routes/pins";
 import groups from "./routes/groups";
-import media from "./routes/media";
 
 // middleware
 import logger from "./middleware/logger";
@@ -26,8 +25,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // Logger
 app.use(logger);
-// Check user login session
-app.use(getUser);
 
 /* --------------- Routes ----------------- */
 // Sign up/in routes middleware
@@ -42,7 +39,10 @@ app.use("/api/pins", pins);
 // Groups routes middleware
 app.use("/api/groups", groups);
 
-app.use("/api/media", media);
+
+/* --------------- Middleware ----------------- */
+// Check user login session middleware
+app.use(getUser);
 
 app.listen(port, () => {
     console.log(`Server running on port: ${port}`);

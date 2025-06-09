@@ -1,4 +1,4 @@
-//Profile logic
+// Photo and Audio logic
 import supabase from "../supabase/supabaseClient";
 
 import { Request, Response } from "express";
@@ -7,65 +7,15 @@ import multer from "multer";
 
 import formatLocalTime from "../modules/time";
 
-
-// @desc Get all profiles
-// @route GET /api/profiles
-export const listProfiles = async (req: Request, res: Response) => {
-    try {
-        const { data, error } = await supabase
-        .from("profiles")
-        .select();
-
-        if (error) {
-            console.log("Get all profiles error", error.message);
-            res.status(400).json({ error: error.message});
-            return;
-        }
-        console.log("List of profiles:", data);
-        res.status(200).json(data);
-
-    } catch (err: any) {
-        console.log("Get all profiles error", err.message);
-        res.status(500).json({ msg: "Get all profiles error", error: err.message });
-    }
-}
-
-// @desc Get single profile
-// @route GET /api/profiles/:id
-export const getProfile = async (req: Request, res: Response) => {
-    const id = req.params.id;
-
-    try {
-        const { data, error } = await supabase
-        .from("profiles")
-        .select()
-        .eq("id", id)
-        .single();
-
-        if (error) {
-            console.log("Get single profile error", error.message);
-            res.status(400).json({ error: error.message });
-            return;
-        }
-        console.log("Profile:", data);
-        res.status(200).json(data);
-
-    } catch (err: any) {
-        console.log("Profile error", err.message);
-        res.status(500).json({ msg: "Profile error", error: err.message });
-    }
-}
-
-// @desc Update single profile
-// @route PUT /api/profiles/:id
 const upload = multer({ storage: multer.memoryStorage() });
 
-export const updateProfile = [upload.single("avatar"), async (req: Request, res: Response) => {
+
+// @desc Update single profile picture
+// @route PUT /api/media/avatar/:id
+export const profileAvatar = [upload.single("avatar"), async (req: Request, res: Response) => {
     const id = req.params.id;
 
-    const { username, full_name } = req.body;
-
-        const file = req.file as any;
+    const file = req.file as any;
 
     let avatarUrl: string | undefined = undefined;
     let user_name: string | null;
@@ -83,6 +33,7 @@ export const updateProfile = [upload.single("avatar"), async (req: Request, res:
     }
     console.log("User name:", data.username);
     user_name = data.username;
+
 
     try{
         if (file) {
@@ -130,29 +81,26 @@ export const updateProfile = [upload.single("avatar"), async (req: Request, res:
         res.status(500).json({ "Update image server error": err.message });
     }
 
-
     try {
-        // Update profile
+        // Update profile with image
         const { data, error } = await supabase
         .from("profiles")
         .update({
-            username,
-            full_name,
             avatar_url: avatarUrl
         })
         .eq("id", id)
         .select();
 
         if (error) {
-            console.log("Profile update error:", error.message);
-            res.status(404).json({ "Profile update error": error.message });
+            console.log("Profile avatar error:", error.message);
+            res.status(404).json({ error: error.message });
             return;
         }
-        console.log("Profile updated:", data);
+        console.log("Profile avatar updated:", data);
         res.status(200).json(data);
 
     } catch (err: any) {
-        console.log("Update profile error:", err.message);
-        res.status(500).json({ msg: "Update profile error:", error: err.message });
+    console.log("Update profile avatar error:", err.message);
+    res.status(500).json({ msg: "Update profile avatar error:", error: err.message });
     }
 }]

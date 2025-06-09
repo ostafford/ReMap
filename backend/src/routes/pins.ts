@@ -5,31 +5,61 @@ import multer from "multer";
 
 import supabase from "../supabase/supabaseClient";
 
+import formatLocalTime from "../modules/time";
+
 const router = Router();
 
 // temporarily saves incoming files in buffer
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Create pins
-router.post("/",
+router.post("/:id",
     upload.fields([
         { name: "image" },
-        { name: "audio", }
+        { name: "audio" }
     ]),
     async (req: Request, res: Response) => {
+        const id = req.params.id;
+
         const imageFile = (req.files as any)?.image?.[0];
         const audioFile = (req.files as any)?.audio?.[0];
 
         let imageUrl: string | undefined = undefined;
         let audioUrl: string | undefined = undefined;
 
+        let user_name: string | null;
+
+        // Get user name and id
+        const { data, error } = await supabase
+        .from("profiles")
+        .select()
+        .eq("id", id)
+        .single();
+
+        if (error) {
+            console.log("Can not get user details:", error.message);
+            return;
+        }
+        console.log("User name:", data.username);
+        
+        user_name = data.username;
+        let user_id = data.id;
+
+
         try {
             // First, upload file to Supabase storage
             if (imageFile) {
+                // Check if the file is an image (starts with "image/")
+                if (!imageFile.mimetype.startsWith("image/")) {
+                    console.log("Invalid file type. Only images are allowed");
+                    res.status(400).json({ msg: "Invalid file type. Only images are allowed" });
+                    return;
+                }
+
                 const { buffer, mimetype } = imageFile;
 
-                // TODO: name this properly, should probably name this using a combination of user name and timestamp (so it"s unique)
-                const imageName = "test";
+                // image name - user name : dd/mm/yyyy hh:mm:ss
+                const imageName = `${user_name}:${formatLocalTime()}`;
 
                 const { error } = await supabase.storage
                 .from("images")
@@ -43,21 +73,32 @@ router.post("/",
                 );
 
                 if (error) {
-                    // TO DO: wrap this whole thing in a try catch and handle errors properly
-                    console.log(`Error uploading file: ${error.message}`);
-                    res.status(400).json({ error: error.message});
+                    console.log(`Error uploading image file: ${error.message}`);
+                    res.status(404).json({ error: error.message});
                 }
 
                 const { data: { publicUrl } } = supabase.storage.from("images").getPublicUrl(imageName);
 
                 imageUrl = publicUrl;
             }
+        } catch (err: any) {
+            console.log("Update image server error", err.message);
+            res.status(500).json({ "Update image server error": err.message });
+        }
 
+        try {
             if (audioFile) {
+                // Check if the file is an image (starts with "audio/")
+                if (!audioFile.mimetype.startsWith("audio/")) {
+                    console.log("Invalid file type. Only audios are allowed");
+                    res.status(400).json({ msg: "Invalid file type. Only audios are allowed" });
+                    return;
+                }
+
                 const { buffer, mimetype } = audioFile;
 
-                // TODO: name this properly, should probably name this using a combination of user name and timestamp (so it"s unique)
-                const audioName = "test";
+                // audio name - user name : dd/mm/yyyy hh:mm:ss
+                const audioName = `${user_name}:${formatLocalTime()}`;
 
                 const { error } = await supabase.storage
                 .from("audio")
@@ -71,30 +112,46 @@ router.post("/",
                 );
 
                 if (error) {
-                    // TO DO: wrap this whole thing in a try catch and handle errors properly
-                    throw new Error(`Error uploading file: ${error.message}`);
+                    console.log(`Error uploading audio file: ${error.message}`);
+                    res.status(404).json({ error: error.message});
                 }
 
                 const { data: { publicUrl } } = supabase.storage.from("audio").getPublicUrl(audioName);
 
                 audioUrl = publicUrl;
             }
+        } catch (err: any) {
+            console.log("Upload audio server error", err.message);
+            res.status(500).json({ msg: "Upload audio server error", error: err.message });
+        }
 
             // TODO: add owner_id
             // TODO: validate req body
-
+        try {
             const { data, error } = await supabase
             .from("pins")
             .insert({
+                name: req.body.name,
                 description: req.body.description,
                 latitude: req.body.latitude,
                 longitude: req.body.longitude,
-                audio_url: audioUrl,
                 image_urls: [imageUrl],
+                audio_url: audioUrl,
+                owner_id: user_id
             })
             .select();
+
+            if (error) {
+                console.log("Create pin error:", error.message);
+                res.status(404).json({"Create pin error": error.message});
+                return;
+            }
+            console.log("Create Pin:", data);
+            res.status(201).json({"Create Pin:": data});
+
         } catch (err: any) {
-        res.status(500).json({ msg: "Update profile error", error: err.message });
+            console.log("Create pin server error", err.message);
+            res.status(500).json({ "Create pin server error": err.message });
         }
     }
 )

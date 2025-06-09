@@ -1,7 +1,7 @@
 // Authorisation routes
 import { Router } from "express";
 
-import { deleteUser, getUser, listUsers, logOut, signIn, signUp, updateEmail, updatePassword } from "../controllers/authController";
+import { deleteUser, getUser, listUsers, logOut, signIn, signUp } from "../controllers/authController";
 
 const router = Router();
 
@@ -21,10 +21,10 @@ router.post("/signIn", signIn);
 router.post("/signOut", logOut);
 
 // Update email
-router.put("/email/:id", updateEmail);
+// router.put("/email/:id", updateEmail);
 
 // Update password
-router.put("/password/:id", updatePassword);
+// router.put("/password/:id", updatePassword);
 
 // Delete account
 router.delete("/users/:id", deleteUser);

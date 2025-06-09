@@ -13,14 +13,16 @@ export const listUsers = async (req: Request, res: Response) => {
             res.status(404).json({msg: error.message});
             return;
         }
-        console.log("List all users successful");
+        console.log("List all users successful:", users);
         res.status(200).json(users);
+
     } catch (err: any) {
-        res.status(500).json({ msg: "List all users error", error: err.message });
+        console.log("List all users server error:", err.message);
+        res.status(500).json({ "List all users server error": err.message });
     }
 }
 
-// @desc Retrieve a user
+// @desc Retrieve an user
 // @route GET /api/auths/users/:id
 export const getUser = async (req: Request, res: Response) => {
     const id = req.params.id;
@@ -28,13 +30,16 @@ export const getUser = async (req: Request, res: Response) => {
         const { data, error } = await supabase.auth.admin.getUserById(id);
         
         if (error) {
-            res.status(404).json({msg: error.message});
+            console.log("Retrieve an user:", error.message);
+            res.status(404).json({"Retrieve an user": error.message});
             return;
         }
-        console.log("Retrieve a user successful");
-        res.status(200).json(data);
+        console.log("Retrieve an user successful", data.user);
+        res.status(200).json(data.user);
+
     } catch (err: any) {
-        res.status(500).json({ msg: "Retrieve a user error", error: err.message });
+        console.log("Retrieve an user server error:", err.message);
+        res.status(500).json({ "Retrieve an user server error": err.message });
     }
 }
 
@@ -50,13 +55,16 @@ export const signUp = async (req: Request, res: Response) => {
         });
 
         if (error) {
-            res.status(400).json({msg: error.message});
+            console.log("Sign up failed:", error.message);
+            res.status(400).json({"Sign up failed": error.message});
             return;
         }
-        console.log("signed up successful");
+        console.log("Signed up successful:", data);
         res.status(201).json(data);
+
     } catch (err: any) {
-        res.status(500).json({ msg: "Sign up error", error: err.message });
+        console.log("Signed up server error:", err.message);        
+        res.status(500).json({ "Sign up server error":err.message });
     }
 }
 
@@ -73,13 +81,16 @@ export const signIn = async (req: Request, res: Response) => {
         });
 
         if (error) {
-            res.status(400).json({msg: error.message});
+            console.log("Sign in failed:", error.message);
+            res.status(400).json({"Sign in failed": error.message});
             return;
         }
-        console.log("signed in successful");
+        console.log("signed in successful:", data.user.confirmed_at);
         res.status(201).json(data);
+
     } catch (err: any) {
-        res.status(500).json({ msg: "Sign in error", error: err.message });
+        console.log("Signed in server error:", err.message);
+        res.status(500).json({ msg: "Sign in server error", error: err.message });
     }
 }
 
@@ -95,63 +106,54 @@ export const logOut = async (req: Request, res: Response) => {
         }
         console.log("User logged out");
         res.status(201).json({msg: "User logged out"});
+
     } catch (err: any) {
-        res.status(500).json({ msg: "Sign out error", error: err.message });
+        console.log("Sign out server error:", err.message);
+        res.status(500).json({ msg: "Sign out server error", error: err.message });
     }
-}
-
-const userSession = async (req: Request, res: Response) => {
-    const { data, error } = await supabase.auth.getSession();
-
-    if (data === null) {
-        console.log("Sign in again");
-        return;
-    }
-    console.log("Still logged in");
-    res.status(200);
 }
 
 // @desc Update email
 // @route PUT /api/auths/email/:id
-export const updateEmail = async (req: Request, res: Response) => {
-    const id = req.params.id;
+// export const updateEmail = async (req: Request, res: Response) => {
+//     const id = req.params.id;
     
-    try {
-        const { data: user, error } = await supabase.auth.admin.updateUserById(id,
-        { email: req.body.email }
-        );
+//     try {
+//         const { data: user, error } = await supabase.auth.admin.updateUserById(id,
+//         { email: req.body.email }
+//         );
         
-        if (error) {
-            res.status(404).json({msg: error.message});
-            return;
-        }
-        console.log("email updated");
-        res.status(201).json(user);
-    } catch (err: any) {
-        res.status(500).json({ msg: "update email error", error: err.message });        
-    }
-}
+//         if (error) {
+//             res.status(404).json({msg: error.message});
+//             return;
+//         }
+//         console.log("email updated");
+//         res.status(201).json(user);
+//     } catch (err: any) {
+//         res.status(500).json({ msg: "update email error", error: err.message });        
+//     }
+// }
 
 // @desc Update password
 // @route PUT /api/auths/password/:id
-export const updatePassword = async (req: Request, res: Response) => {
-    const id = req.params.id;
+// export const updatePassword = async (req: Request, res: Response) => {
+//     const id = req.params.id;
 
-    try {
-        const { data: user, error } = await supabase.auth.admin.updateUserById(id,
-        { password: req.body.password }
-        );
+//     try {
+//         const { data: user, error } = await supabase.auth.admin.updateUserById(id,
+//         { password: req.body.password }
+//         );
         
-        if (error) {
-            res.status(404).json({msg: error.message});
-            return;
-        }
-        console.log("password updated");
-        res.status(201).json(user);
-    } catch (err: any) {
-        res.status(500).json({ msg: "update password error", error: err.message });        
-    }
-}
+//         if (error) {
+//             res.status(404).json({msg: error.message});
+//             return;
+//         }
+//         console.log("password updated");
+//         res.status(201).json(user);
+//     } catch (err: any) {
+//         res.status(500).json({ msg: "update password error", error: err.message });        
+//     }
+// }
 
 // Delete account
 // @route DELETE /api/auths/users/:id
@@ -161,12 +163,15 @@ export const deleteUser = async (req: Request, res: Response) => {
 
     try {
         if (error) {
-            res.status(404).json({msg: error.message});
+            console.log("Delete user error:", error.message);
+            res.status(404).json({"Delete user error": error.message});
             return;
         }
         console.log("Deleted user");
         res.status(200).json(data);
+
     } catch (err: any) {
-        res.status(500).json({ msg: "Delete error", error: err.message });
+        console.log("Delete user server error:", err.message);
+        res.status(500).json({ "Delete user server error":err.message });
     }
 }
