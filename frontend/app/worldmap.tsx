@@ -54,7 +54,7 @@ import type { Suggestion } from '@/components/ui/FourSquareSearch';
 //   CUSTOM HOOKS IMPORTS
 // =========================
 import { AuthModal } from '@/components/ui/AuthModal';
-// TODO: Add custom hooks here when/if we want to do them
+import { PinBottomSheet } from '@/components/ui/PinBottomSheet';
 
 // ======================
 //  LAYOUT COMPONENTS
@@ -301,16 +301,28 @@ export default function WorldMapScreen() {
 	//   MAP INTERACTION SECTION
 	// =============================
 	// Map handlers
-	const handleMarkerPress = (coordinate: {
-		latitude: number;
-		longitude: number;
-	}) => {
-		mapRef.current?.animateToRegion({
-			latitude: coordinate.latitude,
-			longitude: coordinate.longitude,
-			latitudeDelta: 0.01,
-			longitudeDelta: 0.01,
-		});
+	const handleMarkerPress = (
+		coordinate: {
+			latitude: number;
+			longitude: number;
+		},
+		pinData?: DummyPin
+	) => {
+		// mapRef.current?.animateToRegion({
+		// 	latitude: coordinate.latitude,
+		// 	longitude: coordinate.longitude,
+		// 	latitudeDelta: 0.01,
+		// 	longitudeDelta: 0.01,
+		// });
+
+		if (pinData) {
+			setSelectedPinData(pinData);
+			setIsBottomSheetVisible(true);
+			console.log(
+				'📍 Opening BottomSheet for pin:',
+				pinData.memory.title
+			);
+		}
 	};
 
 	// Map helper functions
@@ -324,6 +336,20 @@ export default function WorldMapScreen() {
 			urban: '#2196F3',
 		};
 		return colorMap[category] || '#666666';
+	};
+
+	// =============================
+	//   BOTTOMSHEET STATE
+	// =============================
+	const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+	const [selectedPinData, setSelectedPinData] = useState<DummyPin | null>(
+		null
+	);
+
+	const handleBottomSheetClose = () => {
+		setIsBottomSheetVisible(false);
+		setSelectedPinData(null);
+		console.log('📍 BottomSheet closed');
 	};
 
 	// =============================
@@ -432,257 +458,243 @@ export default function WorldMapScreen() {
 				<KeyboardAvoidingView
 					style={styles.keyboardAvoidingView}
 					behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-					keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+					// keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
 				>
 					{/**********************************************/}
 					{/**************** MAIN CONTENT ****************/}
 					{/* *********************************************/}
 					<MainContent>
-						<View>
-							{/* ************ */}
-							{/*   MAP VIEW   */}
-							{/* ************ */}
-							<MapView
-								ref={mapRef}
-								style={styles.map}
-								provider={PROVIDER_GOOGLE}
-								initialRegion={INITIAL_REGION}
-								showsUserLocation
-								showsMyLocationButton
+						{/* ************ */}
+						{/*   MAP VIEW   */}
+						{/* ************ */}
+						<MapView
+							ref={mapRef}
+							style={styles.mapFlex}
+							provider={PROVIDER_GOOGLE}
+							initialRegion={INITIAL_REGION}
+							showsUserLocation
+							showsMyLocationButton
+						>
+							<Marker
+								title="Holberton School"
+								description="Holberton Campus - Collins Street"
+								coordinate={{
+									latitude: -37.817979,
+									longitude: 144.960408,
+								}}
+								// onPress={() =>
+								// 	handleMarkerPress({
+								// 		latitude: -37.817979,
+								// 		longitude: 144.960408,
+								// 	})
+								// }
 							>
-								<Marker
-									title="Holberton School"
-									description="Holberton Campus - Collins Street"
-									coordinate={{
-										latitude: -37.817979,
-										longitude: 144.960408,
-									}}
-									// onPress={() =>
-									// 	handleMarkerPress({
-									// 		latitude: -37.817979,
-									// 		longitude: 144.960408,
-									// 	})
-									// }
-								>
-									<Image
-										source={require('../assets/images/holberton_logo.jpg')}
-										style={{ width: 60, height: 60 }}
-										resizeMode="contain"
-									/>
-								</Marker>
-
-								{/* Dynamic pins based on user preferences with press handlers */}
-								{filteredPins.map((pin) => {
-									const marker = convertToMapMarker(pin);
-									return (
-										<Marker
-											key={marker.id}
-											coordinate={marker.coordinate}
-											title={marker.title}
-											description={marker.description}
-											onPress={() => {
-												// Handle pin press with both marker press animation AND optional memory details
-												handleMarkerPress(
-													marker.coordinate
-												);
-												// Optional: Handle pin press to show memory details
-												// console.log(
-												// 	'Pin pressed:',
-												// 	pin.name,
-												// 	pin.memory?.title
-												// );
-											}}
-										>
-											<View
-												style={[
-													styles.customMarker,
-													{
-														backgroundColor:
-															getMarkerColor(
-																pin.starterPackCategory
-															),
-													},
-												]}
-											>
-												<Text style={styles.markerIcon}>
-													{marker.icon}
-												</Text>
-											</View>
-										</Marker>
-									);
-								})}
-							</MapView>
-
-							{/* ************************ */}
-							{/*   OVERLAY UI CONTROLS    */}
-							{/* ************************ */}
-							<View
-								style={[
-									styles.circlesContainer,
-									{ top: insets.top + 100 },
-								]}
-							>
-								<IconButton
-									icon="globe"
-									onPress={navigateToCreatePin}
-									size={28}
-									style={styles.circleSelections}
+								<Image
+									source={require('../assets/images/holberton_logo.jpg')}
+									style={{ width: 60, height: 60 }}
+									resizeMode="contain"
 								/>
-								<IconButton
-									icon="user"
-									onPress={navigateToCreatePin}
-									size={28}
-									style={styles.circleSelections}
-								/>
+							</Marker>
 
-								{/* Social Circles with Animation (Drop-Down) */}
-								<View style={{ alignItems: 'flex-end' }}>
-									<IconButton
-										icon="users"
-										onPress={toggleSocials}
-										size={28}
-										style={styles.socialSelection}
-									/>
-									<Animated.View
-										style={[
-											styles.socialsBacking,
-											{
-												transform: [
-													{
-														translateY:
-															socialsSlideAnim,
-													},
-												],
-												opacity:
-													socialsSlideAnim.interpolate(
-														{
-															inputRange: [
-																-100, 0,
-															],
-															outputRange: [0, 1],
-															extrapolate:
-																'clamp',
-														}
-													),
-											},
-										]}
-									>
-										<ScrollView
-											contentContainerStyle={
-												styles.socialsList
-											}
-										>
-											{mockCircles.map(
-												(circle, index) => (
-													<TouchableOpacity
-														key={index}
-														style={
-															styles.socialCircleWrapper
-														}
-													>
-														<Image
-															source={{
-																uri: circle.avatar,
-															}}
-															style={
-																styles.socialCircleImage
-															}
-														/>
-													</TouchableOpacity>
-												)
-											)}
-										</ScrollView>
-									</Animated.View>
-								</View>
-							</View>
-
-							{/**********************************************/}
-							{/************ UNDER MAP CONTENT ***************/}
-							{/**********************************************/}
-							<View style={styles.scrollContent}>
-								<Text style={styles.remapTitle}>
-									ReMap Your Journey
-								</Text>
-								<TouchableOpacity
-									style={
-										searchVisible
-											? styles.fakeInputClose
-											: styles.fakeInput
-									}
-									onPress={
-										searchVisible ? closeSearch : openSearch
-									}
-								>
-									<Text
-										style={{
-											color: searchVisible
-												? 'white'
-												: ReMapColors.ui.textSecondary,
+							{/* Dynamic pins based on user preferences with press handlers */}
+							{filteredPins.map((pin) => {
+								const marker = convertToMapMarker(pin);
+								return (
+									<Marker
+										key={marker.id}
+										coordinate={marker.coordinate}
+										onPress={() => {
+											// Handle pin press with both marker press animation AND optional memory details
+											handleMarkerPress(
+												marker.coordinate,
+												pin
+											);
 										}}
+										title={marker.title}
+										description={marker.description}
 									>
-										{searchVisible
-											? 'Close'
-											: 'Search Location'}
-									</Text>
-								</TouchableOpacity>
-							</View>
-
-							{/* ******************************** */}
-							{/*  FILTER CONTROLS (STARTER PACK)  */}
-							{/* ******************************** */}
-							{userStarterPacks &&
-								userStarterPacks.selectedIds?.length > 0 && (
-									<View style={styles.filterControls}>
-										<View style={styles.filterHeader}>
-											<CaptionText
-												style={styles.filterStatus}
-											>
-												{getFilterStatusText()}
-											</CaptionText>
-											<Button
-												onPress={togglePersonalizedView}
-												style={styles.filterToggle}
-												size="small"
-											>
-												{showPersonalizedPins
-													? 'Show All'
-													: 'My Interests'}
-											</Button>
+										<View
+											style={[
+												styles.customMarker,
+												{
+													backgroundColor:
+														getMarkerColor(
+															pin.starterPackCategory
+														),
+												},
+											]}
+										>
+											<Text style={styles.markerIcon}>
+												{marker.icon}
+											</Text>
 										</View>
+									</Marker>
+								);
+							})}
+						</MapView>
+						{/* ************************ */}
+						{/*   OVERLAY UI CONTROLS    */}
+						{/* ************************ */}
+						<View
+							style={[
+								styles.circlesContainer,
+								{ top: insets.top + 100 },
+							]}
+						>
+							<IconButton
+								icon="globe"
+								onPress={navigateToCreatePin}
+								size={28}
+								style={styles.circleSelections}
+							/>
+							<IconButton
+								icon="user"
+								onPress={navigateToCreatePin}
+								size={28}
+								style={styles.circleSelections}
+							/>
 
-										{/* Show selected categories */}
-										<View style={styles.selectedCategories}>
-											{userStarterPacks.starterPacks.map(
-												(pack: any) => (
-													<View
-														key={pack.id}
+							{/* Social Circles with Animation (Drop-Down) */}
+							<View style={{ alignItems: 'flex-end' }}>
+								<IconButton
+									icon="users"
+									onPress={toggleSocials}
+									size={28}
+									style={styles.socialSelection}
+								/>
+								<Animated.View
+									style={[
+										styles.socialsBacking,
+										{
+											transform: [
+												{
+													translateY:
+														socialsSlideAnim,
+												},
+											],
+											opacity:
+												socialsSlideAnim.interpolate({
+													inputRange: [-100, 0],
+													outputRange: [0, 1],
+													extrapolate: 'clamp',
+												}),
+										},
+									]}
+								>
+									<ScrollView
+										contentContainerStyle={
+											styles.socialsList
+										}
+									>
+										{mockCircles.map((circle, index) => (
+											<TouchableOpacity
+												key={index}
+												style={
+													styles.socialCircleWrapper
+												}
+											>
+												<Image
+													source={{
+														uri: circle.avatar,
+													}}
+													style={
+														styles.socialCircleImage
+													}
+												/>
+											</TouchableOpacity>
+										))}
+									</ScrollView>
+								</Animated.View>
+							</View>
+						</View>
+						{/* ******************************** */}
+						{/*  FILTER CONTROLS (STARTER PACK)  */}
+						{/* ******************************** */}
+						{userStarterPacks &&
+							userStarterPacks.selectedIds?.length > 0 && (
+								<View style={styles.filterControls}>
+									<View style={styles.filterHeader}>
+										<CaptionText
+											style={styles.filterStatus}
+										>
+											{getFilterStatusText()}
+										</CaptionText>
+										<Button
+											onPress={togglePersonalizedView}
+											style={styles.filterToggle}
+											size="small"
+										>
+											{showPersonalizedPins
+												? 'Show All'
+												: 'My Interests'}
+										</Button>
+									</View>
+
+									{/* Show selected categories */}
+									<View style={styles.selectedCategories}>
+										{userStarterPacks.starterPacks.map(
+											(pack: any) => (
+												<View
+													key={pack.id}
+													style={styles.categoryChip}
+												>
+													<CaptionText
 														style={
-															styles.categoryChip
+															styles.categoryChipText
 														}
 													>
-														<CaptionText
-															style={
-																styles.categoryChipText
-															}
-														>
-															{pack.icon}{' '}
-															{pack.name}
-														</CaptionText>
-													</View>
-												)
-											)}
-										</View>
+														{pack.icon} {pack.name}
+													</CaptionText>
+												</View>
+											)
+										)}
 									</View>
-								)}
+								</View>
+							)}
+						{/**********************************************/}
+						{/************ UNDER MAP CONTENT ***************/}
+						{/**********************************************/}
+						<View style={styles.searchContent}>
+							<Text style={styles.remapTitle}>
+								ReMap Your Journey
+							</Text>
+							<TouchableOpacity
+								style={
+									searchVisible
+										? styles.fakeInputClose
+										: styles.fakeInput
+								}
+								onPress={
+									searchVisible ? closeSearch : openSearch
+								}
+							>
+								<Text
+									style={{
+										color: searchVisible
+											? 'white'
+											: ReMapColors.ui.textSecondary,
+									}}
+								>
+									{searchVisible
+										? 'Close'
+										: 'Search Location'}
+								</Text>
+							</TouchableOpacity>
 						</View>
 					</MainContent>
-
+					{/* ==================== */}
+					{/*   PIN BOTTOMSHEET    */}
+					{/* ==================== */}
+					<PinBottomSheet
+						isVisible={isBottomSheetVisible}
+						onClose={handleBottomSheetClose}
+						pinData={selectedPinData}
+					/>
 					{/**********************************************/}
 					{/****************** FOOTER *******************/}
 					{/* *********************************************/}
 					<Footer>
 						<View style={styles.footerContainer}>
-							{/* FOOTER OPTION 1: More features, conditional logic */}
 							<IconButton
 								icon={user ? 'address-card' : 'reply'}
 								onPress={user ? openProfileModal : goBack}
@@ -817,9 +829,13 @@ const styles = StyleSheet.create({
 	// ===============
 	//   MAP STYLES
 	// ===============
-	map: {
+	// map: {
+	// 	width: '100%',
+	// 	height: '81%',
+	// },
+	mapFlex: {
+		flex: 1,
 		width: '100%',
-		height: 600,
 	},
 	mapContent: {
 		backgroundColor: ReMapColors.primary.accent, // this colour is just for examples sake - not gonna be purple
@@ -863,6 +879,7 @@ const styles = StyleSheet.create({
 		height: 'auto',
 		position: 'absolute',
 		width: '100%',
+		top: 50,
 	},
 	circleSelections: {
 		width: 54,
@@ -906,17 +923,16 @@ const styles = StyleSheet.create({
 	// =================
 	//   SEARCH STYLES
 	// =================
-	scrollContent: {
+	searchContent: {
 		backgroundColor: ReMapColors.ui.cardBackground,
 		borderRadius: 35,
 		borderTopLeftRadius: 30,
 		borderTopRightRadius: 30,
-		marginTop: -5,
-		padding: 20,
 		shadowColor: ReMapColors.primary.black,
 		shadowOffset: { width: 0, height: -2 },
 		shadowOpacity: 0.1,
 		shadowRadius: 4,
+		height: 130,
 	},
 	search: {
 		flexDirection: 'row',
