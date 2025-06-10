@@ -7,12 +7,12 @@ import express from "express";
 import auth from "./routes/auth";
 import profiles from "./routes/profiles";
 import pins from "./routes/pins";
-import groups from "./routes/groups";
+import circles from "./routes/circles";
 
 // middleware
 import logger from "./middleware/logger";
-import getUser from "./middleware/getUser";
 
+// Active port
 const port = Number(process.env.BackPORT) || 3000;
 
 const app = express();
@@ -26,6 +26,7 @@ app.use(express.urlencoded({ extended: false }));
 // Logger
 app.use(logger);
 
+
 /* --------------- Routes ----------------- */
 // Sign up/in routes middleware
 app.use("/api/auths", auth);
@@ -36,13 +37,9 @@ app.use("/api/profiles", profiles);
 // Pins routes middleware
 app.use("/api/pins", pins);
 
-// Groups routes middleware
-app.use("/api/groups", groups);
+// Circles routes middleware
+app.use("/api/circles", circles);
 
-
-/* --------------- Middleware ----------------- */
-// Check user login session middleware
-app.use(getUser);
 
 app.listen(port, () => {
     console.log(`Server running on port: ${port}`);

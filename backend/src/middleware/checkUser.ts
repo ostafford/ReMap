@@ -1,7 +1,7 @@
 import supabase from "../supabase/supabaseClient"
 import { Request, Response, NextFunction } from "express"
 
-const getUser = async (req: Request, res: Response, next: NextFunction) => {
+const checkUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { data: { user }, error } = await supabase.auth.getUser();
 
@@ -13,10 +13,11 @@ const getUser = async (req: Request, res: Response, next: NextFunction) => {
         req.user = user;
         console.log("User authenticated:", user.id);
         next();
+
     } catch (err: any) {
         console.log("Check user server error", err.message);
-        res.status(500).json({ message: "Get user middleware Server Error" });
+        res.status(500).json({ message: "Check user middleware Server Error" });
     }
 }
 
-export default getUser;
+export default checkUser;

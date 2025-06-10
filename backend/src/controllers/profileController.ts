@@ -30,6 +30,7 @@ export const listProfiles = async (req: Request, res: Response) => {
     }
 }
 
+
 // @desc Get single profile
 // @route GET /api/profiles/:id
 export const getProfile = async (req: Request, res: Response) => {
@@ -56,6 +57,7 @@ export const getProfile = async (req: Request, res: Response) => {
     }
 }
 
+
 // @desc Update single profile
 // @route PUT /api/profiles/:id
 const upload = multer({ storage: multer.memoryStorage() });
@@ -65,7 +67,7 @@ export const updateProfile = [upload.single("avatar"), async (req: Request, res:
 
     const { username, full_name } = req.body;
 
-        const file = req.file as any;
+    const file = req.file as any;
 
     let avatarUrl: string | undefined = undefined;
     let user_name: string | null;
@@ -132,6 +134,13 @@ export const updateProfile = [upload.single("avatar"), async (req: Request, res:
 
 
     try {
+        // Check full name is only letters.
+        if (!/^[^\d]+$/.test(full_name)) {
+            console.log("Full name must be letters only");
+            res.status(400).json("Full name must be letters only");
+            return;
+        }
+
         // Update profile
         const { data, error } = await supabase
         .from("profiles")

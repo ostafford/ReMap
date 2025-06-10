@@ -1,9 +1,12 @@
 // Authorisation routes
 import { Router } from "express";
 
-import { deleteUser, getUser, listUsers, logOut, signIn, signUp } from "../controllers/authController";
+import { deleteUser, getUser, listUsers, logOut, signIn, signUp, updateEmail, updatePassword } from "../controllers/authController";
+
+import checkUser from "../middleware/checkUser";
 
 const router = Router();
+
 
 // List all users
 router.get("/users", listUsers);
@@ -18,13 +21,13 @@ router.post("/signUp", signUp);
 router.post("/signIn", signIn);
 
 // Log out
-router.post("/signOut", logOut);
+router.post("/signOut", checkUser, logOut);
 
 // Update email
-// router.put("/email/:id", updateEmail);
+router.put("/email", checkUser, updateEmail);
 
 // Update password
-// router.put("/password/:id", updatePassword);
+router.put("/password", checkUser, updatePassword);
 
 // Delete account
 router.delete("/users/:id", deleteUser);

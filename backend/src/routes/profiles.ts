@@ -3,9 +3,10 @@ import { Router } from "express";
 
 import { getProfile, listProfiles, updateProfile } from "../controllers/profileController";
 
-import getUser from "../middleware/getUser";
+import checkUser from "../middleware/checkUser";
 
 const router = Router();
+
 
 // Get all profiles
 router.get("/", listProfiles);
@@ -14,6 +15,6 @@ router.get("/", listProfiles);
 router.get("/:id", getProfile);
 
 // Update single profile
-router.put("/:id", getUser, updateProfile);
+router.put("/:id", checkUser, updateProfile);
 
 export default router;
