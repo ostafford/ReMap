@@ -65,12 +65,23 @@ const upload = multer({ storage: multer.memoryStorage() });
 export const updateProfile = [upload.single("avatar"), async (req: Request, res: Response) => {
     const id = req.params.id;
 
+    const user = req.user;
+
+    if (!user) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    // Check that the user id matches the profile id attempting to be updated
+    if (id !== user.id) {
+        res.status(401).json({ message: "Unauthorized" })
+    }
+
     const { username, full_name } = req.body;
 
     const file = req.file as any;
 
-    let avatarUrl: string | undefined = undefined;
-    let user_name: string | null;
+    let avatarUrl: string | undefined;
 
     // Get user name
     const { data, error } = await supabase
@@ -83,8 +94,10 @@ export const updateProfile = [upload.single("avatar"), async (req: Request, res:
         console.log("Can not get user details:", error.message);
         return;
     }
+
     console.log("User name:", data.username);
-    user_name = data.username;
+
+    const user_name = data.username;
 
     try{
         if (file) {

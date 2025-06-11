@@ -50,21 +50,6 @@ export const getUser = async (req: Request, res: Response) => {
 // @route POST /api/auths/signUp
 export const signUp = async (req: Request, res: Response) => {
     const { email, password } = req.body;
-    
-    const { data, error } = await supabase.auth.getSession();
-
-    try {
-        if (data.session?.user.email === email) {
-            console.log("Email already registered:", error?.message);
-            res.status(400).json({ "Email registered": error?.message });
-            return;
-        }
-        console.log("New email:", email);
-
-    } catch (err: any) {
-        console.log("User session server error:", err.message);
-        res.status(500).json({ "User session server error": err.message });
-    }
 
     try {
         const { data, error } = await supabase.auth
@@ -91,26 +76,11 @@ export const signUp = async (req: Request, res: Response) => {
 // @route POST /api/auths/signIn
 export const signIn = async (req: Request, res: Response) => {
     const { email, password } = req.body;
-    
-    const { data, error } = await supabase.auth.getSession();
-
-    try {
-        if (data) {
-            console.log("User already logged in. Log out for new user:", error?.message);
-            res.status(400).json({ "User already logged in. Log out for new user": error?.message });
-            return;
-        }
-        console.log("New user:", data);
-
-    } catch (err: any) {
-        console.log("User session server error:", err.message);
-        res.status(500).json({ "User session server error": err.message });
-    }
 
     try {        
         const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+            email,
+            password,
         });
 
         if (error) {

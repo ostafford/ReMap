@@ -12,7 +12,7 @@ const router = Router();
 router.use(checkUser);
 
 // Create pin
-router.post("/:id", createPin);
+router.post("/", createPin);
 
 // Get all pins
 router.get("/", listPins);

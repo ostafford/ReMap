@@ -29,7 +29,7 @@ app.use(logger);
 
 /* --------------- Routes ----------------- */
 // Sign up/in routes middleware
-app.use("/api/auths", auth);
+app.use("/api/auth", auth);
 
 // Profile routes middleware
 app.use("/api/profiles", profiles);

@@ -9,7 +9,7 @@ import formatLocalTime from "../modules/time";
 
 
 // @desc Create pin
-// @route POST /api/pins/:id
+// @route POST /api/pins
 
 // temporarily saves incoming files in buffer
 const upload = multer({ storage: multer.memoryStorage() });
@@ -19,8 +19,6 @@ export const createPin = [upload.fields([
         { name: "audio" }
     ]),
     async (req: Request, res: Response) => {
-        const id = req.params.id;
-
         const imageFile = (req.files as any)?.image?.[0];
         const audioFile = (req.files as any)?.audio?.[0];
 
@@ -29,16 +27,23 @@ export const createPin = [upload.fields([
 
         let user_name: string | null;
 
-        
+        const user = req.user;
+
+        if (!user) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+
         // Get user name and id
         const { data, error } = await supabase
         .from("profiles")
         .select()
-        .eq("id", id)
+        .eq("id", user.id)
         .single();
 
         if (error) {
             console.log("Can not get user details:", error.message);
+            res.status(401).json({ message: error.message });
             return;
         }
         console.log("User name:", data.username);
@@ -127,20 +132,6 @@ export const createPin = [upload.fields([
 
         const { name, description, latitude, longitude } = req.body;
 
-        // Checks latitude and longitude is number
-        const numberRegex = /^-?\d+(\.\d+)?$/;
-        if (!numberRegex.test(latitude)) {
-            console.log("Latitude must be a number");
-            res.status(400).json("Latitude must be a number");
-            return;
-        }
-
-        if (!numberRegex.test(longitude)) {
-            console.log("Longitude must be a number");
-            res.status(400).json("Longitude must be a number");
-            return;
-        }
-
         // Checks latitude is within range
         const lat = parseFloat(latitude);
         if (isNaN(lat)) {
@@ -175,7 +166,7 @@ export const createPin = [upload.fields([
                 description,
                 latitude,
                 longitude,
-                image_urls: [imageUrl],
+                image_urls: imageUrl? [imageUrl]: [],
                 audio_url: audioUrl,
                 owner_id: user_id
             })
@@ -199,29 +190,18 @@ export const createPin = [upload.fields([
 // @desc Get all pins
 // @route GET /api/pins/
 export const listPins = async (req: Request, res: Response) => {
-    let current_userId: any | undefined = undefined;
+    const user = req.user;
 
-    try {
-        const { data, error } = await supabase.auth.getSession();
-
-        if (error) {
-            console.log("User session error:", error.message);
-            res.status(400).json({ "User session error": error.message });
-            return;
-        }
-        console.log("User session:", data.session?.user.id);
-        current_userId = data.session?.user.id;
-
-    } catch (err: any) {
-        console.log("User session server error:", err.message);
-        res.status(500).json({ "User session server error": err.message });            
+    if (!user) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
     }
 
     try {
         const { data: pins, error } = await supabase
         .from("pins")
         .select()
-        .eq("owner_id", current_userId); // check current user id is owner_id
+        .eq("owner_id", user.id); // check current user id is owner_id
 
         if (error) {
             console.log("List pins error:", error.message);
@@ -243,22 +223,11 @@ export const listPins = async (req: Request, res: Response) => {
 export const getPin = async (req: Request, res: Response) => {
     const pin_Id = req.params.pinId;
 
-    let current_userId: any | undefined = undefined;
+    const user = req.user;
 
-    try {
-        const { data, error } = await supabase.auth.getSession();
-
-        if (error) {
-            console.log("User session error:", error.message);
-            res.status(400).json({ "User session error": error.message });
-            return;
-        }
-        console.log("User session:", data.session?.user.id);
-        current_userId = data.session?.user.id;
-
-    } catch (err: any) {
-        console.log("User session server error:", err.message);
-        res.status(500).json({ "User session server error": err.message });            
+    if (!user) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
     }
 
     try {
@@ -266,7 +235,7 @@ export const getPin = async (req: Request, res: Response) => {
         .from("pins")
         .select()
         .eq("id", pin_Id)
-        .eq("owner_id", current_userId) // check current user id is owner_id
+        .eq("owner_id", user.id) // check current user id is owner_id
         .single();
 
         if (error) {
@@ -293,24 +262,13 @@ export const updatePin = [upload.fields([
     async (req: Request, res: Response) => {
         const id = req.params.id;
 
-        let current_userId: any | undefined = undefined;
+        const user = req.user;
 
-        try {
-            const { data, error } = await supabase.auth.getSession();
-
-            if (error) {
-                console.log("User session error:", error.message);
-                res.status(400).json({ "User session error": error.message });
-                return;
-            }
-            console.log("User session:", data.session?.user.id);
-            current_userId = data.session?.user.id;
-
-        } catch (err: any) {
-            console.log("User session server error:", err.message);
-            res.status(500).json({ "User session server error": err.message });            
+        if (!user) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
         }
-        
+
         const imageFile = (req.files as any)?.image?.[0];
         const audioFile = (req.files as any)?.audio?.[0];
 
@@ -324,7 +282,7 @@ export const updatePin = [upload.fields([
         .from("profiles")
         .select()
         .eq("id", id)
-        .eq("owner_id", current_userId) // check current user id is owner_id
+        .eq("owner_id", user.id) // check current user id is owner_id
         .single();
 
         if (error) {
@@ -418,20 +376,6 @@ export const updatePin = [upload.fields([
 
         const { name, description, latitude, longitude } = req.body;
 
-        // Checks latitude and longitude is number
-        const numberRegex = /^-?\d+(\.\d+)?$/;
-        if (!numberRegex.test(latitude)) {
-            console.log("Latitude must be a number");
-            res.status(400).json("Latitude must be a number");
-            return;
-        }
-
-        if (!numberRegex.test(longitude)) {
-            console.log("Longitude must be a number");
-            res.status(400).json("Longitude must be a number");
-            return;
-        }
-
         // Checks latitude is within range
         const lat = parseFloat(latitude);
         if (isNaN(lat)) {
@@ -466,7 +410,7 @@ export const updatePin = [upload.fields([
                 description,
                 latitude,
                 longitude,
-                image_urls: [imageUrl],
+                image_urls: imageUrl? [imageUrl]: [],
                 audio_url: audioUrl,
                 owner_id: user_id
             })
@@ -492,11 +436,19 @@ export const updatePin = [upload.fields([
 export const deletePin = async (req: Request, res: Response) => {
     const pin_id = req.params.pinId;
 
+    const user = req.user;
+
+    if (!user) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
     try {
         const { error } = await supabase
         .from("pins")
         .delete()
-        .eq("id", pin_id);
+        .eq("id", pin_id)
+        .eq("owner_id", user.id);
 
         if (error) {
             console.log(`Delete pin: ${pin_id} error: ${error.message}`);
