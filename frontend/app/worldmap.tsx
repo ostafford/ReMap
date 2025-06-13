@@ -516,7 +516,7 @@ export default function WorldMapScreen() {
 									{ top: insets.top + 100 },
 								]}
 							>
-								<IconButton
+								{/* <IconButton
 									icon="globe"
 									onPress={navigateToCreatePin}
 									size={28}
@@ -527,16 +527,16 @@ export default function WorldMapScreen() {
 									onPress={navigateToCreatePin}
 									size={28}
 									style={styles.circleSelections}
-								/>
+								/> */}
 
 								{/* Social Circles with Animation (Drop-Down) */}
 								<View style={{ alignItems: 'flex-end' }}>
-									<IconButton
+									{/* <IconButton
 										icon="users"
 										onPress={toggleSocials}
 										size={28}
 										style={styles.socialSelection}
-									/>
+									/> */}
 									<Animated.View
 										style={[
 											styles.socialsBacking,
@@ -867,10 +867,10 @@ const styles = StyleSheet.create({
 	// ===============
 	map: {
 		width: '100%',
-		height: 600,
+		height: 645,
 	},
 	mapContent: {
-		backgroundColor: ReMapColors.primary.accent, // this colour is just for examples sake - not gonna be purple
+		backgroundColor: ReMapColors.primary.accent,
 		borderRadius: 16,
 		height: 35,
 		left: '25%',

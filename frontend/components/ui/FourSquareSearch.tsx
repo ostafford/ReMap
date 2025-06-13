@@ -127,6 +127,45 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 	return () => clearTimeout(timeout);
 }, []);
 
+
+
+	const handleSelect = async (item: Suggestion) => {
+	try {
+		// If it's a place, get detailed info
+		if (item.type === 'place' && item.place?.fsq_id) {
+		const apiKey = Constants.expoConfig?.extra?.foursquareApiKey;
+		const detailRes = await axios.get(
+			`https://api.foursquare.com/v3/places/${item.place.fsq_id}`,
+			{
+			headers: {
+				Authorization: `fsq${apiKey.trim()}`,
+				accept: 'application/json',
+			},
+			}
+		);
+
+		const fullPlace = detailRes.data;
+		onSelect({
+			...item,
+			place: {
+			...item.place,
+			location: fullPlace.location,
+			},
+			geocodes: fullPlace.geocodes,
+		});
+		} else {
+		onSelect(item);
+		}
+
+		setQuery(item.text?.primary || item.place?.name || '');
+		setSuggestions([]);
+		setSessionToken(null);
+	} catch (error) {
+		console.error('Failed to fetch place details:', error);
+		onSelect(item);
+	}
+	};
+
 	
 // ===========================================
 //   AUTOCOMPLETE SEARCH COMPONENT RENDERING
@@ -164,12 +203,8 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 							<TouchableOpacity
 								key={item.place?.fsq_id || index}
 								style={styles.item}
-								onPress={() => {
-									setQuery(displayText);
-									setSuggestions([]);
-									onSelect(item);
-									setSessionToken(null);
-								}}
+								onPress={() => handleSelect(item)}
+								
 								>
 								<Text>{displayText}</Text>
 							</TouchableOpacity>
