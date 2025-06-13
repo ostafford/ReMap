@@ -144,7 +144,7 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 		);
 
 		const fullPlace = detailRes.data;
-		onSelect({
+		const updatedItem = ({
 			...item,
 			place: {
 			...item.place,
@@ -152,6 +152,15 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 			},
 			geocodes: fullPlace.geocodes,
 		});
+
+		const coords = fullPlace.geocodes?.main;
+		console.log("Selected Name:", fullPlace.name);
+		if (coords) {
+			console.log("Selected Coordinates:", coords.latitude, coords.longitude);
+		}
+
+      onSelect(updatedItem);
+
 		} else {
 		onSelect(item);
 		}
