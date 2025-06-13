@@ -1,7 +1,7 @@
 // ================
 //   CORE IMPORTS
 // ================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
 	View,
 	TextInput,
@@ -67,6 +67,7 @@ type Props = {
 //   AUTOCOMPLETE SEARCH COMPONENT
 // ==================================
 export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' }: Props) => {
+	const inputRef = useRef<TextInput>(null);
 	const [query, setQuery] = useState('');
 	const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 	
@@ -118,6 +119,14 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 		return () => clearTimeout(timeout);
 	}, [query]);
 
+
+	useEffect(() => {
+	const timeout = setTimeout(() => {
+		inputRef.current?.focus();
+	}, 100);
+	return () => clearTimeout(timeout);
+}, []);
+
 	
 // ===========================================
 //   AUTOCOMPLETE SEARCH COMPONENT RENDERING
@@ -125,6 +134,7 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 	return (
 		<View style={styles.container}>
 			<TextInput
+				ref={inputRef}
 				placeholder={placeholder}
 				placeholderTextColor= {ReMapColors.ui.textSecondary}
 				value={query}
