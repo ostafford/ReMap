@@ -55,6 +55,9 @@ import type { Suggestion } from '@/components/ui/FourSquareSearch';
 // =========================
 import { AuthModal } from '@/components/ui/AuthModal';
 import { PinBottomSheet } from '@/components/ui/PinBottomSheet';
+import { useAuth } from '@/hooks/useAuth';
+import { useModal } from '@/hooks/useModal';
+import { useSlideAnimation } from '@/hooks/useSlideAnimation';
 
 // ======================
 //  LAYOUT COMPONENTS
@@ -153,79 +156,28 @@ export default function WorldMapScreen() {
 	// =============================
 	//   AUTHENTICATION SECTION
 	// =============================
-	const [currentUser, setCurrentUser] = useState<any>(null);
-	const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-	const [user, setUser] = useState<User | null>(null);
-	const [loadingSession, setLoadingSession] = useState<boolean>(true);
-
-	// Authentication useEffect hooks
-	useEffect(() => {
-		const checkUserAuth = async () => {
-			try {
-				const userInfo = await getCurrentUser();
-				setCurrentUser(userInfo.user);
-			} catch (error) {
-				console.error('Error checking user auth:', error);
-			} finally {
-				setIsCheckingAuth(false);
-			}
-		};
-
-		checkUserAuth();
-	}, []);
-
-	useEffect(() => {
-		const checkSession = async () => {
-			const { data, error } = await supabase.auth.getSession();
-
-			if (error) {
-				console.log('Error fetching session:', error.message);
-				setUser(null);
-			} else if (data?.session?.user) {
-				setUser(data.session.user);
-			} else {
-				setUser(null);
-			}
-			setLoadingSession(false);
-		};
-		checkSession();
-	}, []);
-
-	// Authentication handlers
-	const openLoginModal = () => {
-		if (user) {
-			console.log('User logged in:', user.email);
-		}
-		setModalMode('login');
-		setIsModalVisible(true);
-	};
+	const {
+		user,
+		isLoading,
+		isAuthenticated,
+		signOut,
+		userDisplayName,
+		refreshAuth,
+	} = useAuth();
 
 	const handleSignOut = async () => {
-		try {
-			await signOut();
-			setCurrentUser(null);
-			closeProfileModal();
+		const success = await signOut();
+		if (success) {
+			profileModal.close();
 			router.replace('/');
-		} catch (error) {
-			console.error('Sign out error:', error);
 		}
 	};
 
 	// =============================
 	//   MODAL MANAGEMENT SECTION
 	// =============================
-	const [isModalVisible, setIsModalVisible] = useState(false);
-	const [modalMode, setModalMode] = useState<'login' | 'signup'>('login');
-	const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
-
-	// Modal handlers
-	const openProfileModal = () => setIsProfileModalVisible(true);
-	const closeProfileModal = () => setIsProfileModalVisible(false);
-
-	const [isSignInModalVisible, setIsSignInModalVisible] = useState(false);
-	const toggleSignInModal = () => {
-		setIsSignInModalVisible(!isSignInModalVisible);
-	};
+	const profileModal = useModal();
+	const signInModal = useModal();
 
 	// =============================
 	//   USER PREFERENCES & FILTERING SECTION
@@ -355,31 +307,13 @@ export default function WorldMapScreen() {
 	// =============================
 	//   SEARCH FUNCTIONALITY SECTION
 	// =============================
-	const [searchVisible, setSearchVisible] = useState(false);
-	const slideAnim = useRef(new Animated.Value(-100)).current;
-
-	// Search handlers
-	const openSearch = () => {
-		setSearchVisible(true);
-		Animated.timing(slideAnim, {
-			toValue: 0,
-			duration: 300,
-			useNativeDriver: true,
-		}).start();
-	};
-
-	const closeSearch = () => {
-		Animated.timing(slideAnim, {
-			toValue: -100,
-			duration: 100,
-			useNativeDriver: true,
-		}).start(() => {
-			setSearchVisible(false);
-		});
-	};
+	const searchAnimation = useSlideAnimation({
+		animationType: 'timing',
+		duration: 300,
+	});
 
 	const onSelectSuggestion = (item: Suggestion) => {
-		closeSearch();
+		searchAnimation.slideOut(); // Changed from closeSearch()
 		if (
 			'geocodes' in item &&
 			item.geocodes?.main?.latitude !== undefined &&
@@ -400,21 +334,15 @@ export default function WorldMapScreen() {
 	// =============================
 	//   SOCIAL CIRCLES SECTION
 	// =============================
-	const [showSocials, setShowSocials] = useState(false);
-	const socialsSlideAnim = useRef(new Animated.Value(-100)).current;
-
-	// Social circles handlers
-	const toggleSocials = () => {
-		Animated.spring(socialsSlideAnim, {
-			toValue: showSocials ? -100 : 0,
-			useNativeDriver: true,
+	const socialsAnimation = useSlideAnimation({
+		animationType: 'spring',
+		springConfig: {
 			damping: 15,
 			stiffness: 120,
 			mass: 1,
-		}).start(() => {
-			setShowSocials(!showSocials);
-		});
-	};
+		},
+	});
+	// Social circles handlers
 
 	// =============================
 	//   NAVIGATION SECTION
@@ -440,11 +368,15 @@ export default function WorldMapScreen() {
 			{/**********************************************/}
 			{/******** AUTOCOMPLETE SLIDE FROM TOP *********/}
 			{/* *********************************************/}
-			{searchVisible && (
+			{searchAnimation.isVisible && (
 				<Animated.View
 					style={[
 						styles.animatedSearchContainer,
-						{ transform: [{ translateY: slideAnim }] },
+						{
+							transform: [
+								{ translateY: searchAnimation.animatedValue },
+							],
+						},
 					]}
 				>
 					<FoursquareSearch
@@ -558,7 +490,7 @@ export default function WorldMapScreen() {
 							<View style={{ alignItems: 'flex-end' }}>
 								<IconButton
 									icon="users"
-									onPress={toggleSocials}
+									onPress={socialsAnimation.toggleSimple}
 									size={28}
 									style={styles.socialSelection}
 								/>
@@ -569,15 +501,17 @@ export default function WorldMapScreen() {
 											transform: [
 												{
 													translateY:
-														socialsSlideAnim,
+														socialsAnimation.animatedValue,
 												},
 											],
 											opacity:
-												socialsSlideAnim.interpolate({
-													inputRange: [-100, 0],
-													outputRange: [0, 1],
-													extrapolate: 'clamp',
-												}),
+												socialsAnimation.animatedValue.interpolate(
+													{
+														inputRange: [-100, 0],
+														outputRange: [0, 1],
+														extrapolate: 'clamp',
+													}
+												),
 										},
 									]}
 								>
@@ -660,22 +594,24 @@ export default function WorldMapScreen() {
 							</Text>
 							<TouchableOpacity
 								style={
-									searchVisible
+									searchAnimation.isVisible
 										? styles.fakeInputClose
 										: styles.fakeInput
 								}
 								onPress={
-									searchVisible ? closeSearch : openSearch
+									searchAnimation.isVisible
+										? searchAnimation.hide
+										: searchAnimation.show
 								}
 							>
 								<Text
 									style={{
-										color: searchVisible
+										color: searchAnimation.isVisible
 											? 'white'
 											: ReMapColors.ui.textSecondary,
 									}}
 								>
-									{searchVisible
+									{searchAnimation.isVisible
 										? 'Close'
 										: 'Search Location'}
 								</Text>
@@ -696,15 +632,19 @@ export default function WorldMapScreen() {
 					<Footer>
 						<View style={styles.footerContainer}>
 							<IconButton
-								icon={user ? 'address-card' : 'reply'}
-								onPress={user ? openProfileModal : goBack}
+								icon={
+									isAuthenticated ? 'address-card' : 'reply'
+								}
+								onPress={
+									isAuthenticated ? profileModal.open : goBack
+								}
 							/>
 							<IconButton
-								icon={user ? 'map-pin' : 'user'}
+								icon={isAuthenticated ? 'map-pin' : 'user'}
 								onPress={
-									user
+									isAuthenticated
 										? navigateToCreatePin
-										: toggleSignInModal
+										: signInModal.open
 								}
 								size={36}
 								style={styles.bigCenterButton}
@@ -720,34 +660,35 @@ export default function WorldMapScreen() {
 					{/* LOGIN/SIGNUP MODAL UI */}
 					{/**********************/}
 					<AuthModal
-						isVisible={isSignInModalVisible}
-						onToggle={() => setIsSignInModalVisible(false)}
-						onSignInSuccess={navigateToWorldMap}
+						isVisible={signInModal.isVisible}
+						onToggle={signInModal.close}
+						onSignInSuccess={() => {
+							refreshAuth();
+							signInModal.close();
+						}}
 						styles={styles}
 					/>
 					{/********************/}
 					{/*   PROFILE MODAL  */}
 					{/********************/}
 					<Modal
-						isVisible={isProfileModalVisible}
-						onBackdropPress={closeProfileModal}
+						isVisible={profileModal.isVisible}
+						onBackdropPress={profileModal.close}
 					>
 						<Modal.Container>
 							<Modal.Header
-								title={`Hello, ${
-									currentUser?.email?.split('@')[0] || 'User'
-								}! 👋`}
+								title={`Hello, ${userDisplayName}! 👋`}
 							/>
 							<Modal.Body>
 								<View style={styles.profileContent}>
 									<BodyText style={styles.profileEmail}>
-										📧 {currentUser?.email}
+										📧 {user?.email}
 									</BodyText>
 									<CaptionText style={styles.profileMeta}>
 										Member since{' '}
-										{currentUser
+										{user
 											? new Date(
-													currentUser.created_at
+													user.created_at
 											  ).toLocaleDateString()
 											: ''}
 									</CaptionText>
@@ -768,7 +709,7 @@ export default function WorldMapScreen() {
 									🚪 Sign Out
 								</Button>
 								<Button
-									onPress={closeProfileModal}
+									onPress={profileModal.close}
 									style={[
 										styles.modalButton,
 										styles.cancelButton,

@@ -7,7 +7,10 @@ interface MessageState {
 	type?: 'success' | 'error' | 'warning' | 'info';
 }
 
-export const useAuthModal = (onSignInSuccess?: () => void) => {
+export const useAuthModal = (
+	onSignInSuccess?: () => void,
+	onAuthRefresh?: () => void
+) => {
 	const [isVisible, setIsVisible] = useState(false);
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
@@ -70,15 +73,17 @@ export const useAuthModal = (onSignInSuccess?: () => void) => {
 
 		setIsLoading(true);
 
+		setIsLoading(true);
+
 		try {
 			await signIn({ email, password });
 			showMessage('Welcome back! Successfully signed in.', 'success');
-			await getCurrentUser();
+
+			// NEW: Refresh global auth state
+			onAuthRefresh?.();
 
 			setIsVisible(false);
 			resetForm();
-
-			// Execute the callback if provided
 			onSignInSuccess?.();
 		} catch (error: any) {
 			console.error('Login error:', error);
