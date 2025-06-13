@@ -1,6 +1,5 @@
 // Time and Year module - Melbourne Aus
-
-function formatLocalTime() {
+export function formatLocalTime() {
   const now = new Date();
 
   const melTime = new Date(now.toLocaleString("en-AU", {timeZone: "Australia/Melbourne"}));
@@ -14,5 +13,3 @@ function formatLocalTime() {
 
   return `${month}-${day}-${year} ${hours}:${minutes}:${seconds}`;
 }
-
-export default formatLocalTime;

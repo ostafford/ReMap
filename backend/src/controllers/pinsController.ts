@@ -5,11 +5,11 @@ import multer from "multer";
 
 import supabase from "../supabase/supabaseClient";
 
-import formatLocalTime from "../modules/time";
+import { formatLocalTime } from "../modules/utilities";
 
 
 // @desc Create pin
-// @route POST /api/pins
+// @route POST /api/pins/user
 
 // temporarily saves incoming files in buffer
 const upload = multer({ storage: multer.memoryStorage() });
@@ -24,8 +24,6 @@ export const createPin = [upload.fields([
 
         let imageUrl: string | undefined = undefined;
         let audioUrl: string | undefined = undefined;
-
-        let user_name: string | null;
 
         const user = req.user;
 
@@ -47,9 +45,9 @@ export const createPin = [upload.fields([
             return;
         }
         console.log("User name:", data.username);
-        user_name = data.username;
+        const user_name = data.username;
 
-        let user_id = data.id;
+        const user_id = data.id;
 
         try {
             // First, upload file to Supabase storage
@@ -188,7 +186,7 @@ export const createPin = [upload.fields([
 
 
 // @desc Get all pins
-// @route GET /api/pins/
+// @route GET /api/pins/user
 export const listPins = async (req: Request, res: Response) => {
     const user = req.user;
 
@@ -204,22 +202,22 @@ export const listPins = async (req: Request, res: Response) => {
         .eq("owner_id", user.id); // check current user id is owner_id
 
         if (error) {
-            console.log("List pins error:", error.message);
-            res.status(400).json({ "List pins error": error.message });
+            console.log("List user pins error:", error.message);
+            res.status(400).json({ "List user pins error": error.message });
             return;
         }
-        console.log("List pins:", pins);
-        res.status(200).json({ "List pins": pins });
+        console.log("List user pins:", pins);
+        res.status(200).json({ "List user pins": pins });
 
     } catch (err: any) {
-        console.log("List pins server error", err.message);
-        res.status(500).json({ "List pins server error": err.message });
+        console.log("List user pins server error", err.message);
+        res.status(500).json({ "List user pins server error": err.message });
     }
 }
 
 
 // @desc Get single pin
-// @route GET /api/pins/:pinId
+// @route GET /api/pins/user/:pinId
 export const getPin = async (req: Request, res: Response) => {
     const pin_Id = req.params.pinId;
 
@@ -239,22 +237,22 @@ export const getPin = async (req: Request, res: Response) => {
         .single();
 
         if (error) {
-            console.log("Get single pin error:", error.message);
-            res.status(400).json({ "Get single pin error": error.message });
+            console.log("Get single user pin error:", error.message);
+            res.status(400).json({ "Get single user pin error": error.message });
             return;
         }
-        console.log("Pin:", pins);
-        res.status(200).json({ "Pin": pins });
+        console.log("User Pin:", pins);
+        res.status(200).json({ "User Pin": pins });
 
     } catch (err: any) {
-        console.log("Get single pin server error", err.message);
-        res.status(500).json({ "Get single pin server error": err.message });
+        console.log("Get single user pin server error", err.message);
+        res.status(500).json({ "Get single user pin server error": err.message });
     }
 }
 
 
 // @desc Update single pin
-// @route PUT /api/pins/:pinId
+// @route PUT /api/pins/user/:pinId
 export const updatePin = [upload.fields([
         { name: "image" },
         { name: "audio" }
@@ -275,8 +273,6 @@ export const updatePin = [upload.fields([
         let imageUrl: string | undefined = undefined;
         let audioUrl: string | undefined = undefined;
 
-        let user_name: string | null;
-
         // Get user name and id
         const { data, error } = await supabase
         .from("profiles")
@@ -291,9 +287,9 @@ export const updatePin = [upload.fields([
             return;
         }
         console.log("User name:", data.username);
-        user_name = data.username;
+        const user_name = data.username;
 
-        let user_id = data.id;
+        const user_id = data.id;
 
         try {
             // First, upload file to Supabase storage
@@ -432,7 +428,7 @@ export const updatePin = [upload.fields([
 
 
 // @desc Delete single pin
-// @route DELETE /api/pins/:pinId
+// @route DELETE /api/pins/user/:pinId
 export const deletePin = async (req: Request, res: Response) => {
     const pin_id = req.params.pinId;
 

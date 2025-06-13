@@ -5,7 +5,7 @@ import { Request, Response } from "express";
 
 import multer from "multer";
 
-import formatLocalTime from "../modules/time";
+import { formatLocalTime } from "../modules/utilities";
 
 
 // @desc Get all profiles
@@ -175,6 +175,6 @@ export const updateProfile = [upload.single("avatar"), async (req: Request, res:
 
     } catch (err: any) {
         console.log("Update profile error:", err.message);
-        res.status(500).json({ msg: "Update profile error:", error: err.message });
+        res.status(500).json({ "Update profile error": err.message });
     }
 }]

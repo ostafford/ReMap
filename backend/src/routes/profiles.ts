@@ -3,7 +3,7 @@ import { Router } from "express";
 
 import { getProfile, listProfiles, updateProfile } from "../controllers/profileController";
 
-import checkUser from "../middleware/checkUser";
+import checkUser from "../middleware/userAuth";
 
 const router = Router();
 

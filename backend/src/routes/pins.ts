@@ -3,27 +3,36 @@ import { Router } from "express";
 
 import { createPin, deletePin, getPin, listPins, updatePin } from "../controllers/pinsController";
 
-import checkUser from "../middleware/checkUser";
+import checkUser from "../middleware/userAuth";
+
+import { publicGetPin, publicListPins } from "../controllers/publicPinsController";
 
 const router = Router();
 
 
-// Check user signed in
-router.use(checkUser);
-
+/* ----------------- Private --------------------- */
 // Create pin
-router.post("/", createPin);
+router.post("/user", checkUser, createPin);
 
 // Get all pins
-router.get("/", listPins);
+router.get("/user", listPins);
 
 // Get single pin
-router.get("/:pinId", getPin);
+router.get("/user/:pinId", checkUser, getPin);
 
 // Update pins
-router.put("/:pinId", updatePin);
+router.put("/user/:pinId", checkUser, updatePin);
 
 // Delete pins
-router.delete("/:pinId", deletePin);
+router.delete("/user/:pinId", checkUser, deletePin);
+
+
+/* ----------------- Public --------------------- */
+// Get all pins
+router.get("/", publicListPins);
+
+// Get single pin
+router.get("/:pinId", publicGetPin);
+
 
 export default router;

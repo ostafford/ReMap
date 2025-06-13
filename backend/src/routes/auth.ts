@@ -3,7 +3,7 @@ import { Router } from "express";
 
 import { deleteUser, getUser, listUsers, logOut, signIn, signUp, updateEmail, updatePassword } from "../controllers/authController";
 
-import checkUser from "../middleware/checkUser";
+import checkUser from "../middleware/userAuth";
 
 const router = Router();
 

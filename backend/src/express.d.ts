@@ -1,5 +1,6 @@
 // src/express.d.ts
 
+// Declaration file. It is used to provide type information about existing JavaScript code or libraries that don't have built-in TypeScript support.
 import { User } from '@supabase/supabase-js';
 
 declare global {

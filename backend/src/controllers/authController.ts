@@ -129,7 +129,7 @@ export const updateEmail = async (req: Request, res: Response) => {
         
         if (error) {
             console.log("Email could not update error:", error.message);
-            res.status(404).json({"Email could not update error": error.message});
+            res.status(400).json({"Email could not update error": error.message});
             return;
         }
         console.log("Email updated:", data);
@@ -151,7 +151,7 @@ export const updatePassword = async (req: Request, res: Response) => {
         
         if (error) {
             console.log("Password could not update error:", error.message);
-            res.status(404).json({"Password could not update error": error.message});
+            res.status(400).json({"Password could not update error": error.message});
             return;
         }
         console.log("Password updated:", data.user.confirmed_at);
