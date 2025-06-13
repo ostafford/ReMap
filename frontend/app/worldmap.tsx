@@ -15,7 +15,7 @@ import {
 	Text,
 	TouchableOpacity,
 	TouchableWithoutFeedback,
-	View,
+	View, 
 } from 'react-native';
 
 // ==================================
@@ -594,9 +594,6 @@ export default function WorldMapScreen() {
 							{/************ UNDER MAP CONTENT ***************/}
 							{/**********************************************/}
 							<View style={styles.scrollContent}>
-								<Text style={styles.remapTitle}>
-									ReMap Your Journey
-								</Text>
 								<TouchableOpacity
 									style={
 										searchVisible
@@ -859,12 +856,6 @@ const styles = StyleSheet.create({
 		color: ReMapColors.ui.textSecondary,
 		textAlign: 'center',
 		marginBottom: 30,
-	},
-	remapTitle: {
-		fontSize: 34,
-		alignSelf: 'center',
-		padding: 8,
-		fontWeight: 'bold',
 	},
 	circleName: {
 		color: ReMapColors.ui.text,
