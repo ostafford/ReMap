@@ -131,7 +131,6 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 
 	const handleSelect = async (item: Suggestion) => {
 	try {
-		// If it's a place, get detailed info
 		if (item.type === 'place' && item.place?.fsq_id) {
 		const apiKey = Constants.expoConfig?.extra?.foursquareApiKey;
 		const detailRes = await axios.get(
@@ -187,15 +186,17 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 					keyboardShouldPersistTaps="handled"
 				>
 					{suggestions.map((item, index) => {
-						let displayText = 'Unknown';
+						let displayText = "";
 
 						if (item.type === 'place' && item.place?.name) {
 							displayText = item.place.name;
 						} else if (item.type === 'search' && item.text?.primary) {
 							displayText = item.text.primary;
-						} else if (item.type === 'address' && item.address?.formatted_address) {
-							displayText = item.address.formatted_address;
+						} else if (item.type === 'address' && (item.address?.formatted_address || item.text?.primary)) {
+							displayText = item.address.formatted_address || item.text.primary;
 						} else if (item.type === 'geo' && item.text?.primary) {
+							displayText = item.text.primary;
+						} else if (item.text?.primary) {
 							displayText = item.text.primary;
 						}
 
