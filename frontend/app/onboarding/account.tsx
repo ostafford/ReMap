@@ -2,12 +2,12 @@
 //   CORE IMPORTS
 // ================
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, Image } from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
 // =======================
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 
 // ================================
 //   INTERNAL 'LAYOUT' COMPONENTS
@@ -57,57 +57,53 @@ import {
 	isSignedIn,
 } from '@/services/auth';
 
-// =========================
-//   TYPE DEFINITIONS
-// =========================
-interface StarterPackSelection {
-	id: string;
-	name: string;
-	icon: string;
-	description: string;
-	category: string;
-	color: string;
-}
-
-interface StarterPackData {
-	starterPacks: StarterPackSelection[];
-	selectedIds: string[];
-	timestamp: string;
-	skipped?: boolean;
-}
+import { useOnboardingState } from '@/hooks/useOnboardingState';
+import { useMediaCapture } from '@/hooks/createPin/useMediaCapture';
 
 // ========================
 //   COMPONENT DEFINITION
 // ========================
 export default function OnboardingAccountScreen() {
 	// ==================
-	//   ROUTE PARAMS
+	//   ENHANCED STATE INTEGRATION
 	// ==================
-	const { starterPackSelections } = useLocalSearchParams();
+	const {
+		onboardingState,
+		updateField,
+		showMessage,
+		hideMessage,
+		validateAccountFields,
+		setAccountCreationLoading,
+		setProfilePicture,
+	} = useOnboardingState();
+
+	const showModal = (
+		type: 'error' | 'success' | 'info',
+		title: string,
+		message: string
+	) => {
+		showMessage(message, type);
+	};
+
+	// ==================
+	//   PROFILE PICTURE CAPTURE
+	// ==================
+	const profileCapture = useMediaCapture({
+		showModal,
+		mode: 'single-photo',
+		allowAudio: false,
+		allowMultiple: false,
+		customLabels: {
+			photoAdded: 'Perfect! Your profile picture looks great!',
+		},
+	});
 
 	// ==================
 	//   MODAL STATE
 	// ==================
 	const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
 	const [isSkipModalVisible, setIsSkipModalVisible] = useState(false);
-
-	// ==================
-	//   FORM STATE
-	// ==================
-	const [email, setEmail] = useState('');
-	const [password, setPassword] = useState('');
-	const [fullName, setFullName] = useState('');
-	const [emailError, setEmailError] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
-
-	// ==================
-	//   MESSAGE STATE
-	// ==================
-	const [messageState, setMessageState] = useState({
-		show: false,
-		message: '',
-		type: 'info' as 'success' | 'error' | 'warning' | 'info',
-	});
 
 	// ==================
 	//   AUTH STATE
@@ -115,71 +111,20 @@ export default function OnboardingAccountScreen() {
 	const [currentUser, setCurrentUser] = useState<any>(null);
 	const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-	// ==================
-	//   STARTER PACK STATE
-	// ==================
-	const [starterPackData, setStarterPackData] =
-		useState<StarterPackData | null>(null);
-
-	// ===========================
-	//   PARSE STARTER PACK DATA
-	// ===========================
-	// [ CONSOLE/SERVER DEBUGGING RELATED ]
+	// Handle profile picture selection from media capture
 	useEffect(() => {
-		if (starterPackSelections) {
-			try {
-				const parsedData = JSON.parse(starterPackSelections as string);
-				setStarterPackData(parsedData);
-				console.log('📦 Received starter pack data:', parsedData);
-			} catch (error) {
-				console.error('Error parsing starter pack selections:', error);
-			}
+		if (profileCapture.selectedMedia.length > 0) {
+			const latestPhoto = profileCapture.selectedMedia[0];
+			setProfilePicture(latestPhoto.uri);
 		}
-	}, [starterPackSelections]);
-
-	// ====================
-	//   AUTH DEFINITIONS
-	// ====================
-	// useEffect(() => {
-	// 	checkCurrentUser();
-	// }, []);
-
-	// ==================
-	//   HELPER FUNCTIONS
-	// ==================
-	const validateEmail = (email: string) => {
-		if (!email) return 'Email is required';
-		if (!email.includes('@')) return 'Invalid email format';
-		if (email.length < 5) return 'Email too short';
-		return '';
-	};
-
-	const showMessage = (
-		message: string,
-		type: typeof messageState.type = 'info'
-	) => {
-		setMessageState({ show: true, message, type });
-	};
-
-	const hideMessage = () => {
-		setMessageState((prev) => ({ ...prev, show: false }));
-	};
-
-	const resetForm = () => {
-		setEmail('');
-		setPassword('');
-		setFullName('');
-		setEmailError('');
-		setIsLoading(false);
-		hideMessage();
-	};
+	}, [profileCapture.selectedMedia]);
 
 	// ===========================
 	//   AUTHENTICATION HANDLERS
 	// ===========================
 	const handleSignUp = async () => {
-		if (!email || !password || !fullName) {
-			showMessage('Please fill out all required fields', 'warning');
+		// Use enhanced validation
+		if (!validateAccountFields()) {
 			return;
 		}
 
@@ -192,33 +137,30 @@ export default function OnboardingAccountScreen() {
 			return;
 		}
 
-		const emailValidation = validateEmail(email);
-		if (emailValidation) {
-			setEmailError(emailValidation);
-			showMessage('Please fix the email format', 'error');
-			return;
-		}
-
-		if (password.length < 6) {
-			showMessage('Password must be at least 6 characters', 'error');
-			return;
-		}
-
 		setIsLoading(true);
+		setAccountCreationLoading(true);
 
 		try {
-			await signUp({ email, password });
+			await signUp({
+				email: onboardingState.email,
+				password: onboardingState.password,
+			});
 
 			// Create user profile data including starter pack preferences
 			const userProfileData = {
-				fullName,
-				email,
-				starterPackPreferences: starterPackData,
+				fullName: onboardingState.username,
+				email: onboardingState.email,
+				profilePictureUri: onboardingState.profilePictureUri,
+				starterPackPreferences: {
+					selectedMemoryTypes: onboardingState.selectedMemoryTypes,
+					selectedInterests: onboardingState.selectedInterests,
+					timestamp: new Date().toISOString(),
+				},
 				accountCreatedAt: new Date().toISOString(),
 			};
 
 			console.log(
-				'📋 User account data with starter packs:',
+				'📋 User account data with enhanced state:',
 				userProfileData
 			);
 
@@ -238,6 +180,7 @@ export default function OnboardingAccountScreen() {
 			showMessage(errorMessage, 'error');
 		} finally {
 			setIsLoading(false);
+			setAccountCreationLoading(false);
 		}
 	};
 
@@ -262,19 +205,33 @@ export default function OnboardingAccountScreen() {
 		}
 	};
 
+	const resetForm = () => {
+		updateField('username', '');
+		updateField('email', '');
+		updateField('password', '');
+		updateField('confirmPassword', '');
+		setProfilePicture(null);
+		setIsLoading(false);
+		hideMessage();
+	};
+
 	// ==================
 	//   EVENT HANDLERS
 	// ==================
 	const navigateToWorldMap = () => {
-		resetForm();
 		setIsSignupModalVisible(false);
 
-		// Pass starter pack data to world map
-		if (starterPackData && starterPackData.starterPacks.length > 0) {
+		// Use enhanced state data
+		if (onboardingState.selectedMemoryTypes.length > 0) {
 			router.replace({
 				pathname: '/worldmap',
 				params: {
-					userPreferences: JSON.stringify(starterPackData),
+					userPreferences: JSON.stringify({
+						selectedMemoryTypes:
+							onboardingState.selectedMemoryTypes,
+						selectedInterests: onboardingState.selectedInterests,
+						timestamp: new Date().toISOString(),
+					}),
 				},
 			});
 		} else {
@@ -323,8 +280,8 @@ export default function OnboardingAccountScreen() {
 	//   COMPUTED VALUES
 	// ==================
 	const hasStarterPackSelections =
-		starterPackData && starterPackData.starterPacks.length > 0;
-	const selectionCount = starterPackData?.starterPacks.length || 0;
+		onboardingState.selectedMemoryTypes.length > 0;
+	const selectionCount = onboardingState.selectedMemoryTypes.length;
 
 	// ============================
 	//   COMPONENT RENDER SECTION
@@ -366,18 +323,17 @@ export default function OnboardingAccountScreen() {
 									personalize your map experience with these
 									preferences!
 								</InfoMessage>
-
 								<View style={styles.selectedPacks}>
-									{starterPackData?.starterPacks.map(
-										(pack) => (
+									{onboardingState.selectedMemoryTypes.map(
+										(memoryType) => (
 											<View
-												key={pack.id}
+												key={memoryType}
 												style={styles.packChip}
 											>
 												<BodySmallText
 													style={styles.packChipText}
 												>
-													{pack.icon} {pack.name}
+													{memoryType}
 												</BodySmallText>
 											</View>
 										)
@@ -470,29 +426,29 @@ export default function OnboardingAccountScreen() {
 					<Modal.Header title="Join ReMap Community" />
 					<Modal.Body>
 						{/* Message Display */}
-						{messageState.show &&
-							messageState.type === 'success' && (
+						{onboardingState.messageShow &&
+							onboardingState.messageType === 'success' && (
 								<SuccessMessage
 									title="Welcome to ReMap!"
 									onDismiss={hideMessage}
 								>
-									{messageState.message}
+									{onboardingState.messageText}
 								</SuccessMessage>
 							)}
 
-						{messageState.show && messageState.type === 'error' && (
-							<ErrorMessage onDismiss={hideMessage}>
-								{messageState.message}
-							</ErrorMessage>
-						)}
-
-						{messageState.show &&
-							messageState.type === 'warning' && (
-								<WarningMessage onDismiss={hideMessage}>
-									{messageState.message}
-								</WarningMessage>
+						{onboardingState.messageShow &&
+							onboardingState.messageType === 'error' && (
+								<ErrorMessage onDismiss={hideMessage}>
+									{onboardingState.messageText}
+								</ErrorMessage>
 							)}
 
+						{onboardingState.messageShow &&
+							onboardingState.messageType === 'warning' && (
+								<WarningMessage onDismiss={hideMessage}>
+									{onboardingState.messageText}
+								</WarningMessage>
+							)}
 						{/* Starter Pack Preview in Modal */}
 						{hasStarterPackSelections && (
 							<View style={styles.modalStarterPacks}>
@@ -500,13 +456,13 @@ export default function OnboardingAccountScreen() {
 									Your selected interests:
 								</LabelText>
 								<View style={styles.modalPacksList}>
-									{starterPackData?.starterPacks.map(
-										(pack) => (
+									{onboardingState.selectedMemoryTypes.map(
+										(memoryType) => (
 											<CaptionText
-												key={pack.id}
+												key={memoryType}
 												style={styles.modalPackItem}
 											>
-												{pack.icon} {pack.name}
+												{memoryType}
 											</CaptionText>
 										)
 									)}
@@ -517,20 +473,18 @@ export default function OnboardingAccountScreen() {
 						{/* Form Inputs */}
 						<Input
 							label="Full Name"
-							value={fullName}
-							onChangeText={setFullName}
+							value={onboardingState.username}
+							onChangeText={(text) =>
+								updateField('username', text)
+							}
 							required={true}
 							placeholder="Enter your full name"
 							autoCapitalize="words"
 						/>
 						<Input
 							label="Email"
-							value={email}
-							onChangeText={(text) => {
-								setEmail(text);
-								setEmailError(validateEmail(text));
-							}}
-							error={emailError}
+							value={onboardingState.email}
+							onChangeText={(text) => updateField('email', text)}
 							required={true}
 							placeholder="Enter your email"
 							keyboardType="email-address"
@@ -538,13 +492,63 @@ export default function OnboardingAccountScreen() {
 						/>
 						<Input
 							label="Password"
-							value={password}
-							onChangeText={setPassword}
+							value={onboardingState.password}
+							onChangeText={(text) =>
+								updateField('password', text)
+							}
 							required={true}
 							placeholder="Password (min 6 characters)"
 							secureTextEntry
 							secureToggle={true}
 						/>
+						<Input
+							label="Confirm Password"
+							value={onboardingState.confirmPassword}
+							onChangeText={(text) =>
+								updateField('confirmPassword', text)
+							}
+							required={true}
+							placeholder="Confirm your password"
+							secureTextEntry
+							secureToggle={true}
+						/>
+						{/* Profile Picture Section */}
+						<View style={styles.profilePictureSection}>
+							<LabelText style={styles.profileLabel}>
+								Profile Picture (Optional)
+							</LabelText>
+
+							{onboardingState.profilePictureUri ? (
+								<View style={styles.profilePreview}>
+									<Image
+										source={{
+											uri: onboardingState.profilePictureUri,
+										}}
+										style={styles.profileImage}
+									/>
+									<Button
+										onPress={() => setProfilePicture(null)}
+										style={styles.removePhotoButton}
+									>
+										Remove Photo
+									</Button>
+								</View>
+							) : (
+								<Button
+									onPress={profileCapture.handleCameraPress}
+									style={styles.addPhotoButton}
+								>
+									📷 Add Profile Picture
+								</Button>
+							)}
+
+							{profileCapture.selectedMedia.length > 0 && (
+								<CaptionText style={styles.profileHint}>
+									Tap "Add Profile Picture" again to change
+									your photo
+								</CaptionText>
+							)}
+						</View>
 					</Modal.Body>
 
 					<Modal.Footer>
@@ -766,5 +770,36 @@ const styles = StyleSheet.create({
 	},
 	skipConfirmButton: {
 		backgroundColor: ReMapColors.semantic.warning,
+	},
+
+	profilePictureSection: {
+		marginVertical: 16,
+	},
+	profileLabel: {
+		marginBottom: 8,
+	},
+	profilePreview: {
+		alignItems: 'center',
+		marginVertical: 12,
+	},
+	profileImage: {
+		width: 80,
+		height: 80,
+		borderRadius: 40,
+		marginBottom: 8,
+	},
+	addPhotoButton: {
+		backgroundColor: ReMapColors.primary.violet,
+		marginVertical: 8,
+	},
+	removePhotoButton: {
+		backgroundColor: ReMapColors.ui.textSecondary,
+		paddingHorizontal: 16,
+		paddingVertical: 6,
+	},
+	profileHint: {
+		textAlign: 'center',
+		fontStyle: 'italic',
+		marginTop: 4,
 	},
 });

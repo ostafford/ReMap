@@ -52,10 +52,10 @@ interface UseMediaCaptureReturn {
 	sound: Audio.Sound | null;
 	handleCameraPress: () => Promise<void>;
 	removeMedia: (index: number) => void;
-	handleAudioPress: () => Promise<void>;
-	playRecording: () => Promise<void>;
-	stopPlayback: () => Promise<void>;
-	removeAudio: () => void;
+	handleAudioPress?: () => Promise<void>;
+	playRecording?: () => Promise<void>;
+	stopPlayback?: () => Promise<void>;
+	removeAudio?: () => void;
 	resetMedia: () => void;
 	getMediaSummary: () => {
 		totalItems: number;
@@ -64,22 +64,21 @@ interface UseMediaCaptureReturn {
 		hasAudio: boolean;
 	};
 }
-/**
- * Props interface for useMediaCapture hook
- *
- * LAYMAN TERMS: "What this hook needs from the component to work properly.
- * Just needs a function to show success/error popups to users."
- *
- * TECHNICAL: Hook dependency interface for modal integration
- *
- * @interface UseMediaCaptureProps
- */
+
 interface UseMediaCaptureProps {
 	showModal: (
 		type: 'error' | 'success' | 'info',
 		title: string,
 		message: string
 	) => void;
+	// New configuration options
+	mode?: 'full' | 'photo-only' | 'single-photo';
+	allowAudio?: boolean;
+	allowMultiple?: boolean;
+	customLabels?: {
+		photoAdded?: string;
+		audioComplete?: string;
+	};
 }
 
 // =============================
@@ -144,6 +143,10 @@ interface UseMediaCaptureProps {
  */
 export function useMediaCapture({
 	showModal,
+	mode = 'full',
+	allowAudio = true,
+	allowMultiple = true,
+	customLabels = {},
 }: UseMediaCaptureProps): UseMediaCaptureReturn {
 	// ==================
 	// STATE MANAGEMENT
@@ -273,11 +276,16 @@ export function useMediaCapture({
 					type: 'photo',
 					name: `Captured Memory ${selectedMedia.length + 1}`,
 				};
-				setSelectedMedia((prev) => [...prev, newMedia]);
+				if (mode === 'single-photo') {
+					setSelectedMedia([newMedia]); // Replace existing photo
+				} else {
+					setSelectedMedia((prev) => [...prev, newMedia]); // Add to collection
+				}
 				showModal(
 					'success',
 					'Photo Added!',
-					'Your photo has been added to this memory.'
+					customLabels.photoAdded ||
+						'Your photo has been successfully added.'
 				);
 			}
 		} catch (error) {
@@ -313,11 +321,16 @@ export function useMediaCapture({
 					type: 'photo',
 					name: `Library Photo ${selectedMedia.length + 1}`,
 				};
-				setSelectedMedia((prev) => [...prev, newMedia]);
+				if (mode === 'single-photo') {
+					setSelectedMedia([newMedia]); // Replace existing photo
+				} else {
+					setSelectedMedia((prev) => [...prev, newMedia]); // Add to collection
+				}
 				showModal(
 					'success',
 					'Photo Added!',
-					'Your photo has been added to this memory.'
+					customLabels.photoAdded ||
+						'Your photo has been successfully added.'
 				);
 			}
 		} catch (error) {
@@ -428,7 +441,8 @@ export function useMediaCapture({
 				showModal(
 					'success',
 					'Recording Complete!',
-					'Your audio memory has been saved.'
+					customLabels.audioComplete ||
+						'Your audio has been saved successfully.'
 				);
 				console.log('Recording saved to:', uri);
 			}
@@ -631,25 +645,26 @@ export function useMediaCapture({
 	// ========================
 	// RETURN HOOK INTERFACE
 	// ========================
-
 	return {
 		// Current state
 		selectedMedia,
-		audioUri,
-		isRecording,
-		isPlayingAudio,
-		recording,
-		sound,
+		audioUri: allowAudio ? audioUri : null,
+		isRecording: allowAudio ? isRecording : false,
+		isPlayingAudio: allowAudio ? isPlayingAudio : false,
+		recording: allowAudio ? recording : null,
+		sound: allowAudio ? sound : null,
 
 		// Camera/Photo handlers
 		handleCameraPress,
 		removeMedia,
 
-		// Audio handlers
-		handleAudioPress,
-		playRecording,
-		stopPlayback,
-		removeAudio,
+		// Audio handlers (only if audio enabled)
+		...(allowAudio && {
+			handleAudioPress,
+			playRecording,
+			stopPlayback,
+			removeAudio,
+		}),
 
 		// Utility functions
 		resetMedia,

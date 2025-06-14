@@ -37,7 +37,8 @@ import {
 //   INTERNAL 'CONSTANTS' IMPORTS
 // ================================
 import { ReMapColors } from '@/constants/Colors';
-import { AuthError } from '@supabase/supabase-js';
+
+import { useOnboardingState } from '@/hooks/useOnboardingState';
 
 // =========================
 //   TYPE DEFINITIONS
@@ -49,13 +50,6 @@ interface StarterPack {
 	description: string;
 	category: string;
 	color: string;
-}
-
-interface MessageState {
-	show: boolean;
-	message: string;
-	type?: 'success' | 'error' | 'warning' | 'info';
-	title?: string;
 }
 
 // =========================
@@ -116,52 +110,24 @@ const STARTER_PACKS: StarterPack[] = [
 //   COMPONENT DEFINITION
 // ========================
 export default function OnboardingStarterPackScreen() {
-	// ==================
-	//   STATE MANAGEMENT
-	// ==================
-	const [selectedPacks, setSelectedPacks] = useState<string[]>([]);
-	const [messageState, setMessageState] = useState<MessageState>({
-		show: false,
-		message: '',
-		type: 'info',
-	});
-
-	// ====================
-	//   MESSAGE HELPERS
-	// ====================
-	const showMessage = (
-		message: string,
-		type: MessageState['type'] = 'info',
-		title?: string
-	) => {
-		setMessageState({ show: true, message, type, title });
-	};
-
-	const hideMessage = () => {
-		setMessageState((prev) => ({ ...prev, show: false }));
-	};
+	const { onboardingState, toggleMemoryType, showMessage, hideMessage } =
+		useOnboardingState();
 
 	// ==================
 	//   SELECTION LOGIC
 	// ==================
 	const toggleStarterPack = (packId: string) => {
-		setSelectedPacks((prev) => {
-			if (prev.includes(packId)) {
-				// Remove if already selected
-				return prev.filter((id) => id !== packId);
-			} else {
-				// Add if not selected
-				return [...prev, packId];
-			}
-		});
+		toggleMemoryType(packId);
 	};
 
 	const isPackSelected = (packId: string) => {
-		return selectedPacks.includes(packId);
+		return onboardingState.selectedMemoryTypes.includes(packId);
 	};
 
 	const getSelectedPacksData = () => {
-		return STARTER_PACKS.filter((pack) => selectedPacks.includes(pack.id));
+		return STARTER_PACKS.filter((pack) =>
+			onboardingState.selectedMemoryTypes.includes(pack.id)
+		);
 	};
 
 	// ====================
@@ -181,22 +147,11 @@ export default function OnboardingStarterPackScreen() {
 		}
 
 		try {
-			// Create the selections data to pass to account page
-			const selectionsData = {
-				starterPacks: getSelectedPacksData(),
-				selectedIds: selectedPacks,
-				timestamp: new Date().toISOString(),
-			};
-
-			console.log('Starter pack selections:', selectionsData);
-
-			// Navigate with selections data
-			router.replace({
-				pathname: route,
-				params: {
-					starterPackSelections: JSON.stringify(selectionsData),
-				},
-			});
+			console.log(
+				'Starter pack selections:',
+				onboardingState.selectedMemoryTypes
+			);
+			router.replace(route);
 		} catch (error) {
 			console.error('Navigation failed:', error);
 			showMessage(
@@ -205,30 +160,6 @@ export default function OnboardingStarterPackScreen() {
 			);
 		}
 	};
-
-	// const skipStarterPacks = () => {
-	// ATTN: DEPRECATED FUNCTION DUE TO ONBOARDING SEQUENCE
-	// 	try {
-	// 		// Navigate without any selections
-	// 		router.navigate({
-	// 			pathname: '/onboarding/account',
-	// 			params: {
-	// 				starterPackSelections: JSON.stringify({
-	// 					starterPacks: [],
-	// 					selectedIds: [],
-	// 					timestamp: new Date().toISOString(),
-	// 					skipped: true,
-	// 				}),
-	// 			},
-	// 		});
-	// 	} catch (error) {
-	// 		console.error('Navigation failed:', error);
-	// 		showMessage(
-	// 			'Could not skip starter packs. Please try again.',
-	// 			'error'
-	// 		);
-	// 	}
-	// };
 
 	const goBack = () => {
 		const route = '/onboarding/permissions';
@@ -252,8 +183,8 @@ export default function OnboardingStarterPackScreen() {
 	// ==================
 	//   COMPUTED VALUES
 	// ==================
-	const hasSelections = selectedPacks.length > 0;
-	const selectionCount = selectedPacks.length;
+	const hasSelections = onboardingState.selectedMemoryTypes.length > 0;
+	const selectionCount = onboardingState.selectedMemoryTypes.length;
 
 	// ============================
 	//   COMPONENT RENDER SECTION
@@ -264,23 +195,17 @@ export default function OnboardingStarterPackScreen() {
 
 			<MainContent>
 				<View style={styles.content}>
-					{messageState.show && (
+					{onboardingState.messageShow && (
 						<View style={styles.messageContainer}>
-							{messageState.type === 'error' && (
-								<ErrorMessage
-									title={messageState.title}
-									onDismiss={hideMessage}
-								>
-									{messageState.message}
+							{onboardingState.messageType === 'error' && (
+								<ErrorMessage onDismiss={hideMessage}>
+									{onboardingState.messageText}
 								</ErrorMessage>
 							)}
 
-							{messageState.type === 'info' && (
-								<InfoMessage
-									title={messageState.title}
-									onDismiss={hideMessage}
-								>
-									{messageState.message}
+							{onboardingState.messageType === 'info' && (
+								<InfoMessage onDismiss={hideMessage}>
+									{onboardingState.messageText}
 								</InfoMessage>
 							)}
 						</View>
@@ -378,7 +303,6 @@ export default function OnboardingStarterPackScreen() {
 					</View>
 				</View>
 			</MainContent>
-
 			<Footer>
 				<View style={styles.buttonContainer}>
 					<View style={styles.secondaryActions}>

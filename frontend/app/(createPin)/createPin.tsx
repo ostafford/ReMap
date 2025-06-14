@@ -358,6 +358,13 @@ export default function CreatePinScreen() {
 	 */
 	const mediaCapture = useMediaCapture({
 		showModal,
+		mode: 'full',
+		allowAudio: true,
+		allowMultiple: true,
+		customLabels: {
+			photoAdded: 'Your photo has been added to this memory.',
+			audioComplete: 'Your audio memory has been saved.',
+		},
 	});
 	/**
 	 * LAYMAN TERMS: "Manages everything about privacy settings and social circles"
