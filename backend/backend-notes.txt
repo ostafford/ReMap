@@ -1,5 +1,0 @@
-Changelog:
-- Account create, read, update, delete.
-- Profile:
-    Updated profile with image.
-    

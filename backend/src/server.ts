@@ -8,7 +8,6 @@ import auth from "./routes/auth";
 import profiles from "./routes/profiles";
 import pins from "./routes/pins";
 import circles from "./routes/circles";
-import starterPacks from "./routes/starterPack";
 
 // middleware
 import logger from "./middleware/logger";
@@ -40,9 +39,6 @@ app.use("/api/pins", pins);
 
 // Circles routes middleware
 app.use("/api/circles", circles);
-
-// Starter pack routes middleware
-app.use("/api/packs", starterPacks);
 
 
 app.listen(port, () => {

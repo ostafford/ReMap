@@ -2,10 +2,11 @@
 import { Request, Response } from "express";
 
 import supabase from "../supabase/supabaseClient";
-import { checkExists, checkMember } from "../middleware/userGroupCheck";
+
+import { checkMember } from "../middleware/userGroupCheck";
 
 
-/* --------------------------------- Circle Table ----------------------------------------- */
+/* -------------- Circle Table ---------------- */
 // @desc Create circle
 // @route POST /api/circles/
 export const createCircle = async (req: Request, res: Response) => {
@@ -18,6 +19,16 @@ export const createCircle = async (req: Request, res: Response) => {
 
     try {
         const { name, access_code, visibility } = req.body;
+
+        const checkString = ["public", "social", "private"];
+
+        const exists = checkString.includes(visibility);
+
+        if (!exists) {
+            console.log("visibility must be set to public, social or private.");
+            res.status(400).json("visibility must be set to public, social or private.");
+            return;
+        }
 
         const { data, error } = await supabase
         .from("circles")
@@ -44,7 +55,6 @@ export const createCircle = async (req: Request, res: Response) => {
 }
 
 
-
 // @desc List circles
 // @route GET /api/circles/
 export const listCircles = async (req: Request, res: Response) => {
@@ -59,11 +69,8 @@ export const listCircles = async (req: Request, res: Response) => {
         // Many-to-many joins
         const { data, error } = await supabase
         .from("circles")
-        .select(`id,
-            name,
-            profiles (id, username)`
-        )
-        .eq("user_id", user.id);
+        .select()
+        .eq("owner_id", user.id);
 
         if (error) {
             console.log("List circles error:", error.message);
@@ -93,20 +100,54 @@ export const getCircle = async (req: Request, res: Response) => {
     }
 
     try {
+        // Fetch circle details and member user_ids
         const { data, error } = await supabase
         .from("circles")
-        .select()
-        .eq("id", circle_id)
-        .eq(`profiles (id)`, user.id)
-        .single();
+        .select(`id, name, members (user_id)`)
+        .eq("id", circle_id);
 
         if (error) {
             console.log("Get single circle error:", error.message);
             res.status(400).json({ "Get single circle error": error.message });
             return;
         }
-        console.log("Circle:", data);
-        res.status(200).json({ "Circle": data });
+
+        // Check circle exists
+        if (!data || data.length === 0) {
+            res.status(404).json("Circle not found.");
+            return;
+        }
+
+        // Get user_ids of the members of the circle
+        // creates a new array
+        const memberIds = data[0].members.map(( member: any ) => member.user_id);
+
+        // Fetch the usernames of all members from profiles
+        const { data: profiles, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, username")
+        .in("id", memberIds);
+
+        if (profileError) {
+            console.log("(Circle) Get profiles error:", profileError.message);
+            res.status(400).json({ "(Circle) Get profiles error": profileError.message });
+            return;
+        }
+
+        // Get member username from profiles - creates a new array 
+        const memberNames = profiles.map(( profile: any ) => profile.username);
+
+        // Print new result
+        console.log({ "Circle": {
+            id: data[0].id,
+            name: data[0].name,
+            members: memberNames
+        }});
+        res.status(200).json({ "Circle": {
+            id: data[0].id,
+            name: data[0].name,
+            members: memberNames
+        }});
 
     } catch (err: any) {
         console.log("Get single circle server error:", err.message);
@@ -128,6 +169,16 @@ export const updateCircle = async (req: Request, res: Response) => {
     }
 
     const { name, visibility } = req.body;
+
+    const checkString = ["public", "social", "private"];
+
+    const exists = checkString.includes(visibility);
+
+    if (!exists) {
+        console.log("visibility must be set to public, social or private.");
+        res.status(400).json("visibility must be set to public, social or private.");
+        return;
+    }
 
     try {
         const { data, error } = await supabase
@@ -189,7 +240,7 @@ export const deleteCircle = async (req: Request, res: Response) => {
 }
 
 
-/* --------------------------------- Member Table ----------------------------------------- */
+/* -------------- Member Table ---------------- */
 // @desc Add members to circle
 // @route POST /api/circles/members
 export const addMember = async (req: Request, res: Response) => {
@@ -200,22 +251,37 @@ export const addMember = async (req: Request, res: Response) => {
         return;
     }
 
-    const { user_id, circle_id } = req.body;
+    const { user_id, circle_id, access_code } = req.body;
 
     try {
         // Check if user exists
-        const { error: userError } = await checkExists("profiles", user_id);
+        const { error: userError } = await supabase
+        .from("profiles")
+        .select()
+        .eq("id", user.id)
+        .single();
+
         if (userError) {
-            console.log("User not found:", userError);
-            res.status(400).json({ "User not found": userError });
-            return;
+            console.log("User not found:", userError.message);
+            return { error: userError.message};
         }
 
         // Check if circle exists
-        const { error: circleError } = await checkExists("circles", circle_id);
+        const { data: circleData, error: circleError } = await supabase
+        .from("circles")
+        .select("id, access_code")
+        .eq("id", circle_id)
+        .single();
+        
         if (circleError) {
             console.log("Circle not found:", circleError);
             res.status(400).json({ "Circle not found": circleError });
+            return;
+        }
+
+        if (circleData.access_code !== access_code) {
+            console.log("Access code does not match.");
+            res.status(400).json({ message: "Access code does not match" });
             return;
         }
 
@@ -247,5 +313,72 @@ export const addMember = async (req: Request, res: Response) => {
     } catch (err: any) {
         console.log("Add member to circle server error:", err.message);
         res.status(500).json({ "Add member to circle server error": err.message });
+    }
+}
+
+
+// @desc List members in circle
+// @route GET /api/circles/members/:circleId
+export const listMembers = async (req: Request, res: Response) => {
+    const circle_id = req.params.circleId;
+
+    const user = req.user;
+
+    if (!user) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    try {
+        const { data, error } = await supabase
+        .from("members")
+        .select()
+        .eq("circle_id", circle_id)
+
+        if (error) {
+            console.log("List member error:", error.message);
+            res.status(400).json({"List member error": error.message});
+            return;
+        }
+        console.log("List members:", data);
+        res.status(200).json({ "List members": data });
+
+    } catch (err: any) {
+        console.log("List members server error:", err.message);
+        res.status(500).json({ "List members server error": err.message });
+    }
+}
+
+
+// @desc Delete member
+// @route DELETE /api/circles/members/:circleId
+export const deleteMember = async (req: Request, res: Response) => {
+    const circle_id = req.params.circleId;
+
+    const user = req.user;
+
+    if (!user) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    try {
+        const { error } = await supabase
+        .from("members")
+        .delete()
+        .eq("circle_id", circle_id)
+        .eq("user_id", user.id);
+
+        if (error) {
+            console.log(`Delete member: ${circle_id} error: ${error.message}`);
+            res.status(400).json(`Delete member: ${circle_id} error: ${error.message}`);
+            return;
+        }
+        console.log(`Member: ${user.id} deleted from circle ${circle_id}`);
+        res.status(200).json(`Member: ${user.id} deleted from circle ${circle_id}`);
+
+    } catch (err: any) {
+        console.log("Delete member server error", err.message);
+        res.status(500).json({ "Delete member server error": err.message });
     }
 }

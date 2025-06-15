@@ -5,7 +5,7 @@ import { Request, Response } from "express";
 
 
 // @desc Get all users
-// @route GET /api/auths/users
+// @route GET /api/auth/users
 export const listUsers = async (req: Request, res: Response) => {
     try {
         const { data: { users }, error } = await supabase.auth.admin.listUsers();
@@ -25,7 +25,7 @@ export const listUsers = async (req: Request, res: Response) => {
 
 
 // @desc Retrieve an user
-// @route GET /api/auths/users/:id
+// @route GET /api/auth/users/:id
 export const getUser = async (req: Request, res: Response) => {
     const id = req.params.id;
     try {
@@ -47,7 +47,7 @@ export const getUser = async (req: Request, res: Response) => {
 
 
 // @desc Sign up new user
-// @route POST /api/auths/signUp
+// @route POST /api/auth/signUp
 export const signUp = async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
@@ -62,8 +62,8 @@ export const signUp = async (req: Request, res: Response) => {
             res.status(400).json({"Sign up failed": error.message});
             return;
         }
-        console.log("Signed up successful:", data.user?.id);
-        res.status(201).json(data.user?.id);
+        console.log("Signed up successful:", data);
+        res.status(201).json({ "Signed up successful": data });
 
     } catch (err: any) {
         console.log("Signed up server error:", err.message);        
@@ -73,7 +73,7 @@ export const signUp = async (req: Request, res: Response) => {
 
 
 // @desc Sign in user
-// @route POST /api/auths/signIn
+// @route POST /api/auth/signIn
 export const signIn = async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
@@ -99,7 +99,7 @@ export const signIn = async (req: Request, res: Response) => {
 
 
 // @desc Sign out user
-// @route POST /api/auths/signOut
+// @route POST /api/auth/signOut
 export const logOut = async (req: Request, res: Response) => {
     const { error } = await supabase.auth.signOut();
 
@@ -120,7 +120,7 @@ export const logOut = async (req: Request, res: Response) => {
 
 
 // @desc Update email
-// @route PUT /api/auths/email/:id
+// @route PUT /api/auth/email/:id
 export const updateEmail = async (req: Request, res: Response) => {    
     try {
         const { data, error } = await supabase.auth.updateUser({
@@ -142,7 +142,7 @@ export const updateEmail = async (req: Request, res: Response) => {
 
 
 // @desc Update password
-// @route PUT /api/auths/password/
+// @route PUT /api/auth/password/
 export const updatePassword = async (req: Request, res: Response) => {
     try {
         const { data, error } = await supabase.auth.updateUser({
@@ -164,7 +164,7 @@ export const updatePassword = async (req: Request, res: Response) => {
 
 
 // Delete account
-// @route DELETE /api/auths/users/
+// @route DELETE /api/auth/users/:id
 export const deleteUser = async (req: Request, res: Response) => {
     const id = req.params.id;
     const { data, error } = await supabase.auth.admin.deleteUser(id);
