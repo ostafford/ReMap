@@ -55,8 +55,8 @@ import type { Suggestion } from '@/components/ui/FourSquareSearch';
 // =========================
 import { AuthModal } from '@/components/ui/AuthModal';
 import { PinBottomSheet } from '@/components/ui/PinBottomSheet';
-import { useAuth } from '@/hooks/useAuth';
-import { useModal } from '@/hooks/useModal';
+import { useAuth } from '@/hooks/shared/useAuth';
+import { useModal } from '@/hooks/shared/useModal';
 import { useSlideAnimation } from '@/hooks/useSlideAnimation';
 
 // ======================
@@ -618,14 +618,7 @@ export default function WorldMapScreen() {
 							</TouchableOpacity>
 						</View>
 					</MainContent>
-					{/* ==================== */}
-					{/*   PIN BOTTOMSHEET    */}
-					{/* ==================== */}
-					<PinBottomSheet
-						isVisible={isBottomSheetVisible}
-						onClose={handleBottomSheetClose}
-						pinData={selectedPinData}
-					/>
+
 					{/**********************************************/}
 					{/****************** FOOTER *******************/}
 					{/* *********************************************/}
@@ -722,6 +715,14 @@ export default function WorldMapScreen() {
 					</Modal>
 				</KeyboardAvoidingView>
 			</TouchableWithoutFeedback>
+			{/* ==================== */}
+			{/*   PIN BOTTOMSHEET    */}
+			{/* ==================== */}
+			<PinBottomSheet
+				isVisible={isBottomSheetVisible}
+				onClose={handleBottomSheetClose}
+				pinData={selectedPinData}
+			/>
 		</GestureHandlerRootView>
 	);
 }

@@ -165,7 +165,7 @@ export function MiniMap({
 	 *
 	 */
 	const geocodeLocation = async (query: string) => {
-		if (!query || query.length < 3) return;
+		if (!query || query.length < 10) return;
 		setIsGeocoding(true);
 
 		try {
@@ -174,7 +174,7 @@ export function MiniMap({
 			const response = await fetch(
 				`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
 					query + ', Melbourne, Australia'
-				)}&limit=1`
+				)}&limit=10000`
 			);
 
 			const data = await response.json();

@@ -1341,23 +1341,22 @@ export default function CreatePinScreen() {
 						required={true}
 					/>
 				</View>
-
 				{/* ======================== */}
 				{/*   MEDIA CAPTURE          */}
 				{/* ======================== */}
 				<MediaCapture
+					onImagePreview={showImagePreview}
+					onRemoveMedia={removeMedia}
 					selectedMedia={selectedMedia}
 					audioUri={audioUri}
 					isRecording={isRecording}
 					isPlayingAudio={isPlayingAudio}
-					onCameraPress={handleCameraPress}
-					onAudioPress={handleAudioPress}
-					onRemoveMedia={removeMedia}
 					onRemoveAudio={removeAudio}
 					onPlayAudio={playRecording}
 					onStopAudio={stopPlayback}
-					onImagePreview={showImagePreview}
 					mediaSummary={getMediaSummary()}
+					onAudioPress={handleAudioPress}
+					onCameraPress={handleCameraPress}
 				/>
 			</MainContent>
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
 import { Button } from '@/components/ui/Button';
-import { useAuthModal } from '@/hooks/useAuthModal';
+import { useAuthModal } from '@/hooks/shared/useAuthModal';
 
 interface AuthModalProps {
 	isVisible: boolean;

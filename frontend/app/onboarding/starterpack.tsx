@@ -1,29 +1,23 @@
 // ================
 //   CORE IMPORTS
 // ================
-import React, { useState } from 'react';
+// import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 
-// =======================
-//   THIRD-PARTY IMPORTS
-// =======================
-import { router } from 'expo-router';
-
 // ================================
-//   INTERNAL 'LAYOUT' COMPONENTS
+//   LAYOUT COMPONENTS
 // ================================
 import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
 import { Footer } from '@/components/layout/Footer';
 
 // ============================
-//   INTERNAL 'UI' COMPONENTS
+//   UI COMPONENTS
 // ============================
 import { Button } from '@/components/ui/Button';
-import { ErrorMessage, InfoMessage } from '@/components/ui/Messages';
 
 // ================================
-//   INTERNAL 'TYPOGRAPHY' IMPORTS
+//   TYPOGRAPHY IMPORTS
 // ================================
 import {
 	HeaderText,
@@ -38,179 +32,61 @@ import {
 // ================================
 import { ReMapColors } from '@/constants/Colors';
 
-import { useOnboardingState } from '@/hooks/useOnboardingState';
-
-// =========================
-//   TYPE DEFINITIONS
-// =========================
-interface StarterPack {
-	id: string;
-	name: string;
-	icon: string;
-	description: string;
-	category: string;
-	color: string;
-}
-
-// =========================
-//   STARTER PACK DATA
-// =========================
-const STARTER_PACKS: StarterPack[] = [
-	{
-		id: 'cafes',
-		name: 'Cafe Explorer',
-		icon: '☕',
-		description: 'Discover cozy cafes and coffee culture',
-		category: 'food_drink',
-		color: '#8B4513',
-	},
-	{
-		id: 'nightlife',
-		name: 'Nightlife Guide',
-		icon: '🍺',
-		description: 'Bars, clubs, and entertainment venues',
-		category: 'nightlife',
-		color: '#4A148C',
-	},
-	{
-		id: 'foodie',
-		name: 'Foodie Adventures',
-		icon: '🍽️',
-		description: 'Restaurants, food trucks, and culinary experiences',
-		category: 'food_drink',
-		color: '#FF5722',
-	},
-	{
-		id: 'culture',
-		name: 'Culture Seeker',
-		icon: '🎨',
-		description: 'Museums, galleries, and cultural landmarks',
-		category: 'arts_entertainment',
-		color: '#9C27B0',
-	},
-	{
-		id: 'nature',
-		name: 'Nature Lover',
-		icon: '🌳',
-		description: 'Parks, trails, and outdoor adventures',
-		category: 'outdoor_recreation',
-		color: '#4CAF50',
-	},
-	{
-		id: 'urban',
-		name: 'Urban Explorer',
-		icon: '🛍️',
-		description: 'Shopping, landmarks, and city life',
-		category: 'retail',
-		color: '#2196F3',
-	},
-];
+// ====================
+//   HOOK IMPORTS
+// ====================
+import {
+	STARTER_PACKS,
+	type StarterPack,
+} from '@/constants/onboardingStaticData';
+import { useNavigation } from '@/hooks/shared/useNavigation';
+import { useStarterPack } from '@/hooks/onboarding/useStarterPack';
 
 // ========================
 //   COMPONENT DEFINITION
 // ========================
 export default function OnboardingStarterPackScreen() {
-	const { onboardingState, toggleMemoryType, showMessage, hideMessage } =
-		useOnboardingState();
+	const {
+		selectedPacks,
+		togglePackSelection,
+		userHasSelectedPacks,
+		getNumberOfSelectedPacks,
+		isPackSelected,
+	} = useStarterPack();
 
-	// ==================
-	//   SELECTION LOGIC
-	// ==================
-	const toggleStarterPack = (packId: string) => {
-		toggleMemoryType(packId);
-	};
+	const { goToPage } = useNavigation();
 
-	const isPackSelected = (packId: string) => {
-		return onboardingState.selectedMemoryTypes.includes(packId);
-	};
-
-	const getSelectedPacksData = () => {
-		return STARTER_PACKS.filter((pack) =>
-			onboardingState.selectedMemoryTypes.includes(pack.id)
-		);
-	};
-
-	// ====================
-	//   NAVIGATION LOGIC
-	// ====================
-	const validRoutes = ['/onboarding/permissions', '/onboarding/account'];
-
+	// This essentially saves the selected packs in an array to the next page
 	const navigateToAccount = () => {
-		const route = '/onboarding/account';
+		console.log('Starter pack selections:', selectedPacks);
 
-		if (!validRoutes.includes(route)) {
-			showMessage(
-				'Navigation error: Account setup page is not available.',
-				'error'
+		if (selectedPacks.length > 0) {
+			const selectionsParam = encodeURIComponent(
+				JSON.stringify(selectedPacks)
 			);
-			return;
-		}
-
-		try {
-			console.log(
-				'Starter pack selections:',
-				onboardingState.selectedMemoryTypes
-			);
-			router.replace(route);
-		} catch (error) {
-			console.error('Navigation failed:', error);
-			showMessage(
-				'Could not navigate to account setup. Please try again.',
-				'error'
-			);
+			goToPage(`/onboarding/account?selections=${selectionsParam}`);
+		} else {
+			goToPage('/onboarding/account');
 		}
 	};
 
-	const goBack = () => {
-		const route = '/onboarding/permissions';
+	const goBack = () => goToPage('/onboarding/');
 
-		if (!validRoutes.includes(route)) {
-			showMessage(
-				'Navigation error: Previous page is not available.',
-				'error'
-			);
-			return;
-		}
-
-		try {
-			router.replace(route);
-		} catch (error) {
-			console.error('Navigation failed:', error);
-			showMessage('Could not go back. Please try again.', 'error');
-		}
-	};
-
-	// ==================
-	//   COMPUTED VALUES
-	// ==================
-	const hasSelections = onboardingState.selectedMemoryTypes.length > 0;
-	const selectionCount = onboardingState.selectedMemoryTypes.length;
+	const hasSelected = userHasSelectedPacks();
+	const selectionCount = getNumberOfSelectedPacks();
 
 	// ============================
 	//   COMPONENT RENDER SECTION
 	// ============================
 	return (
 		<View style={styles.container}>
-			<Header title="Choose Your Interests" subtitle="Step 3 of 4" />
+			<Header title="Choose Your Interests" />
 
 			<MainContent>
+				{/* ======================== */}
+				{/*   STARTER PACK HEADING   */}
+				{/* ======================== */}
 				<View style={styles.content}>
-					{onboardingState.messageShow && (
-						<View style={styles.messageContainer}>
-							{onboardingState.messageType === 'error' && (
-								<ErrorMessage onDismiss={hideMessage}>
-									{onboardingState.messageText}
-								</ErrorMessage>
-							)}
-
-							{onboardingState.messageType === 'info' && (
-								<InfoMessage onDismiss={hideMessage}>
-									{onboardingState.messageText}
-								</InfoMessage>
-							)}
-						</View>
-					)}
-
 					<View style={styles.introSection}>
 						<HeaderText align="center" style={styles.introTitle}>
 							🎯 Personalize Your Experience
@@ -225,15 +101,40 @@ export default function OnboardingStarterPackScreen() {
 							on your map.
 						</BodyText>
 					</View>
-					<CaptionText align="center" style={styles.helpText}>
+
+					{/* I've commented this out to see if you want it or not. 
+Uncomment and refresh to test it out to see if you want it or not */}
+
+					{/* <CaptionText align="center" style={styles.helpText}>
 						💡 You can select multiple packs and change your
 						preferences later in your profile settings.
-					</CaptionText>
+					</CaptionText> */}
 
+					{/* ======================== */}
+					{/*   STARTER PACK GRID      */}
+					{/* ======================== */}
 					<View style={styles.packsContainer}>
 						<SubheaderText style={styles.packsTitle}>
 							Choose Your Starter Packs:
 						</SubheaderText>
+
+						{/* =========================== */}
+						{/*   STARTER PACK COUNTER      */}
+						{/* =========================== */}
+						<View style={styles.helpSection}>
+							{hasSelected && (
+								<View style={styles.selectionFeedback}>
+									<LabelText
+										align="center"
+										style={styles.selectionCount}
+									>
+										{selectionCount} starter pack
+										{selectionCount !== 1 ? 's' : ''}{' '}
+										selected ✨
+									</LabelText>
+								</View>
+							)}
+						</View>
 
 						<View style={styles.packsGrid}>
 							{STARTER_PACKS.map((pack) => (
@@ -249,9 +150,12 @@ export default function OnboardingStarterPackScreen() {
 												: ReMapColors.ui.border,
 										},
 									]}
-									onPress={() => toggleStarterPack(pack.id)}
+									onPress={() => togglePackSelection(pack.id)}
 									activeOpacity={0.7}
 								>
+									{/* =================================== */}
+									{/*   STARTER PACK SELECTOR STYLE  ✓    */}
+									{/* =================================== */}
 									<View style={styles.packHeader}>
 										<BodyText style={styles.packIcon}>
 											{pack.icon}
@@ -266,8 +170,9 @@ export default function OnboardingStarterPackScreen() {
 									<LabelText
 										style={[
 											styles.packName,
-											isPackSelected(pack.id) &&
-												styles.packNameSelected,
+											isPackSelected(pack.id)
+												? styles.packNameSelected
+												: {},
 										]}
 									>
 										{pack.name}
@@ -275,9 +180,10 @@ export default function OnboardingStarterPackScreen() {
 
 									<CaptionText
 										style={[
-											styles.packDescription,
-											isPackSelected(pack.id) &&
-												styles.packDescriptionSelected,
+											styles.packName,
+											isPackSelected(pack.id)
+												? styles.packNameSelected
+												: {},
 										]}
 									>
 										{pack.description}
@@ -286,30 +192,19 @@ export default function OnboardingStarterPackScreen() {
 							))}
 						</View>
 					</View>
-
-					<View style={styles.helpSection}>
-						{hasSelections && (
-							<View style={styles.selectionFeedback}>
-								<LabelText
-									align="center"
-									style={styles.selectionCount}
-								>
-									{selectionCount} starter pack
-									{selectionCount !== 1 ? 's' : ''} selected
-									✨
-								</LabelText>
-							</View>
-						)}
-					</View>
 				</View>
 			</MainContent>
+
+			{/* ============ */}
+			{/*   FOOTER     */}
+			{/* ============ */}
 			<Footer>
 				<View style={styles.buttonContainer}>
 					<View style={styles.secondaryActions}>
 						<Button style={styles.secondaryButton} onPress={goBack}>
 							← Previous
 						</Button>
-						{hasSelections ? (
+						{hasSelected ? (
 							<Button
 								style={styles.packButton}
 								onPress={navigateToAccount}
@@ -452,8 +347,8 @@ const styles = StyleSheet.create({
 		color: ReMapColors.ui.text,
 	},
 	helpSection: {
-		marginTop: 20,
-		paddingHorizontal: 10,
+		marginBottom: 20,
+		paddingHorizontal: 20,
 	},
 	helpText: {
 		lineHeight: 18,

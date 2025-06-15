@@ -4,21 +4,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, Image } from 'react-native';
 
-// =======================
-//   THIRD-PARTY IMPORTS
-// =======================
-import { router } from 'expo-router';
-
-// ================================
-//   INTERNAL 'LAYOUT' COMPONENTS
-// ================================
+// ======================
+//   LAYOUT COMPONENTS
+// ======================
 import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
 import { Footer } from '@/components/layout/Footer';
 
-// ============================
-//   INTERNAL 'UI' COMPONENTS
-// ============================
+// ===================
+//   UI COMPONENTS
+// ===================
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
@@ -26,12 +21,11 @@ import {
 	SuccessMessage,
 	ErrorMessage,
 	WarningMessage,
-	InfoMessage,
 } from '@/components/ui/Messages';
 
-// ================================
-//   INTERNAL 'TYPOGRAPHY' IMPORTS
-// ================================
+// =========================
+//   TYPOGRAPHY IMPORTS
+// =========================
 import {
 	HeaderText,
 	BodyText,
@@ -41,53 +35,42 @@ import {
 	CaptionText,
 } from '@/components/ui/Typography';
 
-// ================================
-//   INTERNAL 'CONSTANTS' IMPORTS
-// ================================
+// =========================
+//   CONSTANTS IMPORTS
+// =========================
 import { ReMapColors } from '@/constants/Colors';
 
-// =============================
-//   INTERNAL 'SERVICES' IMPORTS
-// =============================
-import {
-	signIn,
-	signUp,
-	signOut,
-	getCurrentUser,
-	isSignedIn,
-} from '@/services/auth';
-
-import { useOnboardingState } from '@/hooks/useOnboardingState';
+// ================
+//   HOOK IMPORTS
+// ================
 import { useMediaCapture } from '@/hooks/createPin/useMediaCapture';
+import { useOnboardingForm } from '@/hooks/onboarding/useOnboardingForm';
+import { useNavigation } from '@/hooks/shared/useNavigation';
 
 // ========================
 //   COMPONENT DEFINITION
 // ========================
 export default function OnboardingAccountScreen() {
-	// ==================
-	//   ENHANCED STATE INTEGRATION
-	// ==================
+	// 	== STATE MANAGEMENT ==
 	const {
-		onboardingState,
-		updateField,
+		formData,
+		updateFormField,
+		setProfilePicture,
+		resetForm,
 		showMessage,
 		hideMessage,
-		validateAccountFields,
-		setAccountCreationLoading,
-		setProfilePicture,
-	} = useOnboardingState();
+		handleSignUp,
+	} = useOnboardingForm();
 
 	const showModal = (
 		type: 'error' | 'success' | 'info',
-		title: string,
+		// title: string,
 		message: string
 	) => {
 		showMessage(message, type);
 	};
 
-	// ==================
-	//   PROFILE PICTURE CAPTURE
-	// ==================
+	//	== PROFILE PICTURE CAPTURE ==
 	const profileCapture = useMediaCapture({
 		showModal,
 		mode: 'single-photo',
@@ -98,20 +81,6 @@ export default function OnboardingAccountScreen() {
 		},
 	});
 
-	// ==================
-	//   MODAL STATE
-	// ==================
-	const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
-	const [isSkipModalVisible, setIsSkipModalVisible] = useState(false);
-	const [isLoading, setIsLoading] = useState(false);
-
-	// ==================
-	//   AUTH STATE
-	// ==================
-	const [currentUser, setCurrentUser] = useState<any>(null);
-	const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-
-	// Handle profile picture selection from media capture
 	useEffect(() => {
 		if (profileCapture.selectedMedia.length > 0) {
 			const latestPhoto = profileCapture.selectedMedia[0];
@@ -119,125 +88,26 @@ export default function OnboardingAccountScreen() {
 		}
 	}, [profileCapture.selectedMedia]);
 
-	// ===========================
-	//   AUTHENTICATION HANDLERS
-	// ===========================
-	const handleSignUp = async () => {
-		// Use enhanced validation
-		if (!validateAccountFields()) {
-			return;
-		}
+	//	== NAVIGATION STATE ==
+	const { goToPage } = useNavigation();
 
-		// Check if user is already signed in
-		if (currentUser) {
-			showMessage(
-				'You are already signed in. Please sign out first to create a new account.',
-				'warning'
-			);
-			return;
-		}
-
-		setIsLoading(true);
-		setAccountCreationLoading(true);
-
-		try {
-			await signUp({
-				email: onboardingState.email,
-				password: onboardingState.password,
-			});
-
-			// Create user profile data including starter pack preferences
-			const userProfileData = {
-				fullName: onboardingState.username,
-				email: onboardingState.email,
-				profilePictureUri: onboardingState.profilePictureUri,
-				starterPackPreferences: {
-					selectedMemoryTypes: onboardingState.selectedMemoryTypes,
-					selectedInterests: onboardingState.selectedInterests,
-					timestamp: new Date().toISOString(),
-				},
-				accountCreatedAt: new Date().toISOString(),
-			};
-
-			console.log(
-				'📋 User account data with enhanced state:',
-				userProfileData
-			);
-
-			showMessage(
-				'Welcome to ReMap! Account created successfully.',
-				'success'
-			);
-
-			// Refresh current user info
-			await checkCurrentUser();
-
-			navigateToWorldMap();
-		} catch (error: any) {
-			console.error('Signup error:', error);
-			const errorMessage =
-				error?.message || 'Could not create account. Please try again.';
-			showMessage(errorMessage, 'error');
-		} finally {
-			setIsLoading(false);
-			setAccountCreationLoading(false);
-		}
-	};
-
-	// NOTE: Console/Server Debugging related. THIS IS NOT FOR USER
-	const checkCurrentUser = async () => {
-		setIsCheckingAuth(true);
-		try {
-			const userInfo = await getCurrentUser();
-			setCurrentUser(userInfo.user);
-
-			if (userInfo.user) {
-				console.log('👤 Current user found:', userInfo.user.email);
-				return true;
-			} else {
-				console.log('👤 No current user session');
-				return false;
-			}
-		} catch (error) {
-			console.error('Error checking current user:', error);
-		} finally {
-			setIsCheckingAuth(false);
-		}
-	};
-
-	const resetForm = () => {
-		updateField('username', '');
-		updateField('email', '');
-		updateField('password', '');
-		updateField('confirmPassword', '');
-		setProfilePicture(null);
-		setIsLoading(false);
-		hideMessage();
-	};
-
-	// ==================
-	//   EVENT HANDLERS
-	// ==================
 	const navigateToWorldMap = () => {
 		setIsSignupModalVisible(false);
 
-		// Use enhanced state data
-		if (onboardingState.selectedMemoryTypes.length > 0) {
-			router.replace({
-				pathname: '/worldmap',
-				params: {
-					userPreferences: JSON.stringify({
-						selectedMemoryTypes:
-							onboardingState.selectedMemoryTypes,
-						selectedInterests: onboardingState.selectedInterests,
-						timestamp: new Date().toISOString(),
-					}),
-				},
-			});
-		} else {
-			router.replace('/worldmap');
-		}
+		goToPage('/worldmap');
 	};
+
+	const confirmSkip = () => {
+		setIsSkipModalVisible(false);
+		navigateToWorldMap();
+	};
+
+	const goBack = () => goToPage('/onboarding/starterpack');
+
+	//	== MODAL STATE ==
+	const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
+	const [isSkipModalVisible, setIsSkipModalVisible] = useState(false);
+	const [isLoading, setIsLoading] = useState(false);
 
 	const toggleSignupModal = () => {
 		setIsSignupModalVisible(!isSignupModalVisible);
@@ -248,40 +118,9 @@ export default function OnboardingAccountScreen() {
 		setIsSkipModalVisible(true);
 	};
 
-	const confirmSkip = () => {
-		setIsSkipModalVisible(false);
-		navigateToWorldMap();
-	};
-
 	const cancelSkip = () => {
 		setIsSkipModalVisible(false);
 	};
-
-	const validRoutes = ['/onboarding/starterpack'];
-	const goBack = () => {
-		const route = '/onboarding/starterpack';
-
-		if (!validRoutes.includes(route)) {
-			showMessage(
-				'Navigation error: Previous page is not available.',
-				'error'
-			);
-			return;
-		}
-
-		try {
-			router.replace(route);
-		} catch (error) {
-			console.error('Navigation failed:', error);
-			showMessage('Could not go back. Please try again.', 'error');
-		}
-	};
-	// ==================
-	//   COMPUTED VALUES
-	// ==================
-	const hasStarterPackSelections =
-		onboardingState.selectedMemoryTypes.length > 0;
-	const selectionCount = onboardingState.selectedMemoryTypes.length;
 
 	// ============================
 	//   COMPONENT RENDER SECTION
@@ -290,6 +129,9 @@ export default function OnboardingAccountScreen() {
 		<View style={styles.container}>
 			<Header title="Create Your Account" />
 
+			{/* ================ */}
+			{/*   MAIN CONTENT   */}
+			{/* ================ */}
 			<MainContent>
 				<View style={styles.content}>
 					{/* Welcome section - only show if not signed in */}
@@ -312,35 +154,6 @@ export default function OnboardingAccountScreen() {
 						<SubheaderText style={styles.benefitsTitle}>
 							With a ReMap account:
 						</SubheaderText>
-
-						{/* Starter Pack Summary */}
-						{hasStarterPackSelections && (
-							<View style={styles.selectionSummary}>
-								<InfoMessage title="Your Selections">
-									You've selected {selectionCount} starter
-									pack
-									{selectionCount !== 1 ? 's' : ''}. We'll
-									personalize your map experience with these
-									preferences!
-								</InfoMessage>
-								<View style={styles.selectedPacks}>
-									{onboardingState.selectedMemoryTypes.map(
-										(memoryType) => (
-											<View
-												key={memoryType}
-												style={styles.packChip}
-											>
-												<BodySmallText
-													style={styles.packChipText}
-												>
-													{memoryType}
-												</BodySmallText>
-											</View>
-										)
-									)}
-								</View>
-							</View>
-						)}
 
 						<View style={styles.benefitsList}>
 							<View style={styles.benefitItem}>
@@ -392,6 +205,9 @@ export default function OnboardingAccountScreen() {
 				</View>
 			</MainContent>
 
+			{/* ================ */}
+			{/*   MAIN FOOTER    */}
+			{/* ================ */}
 			<Footer>
 				<View style={styles.buttonContainer}>
 					<View style={styles.secondaryActions}>
@@ -415,9 +231,9 @@ export default function OnboardingAccountScreen() {
 				</View>
 			</Footer>
 
-			{/* ================
-			      SIGNUP MODAL
-			    ================ */}
+			{/* ===================== */}
+			{/*   'SIGN UP' MODAL     */}
+			{/* ===================== */}
 			<Modal
 				isVisible={isSignupModalVisible}
 				onBackdropPress={toggleSignupModal}
@@ -425,104 +241,43 @@ export default function OnboardingAccountScreen() {
 				<Modal.Container>
 					<Modal.Header title="Join ReMap Community" />
 					<Modal.Body>
-						{/* Message Display */}
-						{onboardingState.messageShow &&
-							onboardingState.messageType === 'success' && (
+						{/* ======================== */}
+						{/*   NOTIFICATION MESSAGES  */}
+						{/* ======================== */}
+						{formData.messageShow &&
+							formData.messageType === 'success' && (
 								<SuccessMessage
 									title="Welcome to ReMap!"
 									onDismiss={hideMessage}
 								>
-									{onboardingState.messageText}
+									{formData.messageText}
 								</SuccessMessage>
 							)}
-
-						{onboardingState.messageShow &&
-							onboardingState.messageType === 'error' && (
+						{formData.messageShow &&
+							formData.messageType === 'error' && (
 								<ErrorMessage onDismiss={hideMessage}>
-									{onboardingState.messageText}
+									{formData.messageText}
 								</ErrorMessage>
 							)}
-
-						{onboardingState.messageShow &&
-							onboardingState.messageType === 'warning' && (
+						{formData.messageShow &&
+							formData.messageType === 'warning' && (
 								<WarningMessage onDismiss={hideMessage}>
-									{onboardingState.messageText}
+									{formData.messageText}
 								</WarningMessage>
 							)}
-						{/* Starter Pack Preview in Modal */}
-						{hasStarterPackSelections && (
-							<View style={styles.modalStarterPacks}>
-								<LabelText style={styles.modalPacksTitle}>
-									Your selected interests:
-								</LabelText>
-								<View style={styles.modalPacksList}>
-									{onboardingState.selectedMemoryTypes.map(
-										(memoryType) => (
-											<CaptionText
-												key={memoryType}
-												style={styles.modalPackItem}
-											>
-												{memoryType}
-											</CaptionText>
-										)
-									)}
-								</View>
-							</View>
-						)}
-
-						{/* Form Inputs */}
-						<Input
-							label="Full Name"
-							value={onboardingState.username}
-							onChangeText={(text) =>
-								updateField('username', text)
-							}
-							required={true}
-							placeholder="Enter your full name"
-							autoCapitalize="words"
-						/>
-						<Input
-							label="Email"
-							value={onboardingState.email}
-							onChangeText={(text) => updateField('email', text)}
-							required={true}
-							placeholder="Enter your email"
-							keyboardType="email-address"
-							autoCapitalize="none"
-						/>
-						<Input
-							label="Password"
-							value={onboardingState.password}
-							onChangeText={(text) =>
-								updateField('password', text)
-							}
-							required={true}
-							placeholder="Password (min 6 characters)"
-							secureTextEntry
-							secureToggle={true}
-						/>
-						<Input
-							label="Confirm Password"
-							value={onboardingState.confirmPassword}
-							onChangeText={(text) =>
-								updateField('confirmPassword', text)
-							}
-							required={true}
-							placeholder="Confirm your password"
-							secureTextEntry
-							secureToggle={true}
-						/>
-						{/* Profile Picture Section */}
+						{/* ======================== */}
+						{/*   ADD PROFILE PHOTO      */}
+						{/* ======================== */}
 						<View style={styles.profilePictureSection}>
 							<LabelText style={styles.profileLabel}>
 								Profile Picture (Optional)
 							</LabelText>
 
-							{onboardingState.profilePictureUri ? (
+							{formData.profilePictureUri ? (
 								<View style={styles.profilePreview}>
 									<Image
 										source={{
-											uri: onboardingState.profilePictureUri,
+											uri: formData.profilePictureUri,
 										}}
 										style={styles.profileImage}
 									/>
@@ -549,8 +304,57 @@ export default function OnboardingAccountScreen() {
 								</CaptionText>
 							)}
 						</View>
+						{/* ==================== */}
+						{/*   SIGN UP INPUTS     */}
+						{/* ==================== */}
+						<Input
+							label="Full Name"
+							value={formData.fullname}
+							onChangeText={(text) =>
+								updateFormField('fullname', text)
+							}
+							required={true}
+							placeholder="Enter your full name"
+							autoCapitalize="words"
+						/>
+						<Input
+							label="Email"
+							value={formData.email}
+							onChangeText={(text) =>
+								updateFormField('email', text)
+							}
+							required={true}
+							placeholder="Enter your email"
+							keyboardType="email-address"
+							autoCapitalize="none"
+						/>
+						<Input
+							label="Password"
+							value={formData.password}
+							onChangeText={(text) =>
+								updateFormField('password', text)
+							}
+							required={true}
+							placeholder="Password (min 6 characters)"
+							secureTextEntry
+							secureToggle={true}
+						/>
+						<Input
+							label="Confirm Password"
+							value={formData.confirmPassword}
+							onChangeText={(text) =>
+								updateFormField('confirmPassword', text)
+							}
+							required={true}
+							placeholder="Confirm your password"
+							secureTextEntry
+							secureToggle={true}
+						/>
 					</Modal.Body>
 
+					{/* ================== */}
+					{/*   MODAL FOOTER     */}
+					{/* ================== */}
 					<Modal.Footer>
 						<Button
 							onPress={toggleSignupModal}
@@ -570,9 +374,9 @@ export default function OnboardingAccountScreen() {
 				</Modal.Container>
 			</Modal>
 
-			{/* ==============
-			      SKIP MODAL
-			    ============== */}
+			{/* ========================== */}
+			{/*   'SKIP FOR NOW' MODAL     */}
+			{/* ========================== */}
 			<Modal isVisible={isSkipModalVisible} onBackdropPress={cancelSkip}>
 				<Modal.Container>
 					<Modal.Header title="Skip Account Setup?" />
@@ -584,8 +388,6 @@ export default function OnboardingAccountScreen() {
 							{'\n'}• Sharing with friends and family
 							{'\n'}• Contributing to the global memory map
 							{'\n'}• Privacy controls for your content
-							{hasStarterPackSelections &&
-								'\n\n• Your personalized starter pack preferences'}
 						</WarningMessage>
 					</Modal.Body>
 

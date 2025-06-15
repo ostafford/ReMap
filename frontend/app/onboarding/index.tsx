@@ -1,124 +1,219 @@
-import React from 'react';
+// ================
+//   CORE IMPORTS
+// ================
+import { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 
-// =======================
-//   THIRD-PARTY IMPORTS
-// =======================
-import { router } from 'expo-router';
+// ================================
+//   LAYOUT COMPONENTS
+// ================================
+import { Header } from '@/components/layout/Header';
+import { MainContent } from '@/components/layout/MainContent';
+import { Footer } from '@/components/layout/Footer';
 
-import { useOnboardingState } from '@/hooks/useOnboardingState';
-import { OnboardingUI } from '@/components/ui/OnboardingUI';
+// ============================
+// 	UI COMPONENTS
+// ============================
+import { Button } from '@/components/ui/Button';
+import {
+	HeaderText,
+	BodyText,
+	SubheaderText,
+} from '@/components/ui/Typography';
+import { ReMapColors } from '@/constants/Colors';
+
+// ==================
+//   HOOK IMPORTS
+// ==================
+import { WELCOME_STEPS, WelcomeStep } from '@/constants/onboardingStaticData';
+import { useNavigation } from '@/hooks/shared/useNavigation';
+
 // ========================
 //   COMPONENT DEFINITION
 // ========================
 export default function OnboardingWelcomeScreen() {
-	// ==================
-	//   STATE MANAGEMENT
-	// ==================
-	const {
-		onboardingState,
-		nextStep,
-		previousStep,
-		showMessage,
-		hideMessage,
-		isLastStep,
-		canProceedToNextStep,
-		getCurrentStepConfig,
-	} = useOnboardingState();
+	const { goToPage } = useNavigation();
 
-	// ===============
-	//   STATIC DATA
-	// ===============
-	const welcomeSteps = [
-		{
-			title: '📍 Pin Your Memories',
-			description:
-				'Transform your experiences into an interactive atlas. Every place has a story - yours.',
-			icon: '🗺️',
-		},
-		{
-			title: '🌟 Discover Authentic Stories',
-			description:
-				"Find genuine experiences from real people at places you're visiting or planning to explore.",
-			icon: '👥',
-		},
-		{
-			title: '🔒 Your Privacy, Your Choice',
-			description:
-				'Keep memories private, share with close friends, or contribute to the community - you decide.',
-			icon: '🛡️',
-		},
-	];
+	// NAVIGATION HANDLERS
+	const continueToStarterPack = () => goToPage('/onboarding/starterpack');
+	const goBackToHome = () => goToPage('/');
 
-	// ==================
-	//   EVENT HANDLERS
-	// ==================
-	const validRoutes = ['/', '/onboarding', '/onboarding/starterpack'];
+	const renderWelcomeStep = (step: WelcomeStep, index: number) => (
+		<View key={index} style={styles.stepContent}>
+			<BodyText style={styles.stepIcon}>{step.icon}</BodyText>
 
-	const handleNext = () => {
-		if (isLastStep()) {
-			navigateToRoute('/onboarding/starterpack');
-		} else {
-			nextStep();
-		}
-	};
+			<HeaderText align="center" style={styles.stepTitle}>
+				{step.title}
+			</HeaderText>
 
-	const skipToStarterPack = () => {
-		navigateToRoute('/onboarding/starterpack');
-	};
-
-	const goBack = () => {
-		if (onboardingState.currentStep > 0) {
-			previousStep();
-		} else {
-			navigateToRoute('/');
-		}
-	};
-
-	// ===========================
-	//   NAVIGATION HELPER
-	// ===========================
-	const navigateToRoute = (route: string) => {
-		if (!validRoutes.includes(route)) {
-			showMessage(
-				`Navigation error: The page "${route}" is not available. Please try again or contact support.`,
-				'error'
-			);
-			return;
-		}
-
-		try {
-			router.navigate(route as any);
-		} catch (error) {
-			console.error('Navigation failed:', error);
-			showMessage(
-				'Could not navigate to the next page. Please try again.',
-				'error'
-			);
-		}
-	};
-
-	// ==================
-	//   COMPUTED VALUES
-	// ==================
-	const currentStepData = welcomeSteps[onboardingState.currentStep];
-	const isCurrentlyLastStep = isLastStep();
+			<BodyText align="center" style={styles.stepDescription}>
+				{step.description}
+			</BodyText>
+		</View>
+	);
 
 	// ============================
 	//   COMPONENT RENDER SECTION
 	// ============================
-	// RENDER METHOD: Layout composition
 	return (
-		<OnboardingUI
-			onboardingState={onboardingState}
-			welcomeSteps={welcomeSteps}
-			currentStepData={currentStepData}
-			isCurrentlyLastStep={isCurrentlyLastStep}
-			handlers={{
-				onNext: handleNext,
-				onPrevious: goBack,
-				onSkip: skipToStarterPack,
-				onHideMessage: hideMessage,
-			}}
-		/>
+		<View style={styles.container}>
+			<Header title="Welcome to ReMap" />
+
+			<MainContent scrollable={true}>
+				<View style={styles.content}>
+					{/* =================== */}
+					{/*   WELCOME MESSAGE   */}
+					{/* =================== */}
+					<View style={styles.stepContent}>
+						<BodyText style={styles.stepIcon}>🌏</BodyText>
+						<SubheaderText align="center" style={styles.stepTitle}>
+							Your Memory Atlas Awaits
+						</SubheaderText>
+						<BodyText align="center" style={styles.stepDescription}>
+							Discover how ReMap transforms your experiences into
+							an interactive journey
+						</BodyText>
+					</View>
+
+					{/* ===================== */}
+					{/*   ALL WELCOME STEPS   */}
+					{/* ===================== */}
+					<View style={styles.stepContent}>
+						{WELCOME_STEPS.map((step, index) =>
+							renderWelcomeStep(step, index)
+						)}
+					</View>
+				</View>
+			</MainContent>
+
+			{/* ============ */}
+			{/*   FOOTER     */}
+			{/* ============ */}
+			<Footer>
+				<View style={styles.buttonContainer}>
+					<View style={styles.secondaryActions}>
+						<Button
+							style={styles.secondaryButton}
+							onPress={goBackToHome}
+						>
+							← Previous
+						</Button>
+						<Button
+							style={styles.secondaryButton}
+							onPress={continueToStarterPack}
+						>
+							Continue →
+						</Button>
+					</View>
+
+					<Button
+						style={styles.primaryButton}
+						onPress={continueToStarterPack}
+					>
+						Skip Intro
+					</Button>
+				</View>
+			</Footer>
+		</View>
 	);
 }
+
+// =================
+//   STYLE SECTION
+// =================
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		backgroundColor: ReMapColors.ui.cardBackground,
+	},
+	content: {
+		flex: 1,
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingVertical: 20,
+	},
+	messageContainer: {
+		width: '100%',
+		paddingHorizontal: 20,
+		marginBottom: 16,
+	},
+	progressContainer: {
+		flexDirection: 'row',
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginBottom: 20,
+	},
+	progressDot: {
+		width: 12,
+		height: 12,
+		borderRadius: 6,
+		backgroundColor: ReMapColors.ui.border,
+		marginHorizontal: 6,
+	},
+	progressDotActive: {
+		backgroundColor: ReMapColors.primary.violet,
+		width: 16,
+		height: 16,
+		borderRadius: 8,
+	},
+	progressDotCompleted: {
+		backgroundColor: ReMapColors.semantic.success,
+	},
+	globeContainer: {
+		// height: 200,
+		width: '100%',
+		// marginVertical: 20,
+	},
+	canvas: {
+		flex: 1,
+	},
+	stepContent: {
+		alignItems: 'center',
+		// paddingHorizontal: 30,
+		marginVertical: 20,
+	},
+	stepIcon: {
+		fontSize: 48,
+		lineHeight: 30,
+		// marginBottom: 16,
+		padding: 25,
+	},
+	stepTitle: {
+		marginBottom: 12,
+	},
+	stepDescription: {},
+	featuresContainer: {
+		flexDirection: 'row',
+		justifyContent: 'space-around',
+		width: '100%',
+		margin: 12,
+	},
+	featureItem: {
+		alignItems: 'center',
+		flex: 1,
+	},
+	featureIcon: {
+		fontSize: 30,
+		lineHeight: 38,
+		marginBottom: 8,
+	},
+	featureText: {},
+	buttonContainer: {
+		width: '100%',
+		gap: 10,
+	},
+	primaryButton: {
+		// backgroundColor: ReMapColors.primary.violet,
+		backgroundColor: ReMapColors.primary.testing,
+		width: '100%',
+	},
+	secondaryActions: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		gap: 10,
+	},
+	secondaryButton: {
+		backgroundColor: ReMapColors.primary.cadet,
+		flex: 1,
+	},
+});

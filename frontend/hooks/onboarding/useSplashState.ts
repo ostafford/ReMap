@@ -66,9 +66,6 @@ export const useSplashState = () => {
 		}));
 	};
 
-	// ============================
-	//  CUSTOM HOOK
-	// ============================
 	return {
 		splashState,
 		updateField,
