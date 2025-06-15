@@ -263,7 +263,7 @@ export const addMember = async (req: Request, res: Response) => {
 
         if (userError) {
             console.log("User not found:", userError.message);
-            return { error: userError.message};
+            res.status(400).json({ "User not found": userError.message });
         }
 
         // Check if circle exists
