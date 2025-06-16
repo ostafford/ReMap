@@ -1,161 +1,159 @@
-// ================
-//   CORE IMPORTS
-// ================
-import { useState, useCallback, useEffect } from 'react';
+// ========================
+//   REACT NATIVE IMPORTS
+// ========================
+import { useState, useCallback, useEffect, useMemo } from 'react';
 
 // ================================
 //   SERVICE IMPORTS
 // ================================
-import { getUserSocialCircles } from '@/services/memoryService';
-import { getTestSocialCircles } from '@/assets/dummySocialCircleData';
+import { getTestSocialCircles } from '@/constants/socialCircleData';
 
 const USE_TEST_DATA = true;
 
-// ==================
-// TYPE DEFINITIONS
-// ==================
-
+// ======================
+//   TYPE DEFINITIONS
+// ======================
 type VisibilityOption = 'public' | 'social' | 'private';
 
-interface SocialCircle {
+type SocialCircle = {
 	id: string;
 	name: string;
 	memberCount: number;
 	description: string;
 	color: string;
-}
+	members?: Array<{
+		id: string;
+		name: string;
+		avatar?: string;
+	}>;
+};
 
-interface UsePrivacySettingsReturn {
+type PrivacySettingsData = {
 	selectedVisibility: VisibilityOption[];
 	selectedSocialCircles: string[];
 	showSocialDropdown: boolean;
 	userSocialCircles: SocialCircle[];
-	handleVisibilitySelect: (option: VisibilityOption) => void;
-	handleSocialCircleToggle: (circleId: string) => void;
-	isVisibilitySelected: (option: VisibilityOption) => boolean;
-	getSelectedSocialCircles: () => SocialCircle[];
-	getVisibilityDescription: () => string;
-	resetPrivacySettings: () => void;
+	isLoadingSocialCircles: boolean;
+};
 
-	privacySummary: {
-		isPublic: boolean;
-		isSocial: boolean;
-		isPrivate: boolean;
-		socialCircleCount: number;
-		totalSelected: string;
+// ===============================
+//   CUSTOM HOOK: Privacy Logic
+// ===============================
+export const usePrivacySettings = () => {
+	// Empty canvas with initial values
+	const [privacyData, setPrivacyData] = useState<PrivacySettingsData>({
+		selectedVisibility: ['public'],
+		selectedSocialCircles: [],
+		showSocialDropdown: false,
+		userSocialCircles: [],
+		isLoadingSocialCircles: false,
+	});
+
+	const updatePrivacyField = <Field extends keyof PrivacySettingsData>(
+		field: Field,
+		value: PrivacySettingsData[Field]
+	) => {
+		setPrivacyData((prev) => ({
+			...prev,
+			[field]: value,
+		}));
 	};
-}
 
-// ============================
-// CUSTOM HOOK IMPLEMENTATION
-// ============================
+	// DUMMY DATA @CONSTANTS
+	const loadUserSocialCircles = useCallback(async () => {
+		updatePrivacyField('isLoadingSocialCircles', true);
 
-export function usePrivacySettings(): UsePrivacySettingsReturn {
-	// ==================
-	// STATE MANAGEMENT
-	// ==================
+		try {
+			let circles: SocialCircle[];
 
-	const [selectedVisibility, setSelectedVisibility] = useState<
-		VisibilityOption[]
-	>(['public']);
-	const [selectedSocialCircles, setSelectedSocialCircles] = useState<
-		string[]
-	>([]);
-	const [showSocialDropdown, setShowSocialDropdown] = useState(false);
-	const [userSocialCircles, setUserSocialCircles] = useState<SocialCircle[]>(
-		[]
-	);
-
-	// =============================
-	// LOAD USER'S SOCIAL CIRCLES
-	// =============================
-
-	useEffect(() => {
-		const loadUserSocialCircles = async () => {
-			try {
-				if (USE_TEST_DATA) {
-					const circles = await getTestSocialCircles();
-					setUserSocialCircles(circles);
-				} else {
-					// ATNN: This `else` statement is for backend
-					const circles = await getUserSocialCircles();
-					// setUserSocialCircles(circles);
-				}
-			} catch (error) {
-				console.error('Failed to load social circles:', error);
-				setUserSocialCircles([]);
+			if (USE_TEST_DATA) {
+				circles = await getTestSocialCircles();
+			} else {
+				return;
 			}
-		};
 
-		loadUserSocialCircles();
+			updatePrivacyField('userSocialCircles', circles);
+		} catch (error) {
+			console.error('Failed to load social circles:', error);
+			updatePrivacyField('userSocialCircles', []);
+		} finally {
+			updatePrivacyField('isLoadingSocialCircles', false);
+		}
 	}, []);
 
-	// =====================
-	// VISIBILITY HANDLERS
-	// =====================
+	const handleVisibilitySelection = useCallback(
+		(option: VisibilityOption) => {
+			const currentVisibility = privacyData.selectedVisibility;
 
-	const handleVisibilitySelect = useCallback((option: VisibilityOption) => {
-		setSelectedVisibility((prev) => {
-			if (prev.includes(option)) {
-				if (prev.length > 1) {
-					const newVisibility = prev.filter(
+			if (currentVisibility.includes(option)) {
+				// User wants to deselect this option
+				if (currentVisibility.length > 1) {
+					const newVisibility = currentVisibility.filter(
 						(item) => item !== option
 					);
+					updatePrivacyField('selectedVisibility', newVisibility);
 
 					if (option === 'social') {
-						setShowSocialDropdown(false);
-						setSelectedSocialCircles([]);
+						updatePrivacyField('showSocialDropdown', false);
+						updatePrivacyField('selectedSocialCircles', []);
 					}
-
-					return newVisibility;
 				}
-
-				return prev;
+				//(always have at least one)
 			} else {
-				const newVisibility = [...prev, option];
+				const newVisibility = [...currentVisibility, option];
+				updatePrivacyField('selectedVisibility', newVisibility);
 
+				// dropdown
 				if (option === 'social') {
-					setShowSocialDropdown(true);
+					updatePrivacyField('showSocialDropdown', true);
 				}
-
-				return newVisibility;
 			}
-		});
-	}, []);
-
-	const isVisibilitySelected = useCallback(
-		(option: VisibilityOption): boolean => {
-			return selectedVisibility.includes(option);
 		},
-		[selectedVisibility]
+		[privacyData.selectedVisibility]
 	);
 
-	// ========================
-	// SOCIAL CIRCLE HANDLERS
-	// ========================
+	const handleSocialCircleToggle = useCallback(
+		(circleId: string) => {
+			const currentCircles = privacyData.selectedSocialCircles;
 
-	const handleSocialCircleToggle = useCallback((circleId: string) => {
-		setSelectedSocialCircles((prev) => {
-			if (prev.includes(circleId)) {
-				return prev.filter((id) => id !== circleId);
+			if (currentCircles.includes(circleId)) {
+				// Remove from selection
+				const newCircles = currentCircles.filter(
+					(id) => id !== circleId
+				);
+				updatePrivacyField('selectedSocialCircles', newCircles);
 			} else {
-				return [...prev, circleId];
+				// Add to selection
+				const newCircles = [...currentCircles, circleId];
+				updatePrivacyField('selectedSocialCircles', newCircles);
 			}
-		});
-	}, []);
+		},
+		[privacyData.selectedSocialCircles]
+	);
+
+	const checkVisibilitySelection = useCallback(
+		(option: VisibilityOption): boolean => {
+			return privacyData.selectedVisibility.includes(option);
+		},
+		[privacyData.selectedVisibility]
+	);
 
 	const getSelectedSocialCircles = useCallback((): SocialCircle[] => {
-		return userSocialCircles.filter((circle) =>
-			selectedSocialCircles.includes(circle.id)
+		return privacyData.userSocialCircles.filter((circle) =>
+			privacyData.selectedSocialCircles.includes(circle.id)
 		);
-	}, [userSocialCircles, selectedSocialCircles]);
+	}, [privacyData.userSocialCircles, privacyData.selectedSocialCircles]);
 
-	// =======================
-	// DESCRIPTION GENERATOR
-	// =======================
+	const getTotalSelectedMembers = useCallback((): number => {
+		return getSelectedSocialCircles().reduce(
+			(total, circle) => total + circle.memberCount,
+			0
+		);
+	}, [getSelectedSocialCircles]);
 
-	const getVisibilityDescription = useCallback((): string => {
+	const generateVisibilityDescription = useCallback((): string => {
 		let description = '';
+		const { selectedVisibility, selectedSocialCircles } = privacyData;
 
 		if (selectedVisibility.includes('public')) {
 			description += 'Visible to everyone in the ReMap community';
@@ -177,64 +175,58 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 		}
 
 		return description || 'Select your visibility preferences';
-	}, [selectedVisibility, selectedSocialCircles]);
+	}, [privacyData.selectedVisibility, privacyData.selectedSocialCircles]);
 
-	// ====================
-	// UTILITY FUNCTIONS
-	// ====================
+	const resetAllPrivacySettings = useCallback(() => {
+		setPrivacyData({
+			selectedVisibility: ['public'],
+			selectedSocialCircles: [],
+			showSocialDropdown: false,
+			userSocialCircles: privacyData.userSocialCircles, // Keep loaded circles
+			isLoadingSocialCircles: false,
+		});
+	}, [privacyData.userSocialCircles]);
 
-	const resetPrivacySettings = useCallback(() => {
-		setSelectedVisibility(['public']);
-		setSelectedSocialCircles([]);
-		setShowSocialDropdown(false);
-	}, []);
+	const privacySummary = useMemo(
+		() => ({
+			isPublic: privacyData.selectedVisibility.includes('public'),
+			isSocial: privacyData.selectedVisibility.includes('social'),
+			isPrivate: privacyData.selectedVisibility.includes('private'),
+			socialCircleCount: privacyData.selectedSocialCircles.length,
+			totalMemberCount: getTotalSelectedMembers(),
+			hasValidSelection: privacyData.selectedVisibility.length > 0,
+			visibilityDescription: generateVisibilityDescription(),
+		}),
+		[
+			privacyData.selectedVisibility,
+			privacyData.selectedSocialCircles,
+			getTotalSelectedMembers,
+			generateVisibilityDescription,
+		]
+	);
 
-	// =====================
-	// COMPUTED PROPERTIES
-	// =====================
+	// when the page loads
+	useEffect(() => {
+		loadUserSocialCircles();
+	}, [loadUserSocialCircles]);
 
-	const privacySummary = {
-		isPublic: selectedVisibility.includes('public'),
-		isSocial: selectedVisibility.includes('social'),
-		isPrivate: selectedVisibility.includes('private'),
-		socialCircleCount: selectedSocialCircles.length,
-		totalSelected: (() => {
-			if (selectedVisibility.includes('public')) return 'Public + Social';
-			if (
-				selectedVisibility.includes('social') &&
-				selectedSocialCircles.length > 0
-			) {
-				return `${selectedSocialCircles.length} Social Circle(s)`;
-			}
-			if (selectedVisibility.includes('private')) return 'Private Only';
-			return 'Unknown';
-		})(),
-	};
-
-	// =======================
-	// RETURN HOOK INTERFACE
-	// =======================
 	return {
-		// Current state
-		selectedVisibility,
-		selectedSocialCircles,
-		showSocialDropdown,
-		userSocialCircles,
+		privacyData,
 
-		// Action handlers
-		handleVisibilitySelect,
+		updatePrivacyField,
+
+		handleVisibilitySelection,
 		handleSocialCircleToggle,
-
-		// Utility functions
-		isVisibilitySelected,
+		checkVisibilitySelection,
 		getSelectedSocialCircles,
-		getVisibilityDescription,
-		resetPrivacySettings,
+		getTotalSelectedMembers,
+		generateVisibilityDescription,
+		resetAllPrivacySettings,
+		loadUserSocialCircles,
 
-		// Computed properties
 		privacySummary,
 	};
-}
+};
 
 // ===============================
 // HELPER TYPES FOR EXTERNAL USE

@@ -94,7 +94,7 @@ export const DUMMY_SOCIAL_CIRCLES: DummySocialCircle[] = [
 // ==================================================
 
 // Test function to simulate getUserSocialCircles()
-export const getTestSocialCircles = (): Promise<DummySocialCircle[]> => {
+export const getTestSocialCircles = async (): Promise<DummySocialCircle[]> => {
 	return new Promise((resolve) => {
 		// Simulate API delay
 		setTimeout(() => {

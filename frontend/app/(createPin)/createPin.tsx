@@ -246,16 +246,14 @@ export default function CreatePinScreen() {
 	} = mediaCapture;
 
 	const {
-		selectedVisibility,
-		selectedSocialCircles,
-		showSocialDropdown,
-		userSocialCircles,
-		handleVisibilitySelect,
+		privacyData,
+		handleVisibilitySelection,
 		handleSocialCircleToggle,
-		isVisibilitySelected,
+		checkVisibilitySelection,
 		getSelectedSocialCircles,
-		getVisibilityDescription,
-		resetPrivacySettings,
+		generateVisibilityDescription,
+		resetAllPrivacySettings,
+		privacySummary,
 	} = privacySettings;
 
 	// ===================
@@ -733,18 +731,18 @@ export default function CreatePinScreen() {
 				{/*   PRIVACY SETTINGS       */}
 				{/* ======================== */}
 				<VisibilitySelector
-					selectedVisibility={selectedVisibility}
-					onSelect={handleVisibilitySelect}
-					isSelected={isVisibilitySelected}
-					description={getVisibilityDescription()}
+					selectedVisibility={privacyData.selectedVisibility}
+					onSelect={handleVisibilitySelection}
+					isSelected={checkVisibilitySelection}
+					description={generateVisibilityDescription()}
 				/>
 				<SocialCircleSelector
-					userSocialCircles={userSocialCircles}
-					selectedSocialCircles={selectedSocialCircles}
+					userSocialCircles={privacyData.userSocialCircles}
+					selectedSocialCircles={privacyData.selectedSocialCircles}
 					onToggle={handleSocialCircleToggle}
 					visible={
-						// NOTE: Show only when SOCIAL is selected
-						showSocialDropdown && isVisibilitySelected('social')
+						privacyData.showSocialDropdown &&
+						checkVisibilitySelection('social')
 					}
 				/>
 				{/* ======================== */}
