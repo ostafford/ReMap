@@ -25,18 +25,6 @@ import type { MediaItem } from '@/hooks/createPin/useMediaCapture';
 // TYPE DEFINITIONS
 // ===================
 
-/**
- * Props interface for MediaCapture component
- *
- * LAYMAN TERMS: "Everything this component needs from the parent (createPin.tsx)
- * to display the media interface. Includes current media state, all the functions
- * to handle user actions, and customization options."
- *
- * TECHNICAL: Comprehensive props interface for multimedia capture and management
- * component with full integration to useMediaCapture hook functionality
- *
- * @interface MediaCaptureProps
- */
 interface MediaCaptureProps {
 	selectedMedia: MediaItem[];
 	audioUri: string | null;
@@ -64,74 +52,6 @@ interface MediaCaptureProps {
 // COMPONENT IMPLEMENTATION
 // ===========================
 
-/**
- * MediaCapture - Comprehensive multimedia interface for memory creation
- *
- * LAYMAN TERMS: "This component provides the complete media studio interface
- * for creating memories. Users see camera and microphone buttons to add content,
- * thumbnails of photos they've added, a cool audio visualizer for recordings,
- * and controls to play/remove everything. It's like having a mini multimedia
- * editor built into the memory creation form."
- *
- * Key features:
- * - Camera button with photo capture integration
- * - Microphone button with visual recording feedback
- * - Photo/video thumbnails with preview and removal
- * - Audio visualizer with waveform animation during playback
- * - Play/stop audio controls with status indicators
- * - Conditional rendering (only shows media when user has added some)
- * - Dynamic helper text based on current state
- * - Disabled state support for all interactions
- *
- * TECHNICAL: React component providing complete multimedia capture interface
- * with sophisticated visual feedback, state-driven conditional rendering,
- * and full integration with useMediaCapture hook for state management.
- *
- * @component MediaCapture
- * @param {MediaCaptureProps} props - Component configuration object
- * @returns {JSX.Element} Complete multimedia capture and management interface
- *
- * @example
- * In createPin.tsx:
- * const {
- *   selectedMedia,
- *   audioUri,
- *   isRecording,
- *   isPlayingAudio,
- *   handleCameraPress,
- *   handleAudioPress,
- *   removeMedia,
- *   removeAudio,
- *   playRecording,
- *   stopPlayback,
- *   getMediaSummary
- * } = useMediaCapture({ showModal });
- *
- * <MediaCapture
- *   selectedMedia={selectedMedia}           // Current photos/videos
- *   audioUri={audioUri}                    // Audio recording
- *   isRecording={isRecording}              // Recording state
- *   isPlayingAudio={isPlayingAudio}        // Playback state
- *   onCameraPress={handleCameraPress}      // Camera functionality
- *   onAudioPress={handleAudioPress}        // Recording toggle
- *   onRemoveMedia={removeMedia}            // Remove photos/videos
- *   onRemoveAudio={removeAudio}            // Remove audio
- *   onPlayAudio={playRecording}            // Play audio
- *   onStopAudio={stopPlayback}             // Stop audio
- *   onImagePreview={showImagePreview}      // Full-screen photo view
- *   mediaSummary={getMediaSummary()}       // Media statistics
- * />
- *
- * Results in:
- * - Camera and microphone buttons at bottom
- * - Photo thumbnails with "Tap to preview" and Remove buttons
- * - Audio visualizer with play/stop controls and Remove button
- * - Dynamic helper text explaining current state
- * - Conditional sections that only appear when relevant
- *
- * @see {@link useMediaCapture} for state management and business logic
- * @see {@link MediaItem} for individual media item structure
- */
 export function MediaCapture({
 	selectedMedia,
 	audioUri,
@@ -153,18 +73,6 @@ export function MediaCapture({
 	// DYNAMIC HELPER TEXT GENERATION
 	// ================================
 
-	/**
-	 * Generate context-aware helper text based on current state
-	 *
-	 * LAYMAN TERMS: "Create helpful instructions that change based on what's
-	 * happening. If user is recording, show 'Recording... tap to stop'.
-	 * Otherwise, show basic instructions about camera and microphone."
-	 *
-	 * TECHNICAL: Dynamic helper text generator with state-driven messaging
-	 *
-	 * @function getDefaultHelperText
-	 * @returns {string} Context-appropriate helper text
-	 */
 	const getDefaultHelperText = () => {
 		if (isRecording) {
 			return '🔴 Recording... Tap microphone to stop';
@@ -176,21 +84,6 @@ export function MediaCapture({
 	// MEDIA ITEM RENDERERS
 	// ======================
 
-	/**
-	 * Render individual photo or video item with thumbnail and controls
-	 *
-	 * LAYMAN TERMS: "Create the display for each photo or video. Shows a
-	 * thumbnail image, the file name with an icon, 'Tap to preview' text
-	 * for photos, and a Remove button."
-	 *
-	 * TECHNICAL: Individual media item renderer with thumbnail, metadata,
-	 * preview interaction, and removal controls
-	 *
-	 * @function renderMediaItem
-	 * @param {MediaItem} media - The media item to render
-	 * @param {number} index - Array index for removal handling
-	 * @returns {JSX.Element} Complete media item display with controls
-	 */
 	const renderMediaItem = (media: MediaItem, index: number) => (
 		<View key={index} style={styles.mediaItem}>
 			{/* Thumbnail and details section */}
@@ -238,19 +131,6 @@ export function MediaCapture({
 		</View>
 	);
 
-	/**
-	 * Render audio recording item with visualizer and playback controls
-	 *
-	 * LAYMAN TERMS: "Create the display for audio recordings. Shows a cool
-	 * visualizer with waveform bars that animate during playback, play/stop
-	 * button, status text, and a Remove button."
-	 *
-	 * TECHNICAL: Audio item renderer with animated visualizer, playback controls,
-	 * state indicators, and removal functionality
-	 *
-	 * @function renderAudioItem
-	 * @returns {JSX.Element} Complete audio item display with controls and visualizer
-	 */
 	const renderAudioItem = () => (
 		<View style={styles.mediaItem}>
 			<View style={styles.audioItemContent}>

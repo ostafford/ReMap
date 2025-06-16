@@ -6,7 +6,7 @@ export interface CreateMemoryRequest {
 	description: string;
 	latitude: number;
 	longitude: number;
-	location_query: string;
+	// location_query: string;
 	visibility: string[];
 	social_circle_ids: string[];
 	media: {
