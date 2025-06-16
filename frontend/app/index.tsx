@@ -17,7 +17,7 @@ import { SplashUI } from '@/components/ui/SplashUI';
 // ================================
 //   INTERNAL 'HOOKS' IMPORTS
 // ================================
-import { useSplashState } from '@/hooks/onboarding/useSplashState';
+import { useSplashState } from '@/hooks/useSplashState';
 import { useAuth } from '@/hooks/shared/useAuth';
 
 // ========================
