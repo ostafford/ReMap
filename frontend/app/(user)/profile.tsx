@@ -72,6 +72,16 @@ function CirclesTab() {
   );
 }
 
+function PinsTab() {
+  return (
+    <View style={styles.tabContent}>
+      <Text style={styles.text}>Your Pins</Text>
+	  <Text>pin display here</Text>
+	  <Text>maybe we should have the option to delete pins here</Text>
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -105,6 +115,7 @@ export default function ProfileScreen() {
         }}
       >
         <Tab.Screen name="Profile" component={ProfileTab} />
+		<Tab.Screen name="Pins" component={PinsTab} />
         <Tab.Screen name="Circles" component={CirclesTab} />
       </Tab.Navigator>
     </SafeAreaView>
