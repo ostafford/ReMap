@@ -1,0 +1,288 @@
+// ========================
+//   REACT NATIVE IMPORTS
+// ========================
+import { useState, useCallback } from 'react';
+import { Alert } from 'react-native';
+import * as Location from 'expo-location';
+
+// ======================
+//   TYPE DEFINITIONS
+// ======================
+
+// Blueprint for location data structure
+type LocationManagerData = {
+	searchQuery: string;
+	currentCoordinates: { latitude: number; longitude: number } | null;
+	displayAddress: string;
+	isFromGPS: boolean;
+};
+
+// Hook return interface
+interface LocationManagerHook {
+	locationData: LocationManagerData;
+	isLoadingGPS: boolean;
+	isLoadingGeocode: boolean;
+	fetchDeviceGPSLocation: () => Promise<void>;
+	convertAddressToCoordinates: (address: string) => Promise<void>;
+	convertCoordinatesToAddress: (coords: {
+		latitude: number;
+		longitude: number;
+	}) => Promise<void>;
+	updateLocationFromUserInput: (query: string) => void;
+	updateLocationFromMapDrag: (coords: {
+		latitude: number;
+		longitude: number;
+		address?: string;
+	}) => void;
+	resetLocationData: () => void;
+}
+
+// ======================
+//   CUSTOM HOOK
+// ======================
+
+export const useLocationManager = (): LocationManagerHook => {
+	// =========================
+	// STATE MANAGEMENT: Empty canvas with initial values
+	// =========================
+	const [locationData, setLocationData] = useState<LocationManagerData>({
+		searchQuery: '',
+		currentCoordinates: null,
+		displayAddress: '',
+		isFromGPS: false,
+	});
+
+	const [isLoadingGPS, setIsLoadingGPS] = useState(false);
+	const [isLoadingGeocode, setIsLoadingGeocode] = useState(false);
+
+	// =========================
+	// UPDATE FUNCTIONS: Generic functions with natural language naming
+	// =========================
+
+	// Update function for dynamic field updates
+	const updateLocationField = useCallback(
+		<Field extends keyof LocationManagerData>(
+			field: Field,
+			value: LocationManagerData[Field]
+		) => {
+			setLocationData((prev) => ({
+				...prev,
+				[field]: value,
+			}));
+		},
+		[]
+	);
+
+	// Reset all location data to empty state
+	const resetLocationData = useCallback(() => {
+		setLocationData({
+			searchQuery: '',
+			currentCoordinates: null,
+			displayAddress: '',
+			isFromGPS: false,
+		});
+	}, []);
+
+	// =========================
+	// GPS LOCATION FUNCTIONS
+	// =========================
+
+	// Fetch device's current GPS coordinates and get real address
+	const fetchDeviceGPSLocation = useCallback(async () => {
+		setIsLoadingGPS(true);
+
+		try {
+			// Request location permissions
+			const { status } =
+				await Location.requestForegroundPermissionsAsync();
+
+			if (status !== 'granted') {
+				Alert.alert(
+					'Location Permission Required',
+					'Please enable location access to use your current location',
+					[{ text: 'OK' }]
+				);
+				return;
+			}
+
+			// Get current GPS coordinates
+			const location = await Location.getCurrentPositionAsync({
+				accuracy: Location.Accuracy.Balanced,
+			});
+
+			const coordinates = {
+				latitude: location.coords.latitude,
+				longitude: location.coords.longitude,
+			};
+
+			// Update coordinates immediately
+			updateLocationField('currentCoordinates', coordinates);
+			updateLocationField('isFromGPS', true);
+
+			// Get real address from coordinates (reverse geocoding)
+			await convertCoordinatesToAddress(coordinates);
+		} catch (error) {
+			console.error('GPS location error:', error);
+			Alert.alert(
+				'Location Error',
+				'Could not get your current location. Please try again or enter manually.',
+				[{ text: 'OK' }]
+			);
+		} finally {
+			setIsLoadingGPS(false);
+		}
+	}, [updateLocationField]);
+
+	// =========================
+	// GEOCODING FUNCTIONS
+	// =========================
+
+	// Convert text address to coordinates (forward geocoding)
+	const convertAddressToCoordinates = useCallback(
+		async (address: string) => {
+			if (!address || address.length < 3) return;
+
+			setIsLoadingGeocode(true);
+
+			try {
+				// API call to get coordinates from address
+				const response = await fetch(
+					`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+						address + ', Melbourne, Australia'
+					)}&limit=1`,
+					{
+						headers: {
+							'User-Agent': 'ReMap/1.0 (remap.app)', // Policy compliance
+						},
+					}
+				);
+
+				const data = await response.json();
+
+				// Extract coordinates from API response
+				if (data && data.length > 0) {
+					const location = data[0];
+					const coordinates = {
+						latitude: parseFloat(location.lat),
+						longitude: parseFloat(location.lon),
+					};
+
+					// Update location data
+					updateLocationField('searchQuery', address);
+					updateLocationField('currentCoordinates', coordinates);
+					updateLocationField(
+						'displayAddress',
+						location.display_name || address
+					);
+					updateLocationField('isFromGPS', false);
+				}
+			} catch (error) {
+				console.error('Geocoding error:', error);
+			} finally {
+				setIsLoadingGeocode(false);
+			}
+		},
+		[updateLocationField]
+	);
+
+	// Convert coordinates to real address (reverse geocoding)
+	const convertCoordinatesToAddress = useCallback(
+		async (coords: { latitude: number; longitude: number }) => {
+			setIsLoadingGeocode(true);
+
+			try {
+				// API call to get address from coordinates
+				const response = await fetch(
+					`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}`,
+					{
+						headers: {
+							'User-Agent': 'ReMap/1.0 (remap.app)', // Policy compliance
+						},
+					}
+				);
+
+				const data = await response.json();
+
+				// Extract address from API response
+				if (data && data.display_name) {
+					updateLocationField('displayAddress', data.display_name);
+					updateLocationField('searchQuery', data.display_name);
+				}
+			} catch (error) {
+				console.error('Reverse geocoding error:', error);
+				// Fallback to coordinates as address
+				updateLocationField(
+					'displayAddress',
+					`${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(
+						6
+					)}`
+				);
+				updateLocationField(
+					'searchQuery',
+					`${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(
+						6
+					)}`
+				);
+			} finally {
+				setIsLoadingGeocode(false);
+			}
+		},
+		[updateLocationField]
+	);
+
+	// =========================
+	// USER INTERACTION FUNCTIONS
+	// =========================
+
+	// Update location when user types in search box
+	const updateLocationFromUserInput = useCallback(
+		(query: string) => {
+			updateLocationField('searchQuery', query);
+			// Note: Actual geocoding should be debounced and called separately
+		},
+		[updateLocationField]
+	);
+
+	// Update location when user drags pin on map
+	const updateLocationFromMapDrag = useCallback(
+		(coords: { latitude: number; longitude: number; address?: string }) => {
+			updateLocationField('currentCoordinates', coords);
+			updateLocationField('isFromGPS', false);
+
+			if (coords.address) {
+				updateLocationField('displayAddress', coords.address);
+				updateLocationField('searchQuery', coords.address);
+			} else {
+				// If no address provided, use coordinates as fallback
+				const coordinateString = `${coords.latitude.toFixed(
+					6
+				)}, ${coords.longitude.toFixed(6)}`;
+				updateLocationField('displayAddress', coordinateString);
+				updateLocationField('searchQuery', coordinateString);
+			}
+		},
+		[updateLocationField]
+	);
+
+	// =========================
+	// RETURN INTERFACE: Public API for components
+	// =========================
+	return {
+		// State data
+		locationData,
+		isLoadingGPS,
+		isLoadingGeocode,
+
+		// Location fetching functions
+		fetchDeviceGPSLocation,
+		convertAddressToCoordinates,
+		convertCoordinatesToAddress,
+
+		// User interaction functions
+		updateLocationFromUserInput,
+		updateLocationFromMapDrag,
+
+		// Utility functions
+		resetLocationData,
+	};
+};

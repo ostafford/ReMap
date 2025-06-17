@@ -43,7 +43,11 @@ interface UseCreatePinProps {
 	memoryTitle: string;
 	memoryDescription: string;
 	locationQuery: string;
-	coordinates: { latitude: number; longitude: number } | null;
+	coordinates: {
+		latitude: number;
+		longitude: number;
+		address: string;
+	} | null;
 
 	// Privacy data
 	selectedVisibility: string[];
@@ -54,10 +58,10 @@ interface UseCreatePinProps {
 	audioUri: string | null;
 
 	// Validation function
-	validateContent: () => boolean;
+	validateMemoryContent: () => boolean;
 
 	// Reset functions
-	resetContent: () => void;
+	resetMemoryContent: () => void;
 	resetMedia: () => void;
 	resetPrivacySettings: () => void;
 	setMemoryTitle: (title: string) => void;
@@ -83,8 +87,8 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		selectedSocialCircles,
 		selectedMedia,
 		audioUri,
-		validateContent,
-		resetContent,
+		validateMemoryContent,
+		resetMemoryContent,
 		resetMedia,
 		resetPrivacySettings,
 		setMemoryTitle,
@@ -180,7 +184,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	//   PREVIEW FUNCTIONALITY
 	// ===========================
 	const handlePreviewMemory = useCallback(() => {
-		if (!validateContent()) {
+		if (!validateMemoryContent()) {
 			return; // Hook handles showing the error modal
 		}
 
@@ -199,7 +203,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 				style: 'primary',
 			},
 		]);
-	}, [validateContent, createMemoryData, showModal]);
+	}, [validateMemoryContent, createMemoryData, showModal]);
 
 	const hidePreviewModal = useCallback(() => {
 		hideModal();
@@ -326,7 +330,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		hideModal();
 		setMemoryTitle('');
 		setMemoryDescription('');
-		resetContent();
+		resetMemoryContent();
 		resetMedia();
 		resetPrivacySettings();
 		setPreviewData(null);
@@ -334,7 +338,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		hideModal,
 		setMemoryTitle,
 		setMemoryDescription,
-		resetContent,
+		resetMemoryContent,
 		resetMedia,
 		resetPrivacySettings,
 	]);

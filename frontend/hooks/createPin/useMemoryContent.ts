@@ -2,92 +2,44 @@
 //   CORE IMPORTS
 // ================
 import { useState, useCallback, useRef } from 'react';
-import { ScrollView } from 'react-native';
 
 // ==================
 // TYPE DEFINITIONS
 // ==================
 
-/**
- * Return interface for useMemoryContent hook
- *
- * LAYMAN TERMS: "This is the contract that defines everything this hook
- * gives back to the component that uses it. Like a receipt that lists
- * all the functions and data you get when you 'buy' this hook."
- *
- * TECHNICAL: Comprehensive interface defining all state, handlers, refs,
- * and computed properties returned by the useMemoryContent hook
- *
- * @interface UseMemoryContentReturn
- */
 interface UseMemoryContentReturn {
+	// Memory content fields
 	memoryTitle: string;
 	setMemoryTitle: (title: string) => void;
-
-	locationQuery: string;
-	setLocationQuery: (query: string) => void;
-
 	memoryDescription: string;
 	setMemoryDescription: (description: string) => void;
 
-	/**
-	 * LAYMAN TERMS: "References to the actual input fields for focusing"
-	 *
-	 * TECHNICAL: React refs for programmatic input focus management
-	 */
-	locationInputRef: React.RefObject<any>;
-	titleInputRef: React.RefObject<any>;
-	descriptionInputRef: React.RefObject<any>;
-
-	validateContent: () => boolean;
-	resetContent: () => void;
-
-	/**
-	 * LAYMAN TERMS: "Quick check: is the form ready to submit?"
-	 *
-	 * TECHNICAL: Computed boolean indicating minimum required content completion
-	 */
-	hasValidContent: boolean;
-
-	/**
-	 * LAYMAN TERMS: "GPS coordinates from the mini-map (or null if none yet)"
-	 *
-	 * TECHNICAL: Coordinate state object with latitude, longitude, and address
-	 */
+	// Location fields (simplified - no duplicate state management)
+	locationQuery: string;
+	setLocationQuery: (query: string) => void;
 	coordinates: {
 		latitude: number;
 		longitude: number;
 		address: string;
 	} | null;
-
-	/**
-	 * LAYMAN TERMS: "Function called when user moves the map pin"
-	 *
-	 * TECHNICAL: Coordinate update handler for map interaction
-	 */
-	handleCoordinateChange: (coords: {
+	updateCoordinatesFromLocationSelector: (coords: {
 		latitude: number;
 		longitude: number;
 		address: string;
 	}) => void;
+
+	// Input management references
+	locationInputRef: React.RefObject<any>;
+	titleInputRef: React.RefObject<any>;
+	descriptionInputRef: React.RefObject<any>;
+
+	// Form validation and utilities
+	validateMemoryContent: () => boolean;
+	resetMemoryContent: () => void;
+	hasValidMemoryContent: boolean;
 }
 
-/**
- * Props interface for useMemoryContent hook
- *
- * LAYMAN TERMS: "What the hook needs from the component to work properly.
- * In this case, just a function to show error popups."
- *
- * TECHNICAL: Hook dependency interface defining required external functions
- *
- * @interface UseMemoryContentProps
- */
 interface UseMemoryContentProps {
-	/**
-	 * LAYMAN TERMS: "Function to show popups for errors, info, or success messages"
-	 *
-	 * TECHNICAL: Modal display function for user feedback
-	 */
 	showModal: (
 		type: 'error' | 'info' | 'success',
 		title: string,
@@ -99,142 +51,49 @@ interface UseMemoryContentProps {
 // CUSTOM HOOK IMPLEMENTATION
 // =============================
 
-/**
- * Custom hook for managing memory content state and validation
- *
- * LAYMAN TERMS: "This hook is like a smart assistant for handling everything
- * related to the memory's text content (title, description, location) and
- * the mini-map coordinates. It keeps track of what the user types, validates
- * that they filled out the required stuff, and provides functions to reset
- * everything."
- *
- * Think of it as the "content manager" - it doesn't care about photos or
- * privacy settings, just the core text content and location of the memory.
- *
- * TECHNICAL: Custom React hook encapsulating memory content state management,
- * validation logic, coordinate handling, and form completion tracking.
- * Provides clean interface for text input management and location integration.
- *
- * @hook useMemoryContent
- * @param {UseMemoryContentProps} props - Hook configuration object
- * @param {Function} props.showModal - Modal display function for error handling
- * @returns {UseMemoryContentReturn} Complete content management interface
- *
- * @example
- * In CreatePin component:
- * const memoryContent = useMemoryContent({ showModal });
- *
- * const {
- *   memoryTitle,
- *   setMemoryTitle,
- *   validateContent,
- *   hasValidContent,
- *   coordinates
- * } = memoryContent;
- *
- * In JSX:
- * <Input
- *   value={memoryTitle}
- *   onChangeText={setMemoryTitle}
- *   placeholder="Enter memory title..."
- * />
- *
- * Before saving:
- * if (!validateContent()) {
- *   return; // Hook shows error modal automatically
- * }
- *
- * @see {@link LocationSelector} for location input component integration
- * @see {@link MiniMap} for coordinate selection functionality
- */
 export function useMemoryContent({
 	showModal,
 }: UseMemoryContentProps): UseMemoryContentReturn {
 	// ==================
-	// STATE MANAGEMENT
+	// STATE MANAGEMENT: Memory content only (location managed by useLocationManager)
 	// ==================
 	const [memoryTitle, setMemoryTitle] = useState('');
+	const [memoryDescription, setMemoryDescription] = useState('');
+
+	// Location state: Only store final results (no duplicate management)
 	const [locationQuery, setLocationQuery] = useState('');
 	const [coordinates, setCoordinates] = useState<{
 		latitude: number;
 		longitude: number;
 		address: string;
 	} | null>(null);
-	const [memoryDescription, setMemoryDescription] = useState('');
 
 	// ===========================
 	// REFS FOR INPUT MANAGEMENT
 	// ===========================
-	/**
-	 * LAYMAN TERMS: "References to the actual input fields so we can focus them"
-	 *
-	 * TECHNICAL: React refs for programmatic input field focus management
-	 */
 	const titleInputRef = useRef<any>(null);
 	const locationInputRef = useRef<any>(null);
 	const descriptionInputRef = useRef<any>(null);
 
 	// ======================
-	// COORDINATE HANDLERS
+	// COORDINATE HANDLERS: Simplified to just receive final results
 	// ======================
 
-	/**
-	 * Handle coordinate updates from mini-map interaction
-	 *
-	 * LAYMAN TERMS: "When the user drags the pin on the mini-map, this function
-	 * saves the new GPS coordinates and logs them for debugging"
-	 *
-	 * TECHNICAL: Memoized coordinate update handler with debug logging
-	 *
-	 * @function handleCoordinateChange
-	 * @param {Object} coords - Coordinate object from map interaction
-	 * @param {number} coords.latitude - GPS latitude value
-	 * @param {number} coords.longitude - GPS longitude value
-	 * @param {string} coords.address - Human-readable address string
-	 *
-	 * @example
-	 * Called by MiniMap component when user drags pin:
-	 * handleCoordinateChange({
-	 *   latitude: -37.8154,
-	 *   longitude: 144.9636,
-	 *   address: "Patricia Coffee Brewers, Melbourne"
-	 * });
-	 */
-	const handleCoordinateChange = useCallback(
+	// Receive final coordinates from LocationSelector (which gets them from useLocationManager)
+	const updateCoordinatesFromLocationSelector = useCallback(
 		(coords: { latitude: number; longitude: number; address: string }) => {
 			setCoordinates(coords);
-			console.log('📍 Coordinates updated:', coords); // Debug log for development
+			console.log('📍 Final coordinates for memory:', coords); // Debug log for development
 		},
 		[]
 	);
 
 	// ===================
-	// VALIDATION LOGIC
+	// VALIDATION LOGIC: Check all required fields
 	// ===================
 
-	/**
-	 * Validate that required content fields are completed
-	 *
-	 * LAYMAN TERMS: "Check if the user filled out the required stuff (title and
-	 * location). If not, show them a red error popup explaining what's missing.
-	 * Returns true if everything is good, false if something is missing."
-	 *
-	 * TECHNICAL: Content validation function with modal error feedback.
-	 * Checks required fields and displays user-friendly error messages.
-	 *
-	 * @function validateContent
-	 * @returns {boolean} True if validation passes, false if required fields missing
-	 *
-	 * @example
-	 * Before showing preview:
-	 * if (!validateContent()) {
-	 *   return; // Hook automatically shows error modal
-	 * }
-	 *
-	 * If we get here, validation passed
-	 * showPreviewModal();
-	 */
-	const validateContent = useCallback((): boolean => {
+	const validateMemoryContent = useCallback((): boolean => {
+		// Check memory title
 		if (!memoryTitle.trim()) {
 			showModal(
 				'error',
@@ -244,6 +103,7 @@ export function useMemoryContent({
 			return false;
 		}
 
+		// Check location
 		if (!locationQuery.trim()) {
 			showModal(
 				'error',
@@ -253,39 +113,35 @@ export function useMemoryContent({
 			return false;
 		}
 
+		// Check coordinates (ensure location was properly geocoded)
+		if (!coordinates) {
+			showModal(
+				'error',
+				'Location Not Found',
+				'Please select a valid location or try a different search term.'
+			);
+			return false;
+		}
+
+		// Check description
 		if (!memoryDescription.trim()) {
 			showModal(
 				'error',
-				'Missing Location',
+				'Missing Description',
 				'Please add a description for your memory before previewing.'
 			);
 			return false;
 		}
 
 		return true;
-	}, [memoryTitle, locationQuery, memoryDescription, showModal]);
+	}, [memoryTitle, locationQuery, coordinates, memoryDescription, showModal]);
 
 	// ====================
 	// UTILITY FUNCTIONS
 	// ====================
 
-	/**
-	 * Reset all content fields to empty state
-	 *
-	 * LAYMAN TERMS: "Clear out all the text fields and coordinates like hitting
-	 * a 'Clear All' button. Used when starting a new memory or canceling."
-	 *
-	 * TECHNICAL: Complete content state reset function for form cleanup
-	 *
-	 * @function resetContent
-	 *
-	 * @example
-	 * When user taps "Create Another" after successful save:
-	 * resetContent();
-	 *
-	 * Result: All text fields empty, no coordinates, ready for new memory
-	 */
-	const resetContent = useCallback(() => {
+	// Reset all memory content to empty state
+	const resetMemoryContent = useCallback(() => {
 		setMemoryTitle('');
 		setMemoryDescription('');
 		setLocationQuery('');
@@ -293,40 +149,38 @@ export function useMemoryContent({
 	}, []);
 
 	// ======================
-	// COMPUTED PROPERTIES
+	// COMPUTED PROPERTIES: Check if form has valid content
 	// ======================
 
-	/**
-	 * LAYMAN TERMS: "Quick check: did they fill out the minimum required stuff?"
-	 *
-	 * TECHNICAL: Computed boolean for minimum form completion (title + location)
-	 */
-	const hasValidContent =
+	const hasValidMemoryContent =
 		memoryTitle.trim() !== '' &&
 		locationQuery.trim() !== '' &&
+		coordinates !== null &&
 		memoryDescription.trim() !== '';
 
+	console.log('Memory validation check:', {
+		title: !!memoryTitle.trim(),
+		location: !!locationQuery.trim(),
+		coordinates: !!coordinates,
+		description: !!memoryDescription.trim(),
+	});
+
 	// =======================
-	// RETURN HOOK INTERFACE
+	// RETURN HOOK INTERFACE: Public API for components
 	// =======================
 
-	/**
-	 * LAYMAN TERMS: "Give back everything the component needs to work with content"
-	 *
-	 * TECHNICAL: Return all state, handlers, refs, and computed properties
-	 */
 	return {
-		// Core content state
+		// Memory content state
 		memoryTitle,
 		setMemoryTitle,
 		memoryDescription,
 		setMemoryDescription,
+
+		// Location state (simplified - no duplicate management)
 		locationQuery,
 		setLocationQuery,
-
-		// Coordinates for the minimap
 		coordinates,
-		handleCoordinateChange,
+		updateCoordinatesFromLocationSelector,
 
 		// Input management (refs for focusing)
 		locationInputRef,
@@ -334,11 +188,11 @@ export function useMemoryContent({
 		descriptionInputRef,
 
 		// Validation & utility functions
-		validateContent,
-		resetContent,
+		validateMemoryContent,
+		resetMemoryContent,
 
 		// Computed properties
-		hasValidContent,
+		hasValidMemoryContent,
 	};
 }
 
@@ -346,21 +200,6 @@ export function useMemoryContent({
 // HELPER TYPES FOR EXTERNAL USE
 // ================================
 
-/**
- * Type alias for the complete hook return type
- *
- * LAYMAN TERMS: "Shortcut type name for other files that want to reference
- * what this hook returns"
- *
- * TECHNICAL: Type alias for external type definitions and component props
- */
 export type MemoryContentHook = ReturnType<typeof useMemoryContent>;
 
-/**
- * Default export for easier importing
- *
- * LAYMAN TERMS: "Make it easy to import this hook with different syntax"
- *
- * TECHNICAL: Default export enabling both named and default import patterns
- */
 export default useMemoryContent;

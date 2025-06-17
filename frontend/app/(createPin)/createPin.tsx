@@ -160,13 +160,13 @@ export default function CreatePinScreen() {
 		locationQuery,
 		setLocationQuery,
 		coordinates,
-		handleCoordinateChange,
+		updateCoordinatesFromLocationSelector, // ← Change this line
 		locationInputRef,
 		titleInputRef,
 		descriptionInputRef,
-		validateContent,
-		resetContent,
-		hasValidContent,
+		validateMemoryContent, // ← Also changed this name
+		resetMemoryContent, // ← And this one
+		hasValidMemoryContent, // ← And this one
 	} = memoryContent;
 
 	const {
@@ -210,8 +210,8 @@ export default function CreatePinScreen() {
 		selectedSocialCircles,
 		selectedMedia,
 		audioUri,
-		validateContent,
-		resetContent,
+		validateMemoryContent,
+		resetMemoryContent,
 		resetMedia,
 		resetPrivacySettings,
 		setMemoryTitle,
@@ -383,7 +383,7 @@ export default function CreatePinScreen() {
 					value={locationQuery}
 					onChange={setLocationQuery}
 					inputRef={locationInputRef}
-					onCoordinateChange={handleCoordinateChange}
+					onCoordinateChange={updateCoordinatesFromLocationSelector}
 					required={true}
 				/>
 
@@ -474,7 +474,7 @@ export default function CreatePinScreen() {
 							onPress={handlePreviewMemory}
 							style={styles.previewButton}
 							variant="primary"
-							disabled={!hasValidContent}
+							disabled={!validateMemoryContent}
 						>
 							Preview Memory
 						</Button>
