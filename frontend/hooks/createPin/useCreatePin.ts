@@ -63,7 +63,7 @@ interface UseCreatePinProps {
 	// Reset functions
 	resetMemoryContent: () => void;
 	resetMedia: () => void;
-	resetPrivacySettings: () => void;
+	resetAllPrivacySettings: () => void;
 	setMemoryTitle: (title: string) => void;
 	setMemoryDescription: (description: string) => void;
 
@@ -90,7 +90,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		validateMemoryContent,
 		resetMemoryContent,
 		resetMedia,
-		resetPrivacySettings,
+		resetAllPrivacySettings,
 		setMemoryTitle,
 		setMemoryDescription,
 		showModal,
@@ -109,66 +109,32 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	// =======================
 	//  DATA TRANSFORMATION
 	// =======================
-	const createMemoryData = useCallback((): MemoryData => {
-		return {
-			id: Date.now().toString(),
-			timestamp: new Date().toISOString(),
-			location: {
-				query: coordinates?.address || locationQuery.trim(),
-			},
-			content: {
-				title: memoryTitle.trim(),
-				description: memoryDescription.trim(),
-			},
-			visibility: selectedVisibility,
-			socialCircles: selectedSocialCircles,
-			media: {
-				photos: selectedMedia.filter((item) => item.type === 'photo'),
-				videos: selectedMedia.filter((item) => item.type === 'video'),
-				audio: audioUri
-					? {
-							uri: audioUri,
-							recorded: new Date().toISOString(),
-					  }
-					: null,
-			},
-			metadata: {
-				totalMediaItems: selectedMedia.length + (audioUri ? 1 : 0),
-				hasDescription: !!memoryDescription.trim(),
-				createdAt: new Date().toISOString(),
-			},
-		};
-	}, [
-		memoryTitle,
-		memoryDescription,
-		locationQuery,
-		coordinates,
-		selectedVisibility,
-		selectedSocialCircles,
-		selectedMedia,
-		audioUri,
-	]);
-
-	const createBackendMemoryData = useCallback((): CreateMemoryRequest => {
-		console.log('Creating backend data with coordinates:', coordinates);
-
+	const createCoreMemoryData = useCallback(() => {
+		// Shared validation and data preparation
 		if (!coordinates) {
 			throw new Error('Location coordinates are required');
 		}
 
 		return {
-			name: memoryTitle.trim(),
+			// Core content (used by both formatters)
+			title: memoryTitle.trim(),
 			description: memoryDescription.trim(),
-			latitude: coordinates.latitude,
-			longitude: coordinates.longitude,
-			location_query: locationQuery.trim(),
+			coordinates,
+			locationQuery: locationQuery.trim(),
 			visibility: selectedVisibility,
-			social_circle_ids: selectedSocialCircles,
-			media: {
+			socialCircles: selectedSocialCircles,
+
+			// Processed media (used by both formatters)
+			processedMedia: {
 				photos: selectedMedia.filter((item) => item.type === 'photo'),
 				videos: selectedMedia.filter((item) => item.type === 'video'),
-				audio: audioUri ? { uri: audioUri } : null,
+				audio: audioUri,
 			},
+
+			// Calculated metadata
+			totalMediaItems: selectedMedia.length + (audioUri ? 1 : 0),
+			hasDescription: !!memoryDescription.trim(),
+			timestamp: new Date().toISOString(),
 		};
 	}, [
 		memoryTitle,
@@ -180,36 +146,79 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		selectedMedia,
 		audioUri,
 	]);
+
+	const createPreviewData = useCallback((): MemoryData => {
+		const coreData = createCoreMemoryData();
+
+		return {
+			id: Date.now().toString(),
+			timestamp: coreData.timestamp,
+			location: {
+				query: coreData.coordinates?.address || coreData.locationQuery,
+			},
+			content: {
+				title: coreData.title,
+				description: coreData.description,
+			},
+			visibility: coreData.visibility,
+			socialCircles: coreData.socialCircles,
+			media: {
+				photos: coreData.processedMedia.photos,
+				videos: coreData.processedMedia.videos,
+				audio: coreData.processedMedia.audio
+					? {
+							uri: coreData.processedMedia.audio,
+							recorded: coreData.timestamp,
+					  }
+					: null,
+			},
+			metadata: {
+				totalMediaItems: coreData.totalMediaItems,
+				hasDescription: coreData.hasDescription,
+				createdAt: coreData.timestamp,
+			},
+		};
+	}, [createCoreMemoryData]);
+
+	const createSubmissionData = useCallback((): CreateMemoryRequest => {
+		const coreData = createCoreMemoryData();
+
+		return {
+			name: coreData.title,
+			description: coreData.description,
+			latitude: coreData.coordinates.latitude,
+			longitude: coreData.coordinates.longitude,
+			location_query: coreData.locationQuery,
+			visibility: coreData.visibility,
+			social_circle_ids: coreData.socialCircles,
+			media: {
+				photos: coreData.processedMedia.photos,
+				videos: coreData.processedMedia.videos,
+				audio: coreData.processedMedia.audio
+					? {
+							uri: coreData.processedMedia.audio,
+					  }
+					: null,
+			},
+		};
+	}, [createCoreMemoryData]);
 
 	// ===========================
 	//   PREVIEW FUNCTIONALITY
 	// ===========================
 	const handlePreviewMemory = useCallback(() => {
 		if (!validateMemoryContent()) {
-			return; // Hook handles showing the error modal
+			return; // Validation errors handled by memoryContent hook
 		}
 
-		const memoryData = createMemoryData();
+		const memoryData = createPreviewData();
 		setPreviewData(memoryData);
+	}, [validateMemoryContent, createPreviewData]);
 
-		showModal('preview', 'Preview Your Memory', '', [
-			{
-				text: 'Edit',
-				onPress: hidePreviewModal,
-				style: 'secondary',
-			},
-			{
-				text: 'Confirm & Post',
-				onPress: handleConfirmSave,
-				style: 'primary',
-			},
-		]);
-	}, [validateMemoryContent, createMemoryData, showModal]);
-
-	const hidePreviewModal = useCallback(() => {
-		hideModal();
-		setPreviewData(null);
-	}, [hideModal]);
+	// const hideModal = useCallback(() => {
+	// 	hideModal();
+	// 	setPreviewData(null);
+	// }, [hideModal]);
 
 	// ===========================
 	//   SAVE FUNCTIONALITY
@@ -226,8 +235,8 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		});
 
 		try {
-			const memoryData = createMemoryData();
-			const backendData = createBackendMemoryData();
+			const memoryData = createPreviewData();
+			const backendData = createSubmissionData();
 
 			if (TESTING_MODE) {
 				console.log('Testing mode: Simulating save...');
@@ -286,46 +295,23 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 			setIsSaving(false);
 			setUploadProgress(null);
 		}
-	}, [createMemoryData, createBackendMemoryData, selectedMedia, audioUri]);
+	}, [createPreviewData, createSubmissionData, selectedMedia, audioUri]);
 
 	const handleSaveSuccess = useCallback(
 		(memoryData: MemoryData, result: any) => {
 			hideModal();
-			showModal(
-				'success',
-				'Memory Posted!',
-				`"${memoryData.content.title}" posted to ${memoryData.location.query}`,
-				[
-					{
-						text: 'View on Map',
-						onPress: () => {
-							hideModal();
-							router.replace('/worldmap');
-						},
-						style: 'primary',
-					},
-					{
-						text: 'Create Another',
-						onPress: resetForm,
-						style: 'secondary',
-					},
-				]
-			);
+			console.log('Save successful:', memoryData, result);
+
+			// Navigate directly without showing another modal
+			router.replace('/worldmap');
+			resetForm();
 		},
-		[hideModal, showModal]
+		[hideModal] // Only depend on stable functions
 	);
 
-	const handleSaveError = useCallback(
-		(error: string) => {
-			showModal(
-				'error',
-				'Save Failed',
-				error || 'Something went wrong. Please try again.',
-				[{ text: 'Try Again', onPress: hideModal, style: 'primary' }]
-			);
-		},
-		[showModal, hideModal]
-	);
+	const handleSaveError = useCallback((error: string) => {
+		console.log('Save Failed', error);
+	}, []);
 
 	const resetForm = useCallback(() => {
 		hideModal();
@@ -333,7 +319,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		setMemoryDescription('');
 		resetMemoryContent();
 		resetMedia();
-		resetPrivacySettings();
+		resetAllPrivacySettings();
 		setPreviewData(null);
 	}, [
 		hideModal,
@@ -341,7 +327,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		setMemoryDescription,
 		resetMemoryContent,
 		resetMedia,
-		resetPrivacySettings,
+		resetAllPrivacySettings,
 	]);
 
 	// ==================
@@ -355,12 +341,12 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 
 		// Actions
 		handlePreviewMemory,
-		hidePreviewModal,
+		hideModal,
 		handleConfirmSave,
 		resetForm,
 
 		// Data creators (in case you need them elsewhere)
-		createMemoryData,
-		createBackendMemoryData,
+		createPreviewData,
+		createSubmissionData,
 	};
 };

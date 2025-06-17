@@ -89,9 +89,20 @@ export function useMemoryContent({
 	);
 
 	// ===================
-	// VALIDATION LOGIC: Check all required fields
+	// VALIDATION LOGIC: Separate checking from error display
 	// ===================
 
+	// Silent validation - just returns true/false (for button disabled state)
+	const checkValidation = useCallback((): boolean => {
+		return (
+			memoryTitle.trim() !== '' &&
+			locationQuery.trim() !== '' &&
+			coordinates !== null &&
+			memoryDescription.trim() !== ''
+		);
+	}, [memoryTitle, locationQuery, coordinates, memoryDescription]);
+
+	// Validation with error messages - only call when user tries to submit
 	const validateMemoryContent = useCallback((): boolean => {
 		// Check memory title
 		if (!memoryTitle.trim()) {
@@ -192,7 +203,7 @@ export function useMemoryContent({
 		resetMemoryContent,
 
 		// Computed properties
-		hasValidMemoryContent,
+		hasValidMemoryContent: checkValidation(),
 	};
 }
 

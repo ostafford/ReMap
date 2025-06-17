@@ -2,7 +2,7 @@
 //   REACT NATIVE IMPORTS
 // ========================
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
@@ -55,6 +55,8 @@ import { MediaCapture } from '@/components/createPin/MediaCapture';
 import { VisibilitySelector } from '@/components/createPin/VisibilitySelector';
 import { SocialCircleSelector } from '@/components/createPin/SocialCircleSelector';
 import { PreviewModal } from '@/components/createPin/PreviewModal';
+import { NotificationModal } from '@/components/createPin/NotificationModal';
+import { ImageModal } from '@/components/createPin/ImageModal';
 
 // TESTING
 // import { PrivacySettingsTest } from '@/components/createPin/PrivacySettingsTest';
@@ -62,24 +64,6 @@ import { PreviewModal } from '@/components/createPin/PreviewModal';
 // =========================
 //   TYPE DEFINITIONS
 // =========================
-interface ModalState {
-	show: boolean;
-	type:
-		| 'error'
-		| 'permission'
-		| 'photoChoice'
-		| 'success'
-		| 'info'
-		| 'preview'
-		| 'imagePreview';
-	title: string;
-	message: string;
-	actions?: Array<{
-		text: string;
-		onPress: () => void;
-		style?: 'primary' | 'secondary' | 'danger';
-	}>;
-}
 
 // ========================
 //   COMPONENT DEFINITION
@@ -89,46 +73,72 @@ export default function CreatePinScreen() {
 	// ====================
 	//   STATE MANAGEMENT
 	// ====================
-	const [modalState, setModalState] = useState<ModalState>({
-		show: false,
+
+	// ===========================
+	//   SPECIALIZED MODAL STATES
+	// ===========================
+
+	// Notification Modal (success, error, warning, info)
+	const [notificationState, setNotificationState] = useState<{
+		visible: boolean;
+		type: 'success' | 'error' | 'warning' | 'info';
+		title: string;
+		message: string;
+	}>({
+		visible: false,
 		type: 'info',
 		title: '',
 		message: '',
-		actions: [],
 	});
-	const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
+
+	// Image Preview Modal
+	const [imageModalState, setImageModalState] = useState<{
+		visible: boolean;
+		imageUri: string | null;
+	}>({
+		visible: false,
+		imageUri: null,
+	});
+
+	// Preview Modal (memory preview)
+	const [previewModalState, setPreviewModalState] = useState({
+		visible: false,
+	});
 
 	// ===================
 	// 	HELPER FUNCTIONS
 	// ===================
 
+	// ====================
+	//   MODAL COMPONENTS
+	// ====================
+
+	// Simple fallback modal functions
 	const showModal = useCallback(
-		(
-			type: ModalState['type'],
-			title: string,
-			message: string,
-			actions?: ModalState['actions']
-		) => {
-			setModalState({
-				show: true,
-				type,
-				title,
-				message,
-				actions: actions || [
-					{ text: 'OK', onPress: hideModal, style: 'primary' },
-				],
-			});
+		(type: string, title: string, message: string, actions?: any[]) => {
+			Alert.alert(title, message);
 		},
 		[]
 	);
 
 	const hideModal = useCallback(() => {
-		const currentType = modalState.type;
-		setModalState((prev) => ({ ...prev, show: false }));
-		if (currentType === 'imagePreview') {
-			setPreviewImageUri(null);
-		}
-	}, [modalState.type]);
+		// Simple dismiss
+	}, []);
+
+	// Keep your image preview functions as they were working
+	const showImagePreview = useCallback((imageUri: string) => {
+		setImageModalState({
+			visible: true,
+			imageUri: imageUri,
+		});
+	}, []);
+
+	const hideImagePreview = useCallback(() => {
+		setImageModalState({
+			visible: false,
+			imageUri: null,
+		});
+	}, []);
 
 	// ================
 	//   CUSTOM HOOKS
@@ -163,13 +173,13 @@ export default function CreatePinScreen() {
 		locationQuery,
 		setLocationQuery,
 		coordinates,
-		updateCoordinatesFromLocationSelector, // ← Change this line
+		updateCoordinatesFromLocationSelector,
 		locationInputRef,
 		titleInputRef,
 		descriptionInputRef,
-		validateMemoryContent, // ← Also changed this name
-		resetMemoryContent, // ← And this one
-		hasValidMemoryContent, // ← And this one
+		validateMemoryContent,
+		resetMemoryContent,
+		hasValidMemoryContent,
 	} = memoryContent;
 
 	const {
@@ -213,10 +223,10 @@ export default function CreatePinScreen() {
 		selectedSocialCircles,
 		selectedMedia,
 		audioUri,
+		resetAllPrivacySettings,
 		validateMemoryContent,
 		resetMemoryContent,
 		resetMedia,
-		resetAllPrivacySettings,
 		setMemoryTitle,
 		setMemoryDescription,
 		showModal,
@@ -228,6 +238,7 @@ export default function CreatePinScreen() {
 		isSaving,
 		uploadProgress,
 		handlePreviewMemory,
+		handleConfirmSave,
 		resetForm,
 	} = createPinLogic;
 
@@ -237,128 +248,6 @@ export default function CreatePinScreen() {
 
 	const goBack = () => {
 		router.replace('/worldmap');
-	};
-
-	const showImagePreview = (imageUri: string) => {
-		setPreviewImageUri(imageUri);
-		setModalState({
-			show: true,
-			type: 'imagePreview',
-			title: 'Image Preview',
-			message: '',
-			actions: [
-				{ text: 'Close', onPress: hideModal, style: 'secondary' },
-			],
-		});
-	};
-
-	// ====================
-	//   MODAL COMPONENTS
-	// ====================
-
-	const renderImagePreviewModal = () => {
-		if (!previewImageUri) return null;
-
-		return (
-			<View style={styles.imagePreviewContainer}>
-				<Image
-					source={{ uri: previewImageUri }}
-					style={styles.fullImagePreview}
-					resizeMode="contain"
-				/>
-			</View>
-		);
-	};
-
-	const renderModal = () => {
-		if (!modalState.show) return null;
-
-		return (
-			<Modal isVisible={modalState.show} onBackdropPress={hideModal}>
-				<Modal.Container>
-					<Modal.Header title={modalState.title} />
-					<Modal.Body>
-						{modalState.type === 'preview' && previewData && (
-							<PreviewModal
-								previewData={previewData}
-								onImagePreview={showImagePreview}
-								getVisibilityDescription={
-									getVisibilityDescription
-								}
-								getSelectedSocialCirclesData={
-									getSelectedSocialCirclesData
-								}
-								getMediaSummary={getMediaSummary}
-								selectedSocialCircles={selectedSocialCircles}
-							/>
-						)}
-						{modalState.type === 'imagePreview' &&
-							renderImagePreviewModal()}
-						{modalState.type === 'success' && (
-							<SuccessMessage
-								title={modalState.title}
-								onDismiss={hideModal}
-							>
-								{modalState.message}
-							</SuccessMessage>
-						)}
-						{modalState.type === 'error' && (
-							<ErrorMessage
-								title={modalState.title}
-								onDismiss={hideModal}
-							>
-								{modalState.message}
-							</ErrorMessage>
-						)}
-						{modalState.type === 'permission' && (
-							<WarningMessage
-								title={modalState.title}
-								onDismiss={hideModal}
-							>
-								{modalState.message}
-							</WarningMessage>
-						)}
-						{modalState.type === 'info' && (
-							<InfoMessage
-								title={modalState.title}
-								onDismiss={hideModal}
-							>
-								{modalState.message}
-							</InfoMessage>
-						)}
-					</Modal.Body>
-
-					{modalState.actions && modalState.actions.length > 0 && (
-						<Modal.Footer>
-							{modalState.actions.map((action, index) => (
-								<Button
-									key={index}
-									onPress={action.onPress}
-									style={[
-										styles.modalButton,
-										action.style === 'primary' &&
-											styles.primaryModalButton,
-										action.style === 'secondary' &&
-											styles.secondaryModalButton,
-										action.style === 'danger' &&
-											styles.dangerModalButton,
-									]}
-									variant={
-										action.style === 'primary'
-											? 'primary'
-											: action.style === 'danger'
-											? 'danger'
-											: 'secondary'
-									}
-								>
-									{action.text}
-								</Button>
-							))}
-						</Modal.Footer>
-					)}
-				</Modal.Container>
-			</Modal>
-		);
 	};
 
 	// ============================
@@ -374,7 +263,6 @@ export default function CreatePinScreen() {
 				title="Create Memory Pin"
 				subtitle="Capture this moment forever"
 			/>
-
 			{/* ==================== */}
 			{/*   MAIN FORM CONTENT  */}
 			{/* ==================== */}
@@ -459,7 +347,6 @@ export default function CreatePinScreen() {
 					onCameraPress={handleCameraPress}
 				/>
 			</MainContent>
-
 			{/* ==================== */}
 			{/*   FOOTER SECTION     */}
 			{/* ==================== */}
@@ -475,21 +362,72 @@ export default function CreatePinScreen() {
 						</Button>
 
 						<Button
-							onPress={handlePreviewMemory}
+							onPress={() => {
+								if (validateMemoryContent()) {
+									// ← This shows errors if validation fails
+									handlePreviewMemory();
+								}
+							}}
 							style={styles.previewButton}
 							variant="primary"
-							disabled={!validateMemoryContent}
+							disabled={!hasValidMemoryContent} // ← This silently checks without showing errors
 						>
 							Preview Memory
 						</Button>
 					</View>
 				</View>
 			</Footer>
-
 			{/* ==================== */}
 			{/*   MODAL SYSTEM       */}
 			{/* ==================== */}
-			{renderModal()}
+			<ImageModal
+				visible={imageModalState.visible}
+				imageUri={imageModalState.imageUri}
+				onClose={hideImagePreview}
+				title="Memory Photo"
+			/>
+			{/*preview modal*/}
+			{previewData && (
+				<Modal
+					isVisible={!!previewData}
+					onBackdropPress={() => hideModal()}
+				>
+					<Modal.Container>
+						<Modal.Header title="Preview Your Memory" />
+						<Modal.Body>
+							<PreviewModal
+								previewData={previewData}
+								onImagePreview={showImagePreview}
+								getVisibilityDescription={
+									getVisibilityDescription
+								}
+								getSelectedSocialCirclesData={
+									getSelectedSocialCirclesData
+								}
+								getMediaSummary={getMediaSummary}
+								selectedSocialCircles={selectedSocialCircles}
+							/>
+						</Modal.Body>
+						<Modal.Footer>
+							<Button
+								onPress={() => hideModal()}
+								variant="secondary"
+							>
+								Edit
+							</Button>
+							<Button
+								onPress={() => {
+									hideModal();
+									handleConfirmSave();
+								}}
+								variant="primary"
+							>
+								Confirm & Post
+							</Button>
+						</Modal.Footer>
+					</Modal.Container>
+				</Modal>
+			)}
 		</View>
 	);
 }

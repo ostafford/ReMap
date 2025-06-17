@@ -30,11 +30,11 @@ interface MediaCaptureProps {
 	isRecording: boolean;
 	isPlayingAudio: boolean;
 	onCameraPress: () => Promise<void>;
-	onAudioPress: () => Promise<void>;
+	onAudioPress?: () => Promise<void>; // ← Add ?
 	onRemoveMedia: (index: number) => void;
-	onRemoveAudio: () => void;
-	onPlayAudio: () => Promise<void>;
-	onStopAudio: () => Promise<void>;
+	onRemoveAudio?: () => void; // ← Add ?
+	onPlayAudio?: () => Promise<void>; // ← Add ?
+	onStopAudio?: () => Promise<void>; // ← Add ?
 	onImagePreview?: (uri: string) => void;
 	title?: string;
 	helperText?: string;
@@ -159,7 +159,11 @@ export function MediaCapture({
 					<View style={styles.audioControls}>
 						<IconButton
 							icon={isPlayingAudio ? 'stop' : 'play'}
-							onPress={isPlayingAudio ? onStopAudio : onPlayAudio}
+							onPress={
+								isPlayingAudio
+									? onStopAudio || (() => {})
+									: onPlayAudio || (() => {})
+							}
 							backgroundColor={ReMapColors.primary.blue}
 							size={20}
 							style={styles.audioButton}
@@ -174,7 +178,7 @@ export function MediaCapture({
 
 			{/* Remove button */}
 			<Button
-				onPress={onRemoveAudio}
+				onPress={onRemoveAudio || (() => {})}
 				style={styles.removeButton}
 				size="small"
 				variant="danger"

@@ -93,8 +93,23 @@ export function useMediaCapture({
 
 	useEffect(() => {
 		return () => {
-			audioRecorder.stop();
-			audioPlayer.remove();
+			try {
+				// Only try to stop if recorder exists and is recording
+				if (audioRecorder && audioRecorder.isRecording) {
+					audioRecorder.stop();
+				}
+			} catch (error) {
+				// Silently handle - this is expected during cleanup
+			}
+
+			try {
+				// Only try to remove if player exists
+				if (audioPlayer) {
+					audioPlayer.remove();
+				}
+			} catch (error) {
+				// Silently handle - this is expected during cleanup
+			}
 		};
 	}, [audioRecorder, audioPlayer]);
 
@@ -329,7 +344,13 @@ export function useMediaCapture({
 	}, [audioPlayer]);
 
 	const removeAudio = useCallback(() => {
-		audioPlayer.pause();
+		try {
+			if (audioPlayer) {
+				audioPlayer.pause();
+			}
+		} catch (error) {
+			// Silently handle
+		}
 		setIsPlayingAudio(false);
 		setAudioUri(null);
 	}, [audioPlayer]);
@@ -342,9 +363,12 @@ export function useMediaCapture({
 		setSelectedMedia([]);
 		removeAudio();
 
-		// Stop recording if it's active
-		if (audioRecorder.isRecording) {
-			audioRecorder.stop();
+		try {
+			if (audioRecorder && audioRecorder.isRecording) {
+				audioRecorder.stop();
+				setIsRecording(false);
+			}
+		} catch (error) {
 			setIsRecording(false);
 		}
 	}, [audioRecorder, removeAudio]);
