@@ -400,6 +400,10 @@ export default function WorldMapScreen() {
 		router.replace('/createPin');
 	};
 
+	const navigateToProfile = () => {
+		router.push('/profile')
+	}
+
 	// =========================
 	//   WORLDMAP PAGE RENDER
 	// =========================
@@ -676,7 +680,8 @@ export default function WorldMapScreen() {
 							{/* FOOTER OPTION 1: More features, conditional logic */}
 							<IconButton
 								icon={user ? 'address-card' : 'reply'}
-								onPress={goBack}
+								onPress={
+									user ? navigateToProfile : goBack}
 							/>
 							<IconButton
 								icon={user ? 'map-pin' : 'user'}
@@ -770,7 +775,7 @@ export default function WorldMapScreen() {
 					{/********************/}
 					{/*   PROFILE MODAL  */}
 					{/********************/}
-					<Modal
+					{/* <Modal
 						isVisible={isProfileModalVisible}
 						onBackdropPress={closeProfileModal}
 					>
@@ -820,7 +825,7 @@ export default function WorldMapScreen() {
 								</Button>
 							</Modal.Footer>
 						</Modal.Container>
-					</Modal>
+					</Modal> */}
 				</KeyboardAvoidingView>
 			</TouchableWithoutFeedback>
 		</GestureHandlerRootView>
