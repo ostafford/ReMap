@@ -23,6 +23,14 @@ export interface UploadProgress {
 	percentage: number;
 }
 
+export interface UploadProgressCallbacks {
+	onStart?: () => void;
+	onProgress?: (progress: UploadProgress) => void;
+	onFileComplete?: (fileName: string) => void;
+	onComplete?: () => void;
+	onError?: (error: Error) => void;
+}
+
 interface UserSocialCircle {
 	id: string;
 	name: string;
@@ -32,14 +40,63 @@ interface UserSocialCircle {
 
 const MEDIA_BUCKET = 'memory-media';
 
+const uploadWithConcurrency = async <T>(
+	items: T[],
+	uploadFn: (item: T) => Promise<string>,
+	maxConcurrent: number = 3
+): Promise<string[]> => {
+	const results: string[] = [];
+
+	for (let i = 0; i < items.length; i += maxConcurrent) {
+		const batch = items.slice(i, i + maxConcurrent);
+		const batchResults = await Promise.all(
+			batch.map((item) => uploadFn(item))
+		);
+		results.push(...batchResults);
+	}
+
+	return results;
+};
+
+const validateMemoryData = (data: CreateMemoryRequest): string[] => {
+	const errors: string[] = [];
+
+	if (!data.name.trim()) {
+		errors.push('Title is required');
+	}
+
+	if (data.name.trim().length > 100) {
+		errors.push('Title must be less than 100 characters');
+	}
+
+	if (data.description.trim().length > 500) {
+		errors.push('Description must be less than 500 characters');
+	}
+
+	if (!data.latitude || !data.longitude) {
+		errors.push('Valid location coordinates are required');
+	}
+
+	if (!data.location_query.trim()) {
+		errors.push('Location description is required');
+	}
+
+	return errors;
+};
 export const createMemoryPin = async (
 	memoryData: CreateMemoryRequest,
-	onProgress?: (progress: UploadProgress) => void
+	callbacks?: UploadProgressCallbacks
 ): Promise<{ success: boolean; data?: any; error?: string }> => {
 	try {
 		const { user } = await getCurrentUser();
 		if (!user) throw new Error('User not authenticated');
-
+		callbacks?.onStart?.();
+		const validationErrors = validateMemoryData(memoryData);
+		if (validationErrors.length > 0) {
+			throw new Error(
+				`Validation failed: ${validationErrors.join(', ')}`
+			);
+		}
 		const totalSteps =
 			memoryData.media.photos.length +
 			memoryData.media.videos.length +
@@ -50,7 +107,7 @@ export const createMemoryPin = async (
 		const updateProgress = (currentFile: string) => {
 			completedSteps++;
 			const percentage = Math.round((completedSteps / totalSteps) * 100);
-			onProgress?.({
+			callbacks?.onProgress?.({
 				total: totalSteps,
 				completed: completedSteps,
 				currentFile,
@@ -58,30 +115,31 @@ export const createMemoryPin = async (
 			});
 		};
 
-		// Upload photos and videos in parallel
-		const uploadGroup = async (
-			files: Array<{ uri: string; name: string }>,
-			folder: 'images' | 'videos'
-		): Promise<string[]> => {
-			return Promise.all(
-				files.map(async (file) => {
-					const url = await uploadMediaFile(
-						file.uri,
-						folder,
-						user.id
-					);
-					updateProgress(file.name);
-					return url;
-				})
-			);
-		};
+		// Upload all media with concurrency control
+		const allMediaFiles = [
+			...memoryData.media.photos.map((photo) => ({
+				...photo,
+				folder: 'images' as const,
+			})),
+			...memoryData.media.videos.map((video) => ({
+				...video,
+				folder: 'videos' as const,
+			})),
+		];
 
-		const [photoUrls, videoUrls] = await Promise.all([
-			uploadGroup(memoryData.media.photos, 'images'),
-			uploadGroup(memoryData.media.videos, 'videos'),
-		]);
-
-		const mediaUrls = [...photoUrls, ...videoUrls];
+		const mediaUrls = await uploadWithConcurrency(
+			allMediaFiles,
+			async (file) => {
+				const url = await uploadMediaFile(
+					file.uri,
+					file.folder,
+					user.id
+				);
+				updateProgress(file.name);
+				return url;
+			},
+			3 // Max 3 concurrent uploads
+		);
 
 		// Upload audio
 		let audioUrl: string | null = null;
@@ -115,6 +173,7 @@ export const createMemoryPin = async (
 			throw new Error(`Failed to create pin: ${pinError.message}`);
 
 		updateProgress('Pin created successfully');
+		callbacks?.onComplete?.();
 		console.log('Memory pin created:', pinData.id);
 
 		return { success: true, data: pinData };
@@ -131,29 +190,51 @@ export const createMemoryPin = async (
 };
 
 // Media upload helper
+const RANDOM_SUFFIX_LENGTH = 7;
+
 const uploadMediaFile = async (
 	fileUri: string,
 	folder: 'images' | 'videos' | 'audio',
 	userId: string
 ): Promise<string> => {
-	const fileName = `${userId}/${folder}/${Date.now()}-${Math.random()
+	const timestamp = Date.now();
+	const randomSuffix = Math.random()
 		.toString(36)
-		.substring(7)}`;
-	const response = await fetch(fileUri);
-	const blob = await response.blob();
+		.substring(2, 2 + RANDOM_SUFFIX_LENGTH);
+	const fileName = `${userId}/${folder}/${timestamp}-${randomSuffix}`;
 
-	const { error } = await supabase.storage
-		.from(MEDIA_BUCKET)
-		.upload(fileName, blob);
-	if (error) throw new Error(`Failed to upload ${folder}: ${error.message}`);
+	let response: Response | null = null;
+	let blob: Blob | null = null;
 
-	const { data: publicUrlData } = supabase.storage
-		.from(MEDIA_BUCKET)
-		.getPublicUrl(fileName);
-	if (!publicUrlData?.publicUrl)
-		throw new Error(`Failed to retrieve ${folder} public URL`);
+	try {
+		response = await fetch(fileUri);
+		if (!response.ok) {
+			throw new Error(
+				`Failed to fetch file: ${response.status} ${response.statusText}`
+			);
+		}
 
-	return publicUrlData.publicUrl;
+		blob = await response.blob();
+
+		const { error } = await supabase.storage
+			.from(MEDIA_BUCKET)
+			.upload(fileName, blob);
+		if (error)
+			throw new Error(`Failed to upload ${folder}: ${error.message}`);
+
+		const { data: publicUrlData } = supabase.storage
+			.from(MEDIA_BUCKET)
+			.getPublicUrl(fileName);
+		if (!publicUrlData?.publicUrl)
+			throw new Error(`Failed to retrieve ${folder} public URL`);
+
+		return publicUrlData.publicUrl;
+	} catch (error) {
+		// Clean up resources on error
+		blob = null;
+		response = null;
+		throw error;
+	}
 };
 
 // Social circles
