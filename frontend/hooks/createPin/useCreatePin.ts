@@ -114,7 +114,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 			id: Date.now().toString(),
 			timestamp: new Date().toISOString(),
 			location: {
-				query: locationQuery.trim(),
+				query: coordinates?.address || locationQuery.trim(),
 			},
 			content: {
 				title: memoryTitle.trim(),
@@ -142,6 +142,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		memoryTitle,
 		memoryDescription,
 		locationQuery,
+		coordinates,
 		selectedVisibility,
 		selectedSocialCircles,
 		selectedMedia,

@@ -7,7 +7,6 @@ export interface DummySocialCircle {
 	members?: Array<{
 		id: string;
 		name: string;
-		avatar?: string;
 	}>;
 }
 

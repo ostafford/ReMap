@@ -51,7 +51,7 @@ interface PreviewModalProps {
 	previewData: MemoryData;
 	onImagePreview: (imageUri: string) => void;
 	getVisibilityDescription: () => string;
-	getSelectedSocialCircles: () => Array<{
+	getSelectedSocialCirclesData: () => Array<{
 		id: string;
 		name: string;
 		color: string;
@@ -69,7 +69,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
 	previewData,
 	onImagePreview,
 	getVisibilityDescription,
-	getSelectedSocialCircles,
+	getSelectedSocialCirclesData,
 	getMediaSummary,
 	selectedSocialCircles,
 }) => {
@@ -115,7 +115,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
 							<LabelText style={styles.socialCirclesLabel}>
 								Selected Social Circles:
 							</LabelText>
-							{getSelectedSocialCircles().map((circle) => (
+							{getSelectedSocialCirclesData().map((circle) => (
 								<View
 									key={circle.id}
 									style={[

@@ -56,6 +56,9 @@ import { VisibilitySelector } from '@/components/createPin/VisibilitySelector';
 import { SocialCircleSelector } from '@/components/createPin/SocialCircleSelector';
 import { PreviewModal } from '@/components/createPin/PreviewModal';
 
+// TESTING
+// import { PrivacySettingsTest } from '@/components/createPin/PrivacySettingsTest';
+
 // =========================
 //   TYPE DEFINITIONS
 // =========================
@@ -189,12 +192,12 @@ export default function CreatePinScreen() {
 		selectedSocialCircles,
 		showSocialDropdown,
 		userSocialCircles,
-		handleVisibilitySelect,
-		handleSocialCircleToggle,
+		toggleVisibilityOption,
+		toggleSocialCircleSelection,
 		isVisibilitySelected,
-		getSelectedSocialCircles,
+		getSelectedSocialCirclesData,
 		getVisibilityDescription,
-		resetPrivacySettings,
+		resetAllPrivacySettings,
 	} = privacySettings;
 
 	// =============================
@@ -213,7 +216,7 @@ export default function CreatePinScreen() {
 		validateMemoryContent,
 		resetMemoryContent,
 		resetMedia,
-		resetPrivacySettings,
+		resetAllPrivacySettings,
 		setMemoryTitle,
 		setMemoryDescription,
 		showModal,
@@ -282,8 +285,8 @@ export default function CreatePinScreen() {
 								getVisibilityDescription={
 									getVisibilityDescription
 								}
-								getSelectedSocialCircles={
-									getSelectedSocialCircles
+								getSelectedSocialCirclesData={
+									getSelectedSocialCirclesData
 								}
 								getMediaSummary={getMediaSummary}
 								selectedSocialCircles={selectedSocialCircles}
@@ -392,18 +395,19 @@ export default function CreatePinScreen() {
 				{/* ======================== */}
 				<VisibilitySelector
 					selectedVisibility={selectedVisibility}
-					onSelect={handleVisibilitySelect}
+					onSelect={toggleVisibilityOption}
 					isSelected={isVisibilitySelected}
 					description={getVisibilityDescription()}
 				/>
 				<SocialCircleSelector
 					userSocialCircles={userSocialCircles}
 					selectedSocialCircles={selectedSocialCircles}
-					onToggle={handleSocialCircleToggle}
+					onToggle={toggleSocialCircleSelection}
 					visible={
 						showSocialDropdown && isVisibilitySelected('social')
 					}
 				/>
+				{/* <PrivacySettingsTest /> */}
 
 				{/* ======================== */}
 				{/*   MEMORY CONTENT         */}

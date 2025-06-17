@@ -4,83 +4,62 @@
 import { useState, useCallback, useEffect } from 'react';
 
 // ================================
-//   SERVICE IMPORTS
+//   SERVICE IMPORTS (API LAYER)
 // ================================
-import { getUserSocialCircles } from '@/services/memoryService';
-import { getTestSocialCircles } from '@/assets/dummySocialCircleData';
-
-/**
- * LAYMAN TERMS: "Switch to control whether we use fake test data or real backend data"
- *
- * TECHNICAL: Feature flag for development vs production data sources
- */
-const USE_TEST_DATA = true;
+// TODO: Replace with actual API service once backend is ready
+// import { fetchUserSocialCircles } from '@/services/api/socialCircleService';
 
 // ==================
 // TYPE DEFINITIONS
 // ==================
 
-/**
- * Privacy visibility options available to users
- *
- * LAYMAN TERMS: "The three ways users can control who sees their memories:
- * - 'public' = Everyone on ReMap can see it
- * - 'social' = Only people in my friend groups can see it
- * - 'private' = Only I can see it"
- *
- * TECHNICAL: Union type defining available privacy visibility levels
- *
- * @typedef {'public' | 'social' | 'private'} VisibilityOption
- */
+// Privacy visibility options that user can select
 type VisibilityOption = 'public' | 'social' | 'private';
 
-/**
- * Social circle data structure
- *
- * LAYMAN TERMS: "A friend group that users can share memories with.
- * Like 'Family', 'Work Friends', 'University Buddies', etc. Each group
- * has a name, member count, description, and color for easy recognition."
- *
- * TECHNICAL: Interface defining social circle object structure for
- * privacy sharing and group management functionality
- *
- * @interface SocialCircle
- */
+// Social circle data structure matching backend API response
 interface SocialCircle {
 	id: string;
 	name: string;
 	memberCount: number;
 	description: string;
 	color: string;
+	members?: Array<{
+		id: string;
+		name: string;
+	}>;
 }
 
-/**
- * Return interface for usePrivacySettings hook
- *
- * LAYMAN TERMS: "Everything this privacy hook gives back to components that use it.
- * Includes the current privacy choices, functions to change them, and helper
- * functions to understand what's selected."
- *
- * TECHNICAL: Comprehensive interface defining all state, handlers, and utilities
- * returned by the usePrivacySettings hook for privacy management
- *
- * @interface UsePrivacySettingsReturn
- */
-interface UsePrivacySettingsReturn {
+// Main state structure for privacy settings - "empty canvas" approach
+type PrivacySettingsState = {
 	selectedVisibility: VisibilityOption[];
 	selectedSocialCircles: string[];
 	showSocialDropdown: boolean;
 	userSocialCircles: SocialCircle[];
-	handleVisibilitySelect: (option: VisibilityOption) => void;
-	handleSocialCircleToggle: (circleId: string) => void;
+	isLoading: boolean;
+	error: string | null;
+};
+
+// Hook return interface - public API
+interface UsePrivacySettingsReturn {
+	// Current state
+	selectedVisibility: VisibilityOption[];
+	selectedSocialCircles: string[];
+	showSocialDropdown: boolean;
+	userSocialCircles: SocialCircle[];
+	isLoading: boolean;
+	error: string | null;
+
+	// Action handlers with descriptive names
+	toggleVisibilityOption: (option: VisibilityOption) => void;
+	toggleSocialCircleSelection: (circleId: string) => void;
+
+	// Utility functions
 	isVisibilitySelected: (option: VisibilityOption) => boolean;
-	getSelectedSocialCircles: () => SocialCircle[];
+	getSelectedSocialCirclesData: () => SocialCircle[];
 	getVisibilityDescription: () => string;
-	resetPrivacySettings: () => void;
-	/**
-	 * LAYMAN TERMS: "Computed stats about current privacy selections"
-	 * TECHNICAL: Object containing derived privacy state for UI feedback
-	 */
+	resetAllPrivacySettings: () => void;
+
+	// Computed summary
 	privacySummary: {
 		isPublic: boolean;
 		isSocial: boolean;
@@ -90,394 +69,261 @@ interface UsePrivacySettingsReturn {
 	};
 }
 
+// =============================
+// PLACEHOLDER API FUNCTIONS
+// =============================
+const fetchUserSocialCircles = async (): Promise<SocialCircle[]> => {
+	// TODO: Replace with actual API call
+	// Example: const response = await apiClient.get('/user/social-circles');
+	// return response.data;
+
+	// Temporary placeholder - simulates API delay
+	return new Promise((resolve) => {
+		setTimeout(() => {
+			console.log(
+				'📡 API Placeholder: Would fetch user social circles here'
+			);
+			resolve([]); // Empty array until backend is connected
+		}, 500);
+	});
+};
+
 // ============================
 // CUSTOM HOOK IMPLEMENTATION
 // ============================
 
-/**
- * Custom hook for managing privacy settings and social circle selection
- *
- * LAYMAN TERMS: "This hook is like a privacy manager for memories. It handles
- * all the logic around who can see a user's memory. Users can choose multiple
- * privacy levels at once (like public AND specific friend groups), and the hook
- * manages all the complexity of making those choices work together smoothly."
- *
- * Key features:
- * - Multi-select privacy options (can pick public + social + private)
- * - Friend group management (load from backend, select multiple)
- * - Smart UI logic (social dropdown only shows when 'social' is selected)
- * - Validation (always have at least one privacy option selected)
- * - Description generation (creates human-readable privacy summaries)
- *
- * TECHNICAL: Custom React hook encapsulating privacy state management,
- * social circle integration, multi-select validation, and computed properties
- * for privacy UI components. Integrates with backend services for social circle data.
- *
- * @hook usePrivacySettings
- * @returns {UsePrivacySettingsReturn} Complete privacy management interface
- *
- * @example
- * In CreatePin component:
- * const privacySettings = usePrivacySettings();
- *
- * const {
- *   selectedVisibility,
- *   handleVisibilitySelect,
- *   getVisibilityDescription,
- *   selectedSocialCircles,
- *   userSocialCircles
- * } = privacySettings;
- *
- * In JSX:
- * <VisibilitySelector
- *   selectedVisibility={selectedVisibility}
- *   onSelect={handleVisibilitySelect}
- *   description={getVisibilityDescription()}
- * />
- *
- * Show social circles when 'social' is selected
- * {selectedVisibility.includes('social') && (
- *   <SocialCircleSelector
- *     userSocialCircles={userSocialCircles}
- *     selectedSocialCircles={selectedSocialCircles}
- *   />
- * )}
- *
- * @see {@link VisibilitySelector} for privacy button interface
- * @see {@link SocialCircleSelector} for friend group selection
- */
 export function usePrivacySettings(): UsePrivacySettingsReturn {
-	// ==================
-	// STATE MANAGEMENT
-	// ==================
+	// ===========================
+	// STATE MANAGEMENT: Initial empty canvas with defaults
+	// ===========================
+	const [privacyState, setPrivacyState] = useState<PrivacySettingsState>({
+		selectedVisibility: ['public'],
+		selectedSocialCircles: [],
+		showSocialDropdown: false,
+		userSocialCircles: [],
+		isLoading: false,
+		error: null,
+	});
 
-	const [selectedVisibility, setSelectedVisibility] = useState<
-		VisibilityOption[]
-	>(['public']);
-	const [selectedSocialCircles, setSelectedSocialCircles] = useState<
-		string[]
-	>([]);
-	const [showSocialDropdown, setShowSocialDropdown] = useState(false);
-	const [userSocialCircles, setUserSocialCircles] = useState<SocialCircle[]>(
-		[]
-	);
+	// ===========================
+	// UPDATE FUNCTION: Generic state updater following team template
+	// ===========================
+	const updatePrivacyField = <Field extends keyof PrivacySettingsState>(
+		field: Field,
+		value: PrivacySettingsState[Field]
+	) => {
+		setPrivacyState((prev) => ({
+			...prev, // Spread operator: preserve existing values
+			[field]: value, // Dynamic property assignment
+		}));
+	};
 
 	// =============================
-	// LOAD USER'S SOCIAL CIRCLES
+	// API INTEGRATION: Load user's social circles
 	// =============================
-
-	/**
-	 * Load user's social circles from backend or test data on component mount
-	 *
-	 * LAYMAN TERMS: "When the component first loads, go fetch all the friend groups
-	 * this user has created (like 'Family', 'Work Friends', etc.) so they can
-	 * choose which ones to share their memory with."
-	 *
-	 * TECHNICAL: Effect hook managing async social circle data loading with
-	 * feature flag support for development vs production data sources
-	 */
 	useEffect(() => {
 		const loadUserSocialCircles = async () => {
+			updatePrivacyField('isLoading', true);
+			updatePrivacyField('error', null);
+
 			try {
-				if (USE_TEST_DATA) {
-					const circles = await getTestSocialCircles();
-					setUserSocialCircles(circles);
-				} else {
-					// ATNN: This `else` statement is for backend
-					const circles = await getUserSocialCircles();
-					// setUserSocialCircles(circles);
-				}
+				// API call placeholder - ready for backend integration
+				const socialCircles = await fetchUserSocialCircles();
+				updatePrivacyField('userSocialCircles', socialCircles);
 			} catch (error) {
 				console.error('Failed to load social circles:', error);
-				setUserSocialCircles([]);
+				updatePrivacyField('error', 'Failed to load social circles');
+				updatePrivacyField('userSocialCircles', []);
+			} finally {
+				updatePrivacyField('isLoading', false);
 			}
 		};
 
 		loadUserSocialCircles();
 	}, []);
 
-	// =====================
-	// VISIBILITY HANDLERS
-	// =====================
-
-	/**
-	 * Handle privacy option selection with multi-select and validation logic
-	 *
-	 * LAYMAN TERMS: "When user taps a privacy button (public/social/private),
-	 * this function decides what to do. If they tap something already selected,
-	 * it deselects it (unless it's the only one selected). If they tap 'social',
-	 * it shows the friend groups. If they deselect 'social', it hides friend groups."
-	 *
-	 * TECHNICAL: Multi-select handler with validation preventing empty selection
-	 * and conditional UI state management for social circle dropdown
-	 *
-	 * @function handleVisibilitySelect
-	 * @param {VisibilityOption} option - The privacy option that was tapped
-	 *
-	 * @example
-	 * User has ['public'] selected and taps 'social'
-	 * handleVisibilitySelect('social');
-	 * Result: selectedVisibility becomes ['public', 'social']
-	 *          showSocialDropdown becomes true
-	 *
-	 * User has ['public', 'social'] and taps 'public' to deselect
-	 * handleVisibilitySelect('public');
-	 * Result: selectedVisibility becomes ['social']
-	 *          showSocialDropdown stays true
-	 *
-	 * User has ['public'] and taps 'public' to deselect
-	 * handleVisibilitySelect('public');
-	 * Result: selectedVisibility stays ['public'] (can't deselect the only option)
-	 */
-	const handleVisibilitySelect = useCallback((option: VisibilityOption) => {
-		setSelectedVisibility((prev) => {
-			if (prev.includes(option)) {
-				if (prev.length > 1) {
-					const newVisibility = prev.filter(
+	// ===============================
+	// VISIBILITY SELECTION LOGIC: Handles mutual exclusivity rules
+	// ===============================
+	const toggleVisibilityOption = useCallback((option: VisibilityOption) => {
+		setPrivacyState((prev) => {
+			// If option is already selected, remove it (but keep at least one)
+			if (prev.selectedVisibility.includes(option)) {
+				if (prev.selectedVisibility.length > 1) {
+					const newVisibility = prev.selectedVisibility.filter(
 						(item) => item !== option
 					);
 
+					// If removing social, hide dropdown and clear selections
 					if (option === 'social') {
-						setShowSocialDropdown(false);
-						setSelectedSocialCircles([]);
+						return {
+							...prev,
+							selectedVisibility: newVisibility,
+							showSocialDropdown: false,
+							selectedSocialCircles: [],
+						};
 					}
 
-					return newVisibility;
+					return {
+						...prev,
+						selectedVisibility: newVisibility,
+					};
 				}
-
-				return prev;
-			} else {
-				const newVisibility = [...prev, option];
-
-				if (option === 'social') {
-					setShowSocialDropdown(true);
-				}
-
-				return newVisibility;
+				return prev; // Don't allow removing last option
 			}
+
+			// Adding new option
+			let newVisibility = [...prev.selectedVisibility, option];
+
+			// Handle mutual exclusivity: public cannot coexist with others
+			if (option === 'public') {
+				newVisibility = ['public'];
+				return {
+					...prev,
+					selectedVisibility: newVisibility,
+					showSocialDropdown: false,
+					selectedSocialCircles: [],
+				};
+			}
+
+			// If adding social/private, remove public
+			if (prev.selectedVisibility.includes('public')) {
+				newVisibility = newVisibility.filter(
+					(item) => item !== 'public'
+				);
+			}
+
+			// Show social dropdown when social is selected
+			const shouldShowDropdown = newVisibility.includes('social');
+
+			return {
+				...prev,
+				selectedVisibility: newVisibility,
+				showSocialDropdown: shouldShowDropdown,
+			};
 		});
 	}, []);
 
-	/**
-	 * Check if a specific privacy option is currently selected
-	 *
-	 * LAYMAN TERMS: "Quick way to check if a specific privacy option (like 'public')
-	 * is currently selected. Used by UI components to show which buttons are active."
-	 *
-	 * TECHNICAL: Utility function for conditional rendering and styling in components
-	 *
-	 * @function isVisibilitySelected
-	 * @param {VisibilityOption} option - The privacy option to check
-	 * @returns {boolean} True if the option is currently selected
-	 */
+	// ===============================
+	// SOCIAL CIRCLE SELECTION LOGIC: Toggle individual circles
+	// ===============================
+	const toggleSocialCircleSelection = useCallback((circleId: string) => {
+		setPrivacyState((prev) => {
+			const isCurrentlySelected =
+				prev.selectedSocialCircles.includes(circleId);
+
+			const newSelectedCircles = isCurrentlySelected
+				? prev.selectedSocialCircles.filter((id) => id !== circleId)
+				: [...prev.selectedSocialCircles, circleId];
+
+			return {
+				...prev,
+				selectedSocialCircles: newSelectedCircles,
+			};
+		});
+	}, []);
+
+	// ===============================
+	// UTILITY FUNCTIONS: Helper functions for components
+	// ===============================
+
 	const isVisibilitySelected = useCallback(
 		(option: VisibilityOption): boolean => {
-			return selectedVisibility.includes(option);
+			return privacyState.selectedVisibility.includes(option);
 		},
-		[selectedVisibility]
+		[privacyState.selectedVisibility]
 	);
 
-	// ========================
-	// SOCIAL CIRCLE HANDLERS
-	// ========================
-
-	/**
-	 * Toggle selection of a specific social circle
-	 *
-	 * LAYMAN TERMS: "When user checks/unchecks a friend group checkbox, this
-	 * function adds it to or removes it from the selected list. Simple toggle -
-	 * if it's selected, deselect it; if it's not selected, select it."
-	 *
-	 * TECHNICAL: Simple toggle handler for social circle multi-select state
-	 *
-	 * @function handleSocialCircleToggle
-	 * @param {string} circleId - The ID of the social circle to toggle
-	 *
-	 * @example
-	 * User has ['family'] selected and clicks 'work_friends'
-	 * handleSocialCircleToggle('work_friends');
-	 * Result: selectedSocialCircles becomes ['family', 'work_friends']
-	 *
-	 * User has ['family', 'work_friends'] and clicks 'family' to deselect
-	 * handleSocialCircleToggle('family');
-	 * Result: selectedSocialCircles becomes ['work_friends']
-	 */
-	const handleSocialCircleToggle = useCallback((circleId: string) => {
-		setSelectedSocialCircles((prev) => {
-			if (prev.includes(circleId)) {
-				return prev.filter((id) => id !== circleId);
-			} else {
-				return [...prev, circleId];
-			}
-		});
-	}, []);
-
-	/**
-	 * Get full social circle objects for currently selected circle IDs
-	 *
-	 * LAYMAN TERMS: "The selected circles are stored as just IDs (like 'family',
-	 * 'work_friends'), but sometimes we need the full information (name, color,
-	 * member count). This function looks up the full details for selected circles."
-	 *
-	 * TECHNICAL: Utility function resolving selected IDs to full SocialCircle objects
-	 * for display and processing purposes
-	 *
-	 * @function getSelectedSocialCircles
-	 * @returns {SocialCircle[]} Array of full social circle objects for selected IDs
-	 *
-	 * @example
-	 * selectedSocialCircles = ['family', 'work_friends']
-	 * userSocialCircles = [
-	 *   { id: 'family', name: 'Family', color: '#FF6B6B', memberCount: 5 },
-	 *   { id: 'work_friends', name: 'Work Friends', color: '#4ECDC4', memberCount: 8 },
-	 *   { id: 'university', name: 'University', color: '#45B7D1', memberCount: 12 }
-	 * ]
-	 *
-	 * const selected = getSelectedSocialCircles();
-	 * Result: [
-	 *   { id: 'family', name: 'Family', color: '#FF6B6B', memberCount: 5 },
-	 *   { id: 'work_friends', name: 'Work Friends', color: '#4ECDC4', memberCount: 8 }
-	 * ]
-	 */
-	const getSelectedSocialCircles = useCallback((): SocialCircle[] => {
-		return userSocialCircles.filter((circle) =>
-			selectedSocialCircles.includes(circle.id)
+	const getSelectedSocialCirclesData = useCallback((): SocialCircle[] => {
+		return privacyState.userSocialCircles.filter((circle) =>
+			privacyState.selectedSocialCircles.includes(circle.id)
 		);
-	}, [userSocialCircles, selectedSocialCircles]);
+	}, [privacyState.userSocialCircles, privacyState.selectedSocialCircles]);
 
-	// =======================
-	// DESCRIPTION GENERATOR
-	// =======================
-
-	/**
-	 * Generate human-readable description of current privacy settings
-	 *
-	 * LAYMAN TERMS: "Create a sentence that explains who can see this memory based
-	 * on current selections. Like 'Visible to everyone in the ReMap community and
-	 * visible to 3 selected social circles' or 'Kept private to you'."
-	 *
-	 * TECHNICAL: Dynamic string generator for privacy selection summary with
-	 * conditional logic for different combination scenarios
-	 *
-	 * @function getVisibilityDescription
-	 * @returns {string} Human-readable privacy settings description
-	 *
-	 * @example
-	 * selectedVisibility = ['public', 'social']
-	 * selectedSocialCircles = ['family', 'work_friends']
-	 * const description = getVisibilityDescription();
-	 * Result: "Visible to everyone in the ReMap community and visible to 2 selected social circle(s)"
-	 *
-	 * selectedVisibility = ['private']
-	 * const description = getVisibilityDescription();
-	 * Result: "Kept private to you"
-	 *
-	 * selectedVisibility = ['social']
-	 * selectedSocialCircles = []
-	 * const description = getVisibilityDescription();
-	 * Result: "Visible to your social circles (none selected yet)"
-	 */
 	const getVisibilityDescription = useCallback((): string => {
 		let description = '';
 
-		if (selectedVisibility.includes('public')) {
+		if (privacyState.selectedVisibility.includes('public')) {
 			description += 'Visible to everyone in the ReMap community';
 		}
 
-		if (selectedVisibility.includes('social')) {
+		if (privacyState.selectedVisibility.includes('social')) {
 			if (description) description += ' and ';
-			if (selectedSocialCircles.length > 0) {
-				description += `visible to ${selectedSocialCircles.length} selected social circle(s)`;
+			if (privacyState.selectedSocialCircles.length > 0) {
+				description += `visible to ${privacyState.selectedSocialCircles.length} selected social circle(s)`;
 			} else {
 				description +=
 					'visible to your social circles (none selected yet)';
 			}
 		}
 
-		if (selectedVisibility.includes('private')) {
+		if (privacyState.selectedVisibility.includes('private')) {
 			if (description) description += ' and ';
 			description += 'kept private to you';
 		}
 
 		return description || 'Select your visibility preferences';
-	}, [selectedVisibility, selectedSocialCircles]);
+	}, [privacyState.selectedVisibility, privacyState.selectedSocialCircles]);
 
-	// ====================
-	// UTILITY FUNCTIONS
-	// ====================
-
-	/**
-	 * Reset all privacy settings to default state
-	 *
-	 * LAYMAN TERMS: "Clear all privacy selections and go back to the default
-	 * (public only). Used when creating a new memory or when user wants to
-	 * start over with privacy settings."
-	 *
-	 * TECHNICAL: Complete privacy state reset utility for form cleanup
-	 *
-	 * @function resetPrivacySettings
-	 *
-	 * @example
-	 * After user saves a memory and wants to create another
-	 * resetPrivacySettings();
-	 *
-	 * Result:
-	 * selectedVisibility = ['public']
-	 * selectedSocialCircles = []
-	 * showSocialDropdown = false
-	 */
-	const resetPrivacySettings = useCallback(() => {
-		setSelectedVisibility(['public']);
-		setSelectedSocialCircles([]);
-		setShowSocialDropdown(false);
+	const resetAllPrivacySettings = useCallback(() => {
+		setPrivacyState((prev) => ({
+			...prev,
+			selectedVisibility: ['public'],
+			selectedSocialCircles: [],
+			showSocialDropdown: false,
+		}));
 	}, []);
 
-	// =====================
-	// COMPUTED PROPERTIES
-	// =====================
-
-	/**
-	 * LAYMAN TERMS: "Computed stats about current privacy selections for easy UI checking"
-	 *
-	 * TECHNICAL: Derived state object for conditional rendering and display logic
-	 */
+	// ===============================
+	// COMPUTED PROPERTIES: Summary data for parent components
+	// ===============================
 	const privacySummary = {
-		isPublic: selectedVisibility.includes('public'),
-		isSocial: selectedVisibility.includes('social'),
-		isPrivate: selectedVisibility.includes('private'),
-		socialCircleCount: selectedSocialCircles.length,
+		isPublic: privacyState.selectedVisibility.includes('public'),
+		isSocial: privacyState.selectedVisibility.includes('social'),
+		isPrivate: privacyState.selectedVisibility.includes('private'),
+		socialCircleCount: privacyState.selectedSocialCircles.length,
 		totalSelected: (() => {
-			if (selectedVisibility.includes('public')) return 'Public + Social';
+			if (privacyState.selectedVisibility.includes('public'))
+				return 'Public';
+
+			const parts = [];
 			if (
-				selectedVisibility.includes('social') &&
-				selectedSocialCircles.length > 0
+				privacyState.selectedVisibility.includes('social') &&
+				privacyState.selectedSocialCircles.length > 0
 			) {
-				return `${selectedSocialCircles.length} Social Circle(s)`;
+				parts.push(
+					`${privacyState.selectedSocialCircles.length} Social Circle(s)`
+				);
 			}
-			if (selectedVisibility.includes('private')) return 'Private Only';
-			return 'Unknown';
+			if (privacyState.selectedVisibility.includes('private')) {
+				parts.push('Private');
+			}
+
+			return parts.join(' + ') || 'No selection';
 		})(),
 	};
 
-	// =======================
-	// RETURN HOOK INTERFACE
-	// =======================
+	// ===============================
+	// RETURN INTERFACE: Public API for components
+	// ===============================
 	return {
 		// Current state
-		selectedVisibility,
-		selectedSocialCircles,
-		showSocialDropdown,
-		userSocialCircles,
+		selectedVisibility: privacyState.selectedVisibility,
+		selectedSocialCircles: privacyState.selectedSocialCircles,
+		showSocialDropdown: privacyState.showSocialDropdown,
+		userSocialCircles: privacyState.userSocialCircles,
+		isLoading: privacyState.isLoading,
+		error: privacyState.error,
 
-		// Action handlers
-		handleVisibilitySelect,
-		handleSocialCircleToggle,
+		// Action handlers with descriptive names
+		toggleVisibilityOption,
+		toggleSocialCircleSelection,
 
 		// Utility functions
 		isVisibilitySelected,
-		getSelectedSocialCircles,
+		getSelectedSocialCirclesData,
 		getVisibilityDescription,
-		resetPrivacySettings,
+		resetAllPrivacySettings,
 
 		// Computed properties
 		privacySummary,
@@ -490,24 +336,3 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 export type { VisibilityOption, SocialCircle };
 
 export default usePrivacySettings;
-
-/**
- *	PRIVACY HOOK ARCHITECTURE ANALYSIS
- *
- * 1. **MULTI-SELECT APPROACH**: Unlike typical radio buttons, users can select
- *    multiple privacy levels simultaneously. This provides maximum flexibility.
- *
- * 2. **CONDITIONAL UI LOGIC**: Social circle dropdown only appears when 'social'
- *    is selected, keeping the interface clean and contextual.
- *
- * 3. **VALIDATION RULES**: Always require at least one privacy option to prevent
- *    orphaned memories with no visibility settings.
- *
- * 4. **BACKEND INTEGRATION**: Async loading of social circles with graceful
- *    fallback to empty state if loading fails.
- *
- * 5. **COMPUTED DESCRIPTIONS**: Real-time generation of human-readable privacy
- *    summaries for user feedback.
- *
- * This architecture makes privacy settings both powerful and user-friendly!
- */
