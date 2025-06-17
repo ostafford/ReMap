@@ -1,4 +1,12 @@
+// =========================================================================
+//   						EXTERNAL IMPORTS
+// =========================================================================
 import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// ==============================
+//   	NAVIGATION IMPORTS
+// ==============================
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import {
   View,
@@ -8,14 +16,32 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// =================
+//   UI COMPONENTS
+// =================
+import { ReMapColors } from '@/constants/Colors';
+import { Button } from '@/components/ui/Button';
+
+
 
 const Tab = createMaterialTopTabNavigator();
 
 function ProfileTab() {
   return (
     <View style={styles.tabContent}>
-      <Text style={styles.text}>User Profile Info</Text>
+      <Text style={styles.text}> *** username here ***</Text>
+	  <Text>Profile picture here</Text>
+	  <Text>Full name</Text>
+	  <Text>Total Pins</Text>
+	  	<Button
+				//onPress={} - link to function that signs out user
+				style={styles.circleButton}
+				size="small"
+				textColour={ReMapColors.primary.black}
+			>
+				Sign out
+			</Button>
     </View>
   );
 }
@@ -25,12 +51,22 @@ function CirclesTab() {
     <View style={styles.tabContent}>
       <Text style={styles.text}>Your Circles</Text>
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.circleButton}>
-          <Text style={styles.buttonText}>Create</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.circleButton}>
-          <Text style={styles.buttonText}>Join</Text>
-        </TouchableOpacity>
+			<Button
+				//onPress={} we'll implement function laterrrr
+				style={styles.circleButton}
+				size="small"
+				textColour={ReMapColors.primary.black}
+			>
+				Create
+			</Button>
+			<Button
+				//onPress={}
+				style={styles.circleButton}
+				size="small"
+				textColour={ReMapColors.primary.black}
+			>
+				Join
+			</Button>
       </View>
     </View>
   );
@@ -78,7 +114,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
   },
 
   header: {
@@ -95,7 +131,7 @@ const styles = StyleSheet.create({
 
   backButtonText: {
     fontSize: 16,
-    color: 'black',
+    color: ReMapColors.primary.black,
   },
 
   tabContent: {
@@ -117,7 +153,7 @@ const styles = StyleSheet.create({
   },
 
   circleButton: {
-    backgroundColor: '#ddd',
+    backgroundColor: 'lightgray',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,

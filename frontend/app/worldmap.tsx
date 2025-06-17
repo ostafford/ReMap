@@ -771,61 +771,6 @@ export default function WorldMapScreen() {
 							</Modal.Footer>
 						</Modal.Container>
 					</Modal>
-
-					{/********************/}
-					{/*   PROFILE MODAL  */}
-					{/********************/}
-					{/* <Modal
-						isVisible={isProfileModalVisible}
-						onBackdropPress={closeProfileModal}
-					>
-						<Modal.Container>
-							<Modal.Header
-								title={`Hello, ${
-									currentUser?.email?.split('@')[0] || 'User'
-								}! 👋`}
-							/>
-							<Modal.Body>
-								<View style={styles.profileContent}>
-									<BodyText style={styles.profileEmail}>
-										📧 {currentUser?.email}
-									</BodyText>
-									<CaptionText style={styles.profileMeta}>
-										Member since{' '}
-										{currentUser
-											? new Date(
-													currentUser.created_at
-											  ).toLocaleDateString()
-											: ''}
-									</CaptionText>
-									<BodyText style={styles.profileMessage}>
-										Full profile page coming soon! For now,
-										you can sign out if needed.
-									</BodyText>
-								</View>
-							</Modal.Body>
-							<Modal.Footer>
-								<Button
-									onPress={handleSignOut}
-									style={[
-										styles.modalButton,
-										styles.signOutButton,
-									]}
-								>
-									🚪 Sign Out
-								</Button>
-								<Button
-									onPress={closeProfileModal}
-									style={[
-										styles.modalButton,
-										styles.cancelButton,
-									]}
-								>
-									Stay Signed In
-								</Button>
-							</Modal.Footer>
-						</Modal.Container>
-					</Modal> */}
 				</KeyboardAvoidingView>
 			</TouchableWithoutFeedback>
 		</GestureHandlerRootView>
