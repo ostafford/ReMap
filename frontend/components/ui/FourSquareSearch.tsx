@@ -103,8 +103,6 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 						query,
 						limit: 5,
 						ll: '-37.817979,144.960408',
-						// im commenting this out because some reason the session token causes issues with fetching API data (going to troubleshoot this)
-						//session_token: sessionToken,
 					},
 				});
 
@@ -115,7 +113,7 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 			}
 		};
 
-		const timeout = setTimeout(fetchSuggestions, 300);
+		const timeout = setTimeout(fetchSuggestions, 500);
 		return () => clearTimeout(timeout);
 	}, [query]);
 
