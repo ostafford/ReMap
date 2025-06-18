@@ -6,6 +6,23 @@ import supabase from "../supabase/supabaseClient";
 import { checkMember } from "../middleware/userGroupCheck";
 
 
+const ACCESS_CODE_LENGTH = 6;
+
+function generateCode() {
+    const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    const code: string[] = [];
+
+    for (let i=0; i<ACCESS_CODE_LENGTH; i++) {
+        const index = Math.round(Math.random() * (chars.length - 1));
+        const char = chars[index];
+        code.push(char);
+    }
+
+    return code.join("");
+}
+
+
 /* -------------- Circle Table ---------------- */
 // @desc Create circle
 // @route POST /api/circles/
@@ -18,7 +35,7 @@ export const createCircle = async (req: Request, res: Response) => {
     }
 
     try {
-        const { name, access_code, visibility } = req.body;
+        const { name, visibility } = req.body;
 
         const checkString = ["public", "social", "private"];
 
@@ -30,11 +47,13 @@ export const createCircle = async (req: Request, res: Response) => {
             return;
         }
 
+        const code = generateCode();
+
         const { data, error } = await supabase
         .from("circles")
         .insert({
             name,
-            access_code,
+            access_code: code,
             owner_id: user.id,
             visibility
         })
@@ -308,7 +327,7 @@ export const addMember = async (req: Request, res: Response) => {
             return;
         }
         console.log(`Added ${user_id} to ${circle_id}`);
-        res.status(201).json({ "Added member": data });
+        res.status(201).json({ data });
 
     } catch (err: any) {
         console.log("Add member to circle server error:", err.message);
