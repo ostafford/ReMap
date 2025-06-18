@@ -21,8 +21,8 @@ import {
 // ==================================
 //   SUPABASE FOR USER AUTH IMPORTS
 // ==================================
-import { supabase } from '@/lib/supabase';
-import type { User } from '@supabase/supabase-js';
+// import { supabase } from '@/lib/supabase';
+// import type { User } from '@supabase/supabase-js';
 
 // ===============================
 //   EXPO/NAVIGATION IMPORTS
