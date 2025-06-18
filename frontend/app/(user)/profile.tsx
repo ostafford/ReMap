@@ -30,15 +30,15 @@ const Tab = createMaterialTopTabNavigator();
 function ProfileTab() {
   return (
     <View style={styles.tabContent}>
-      <Text style={styles.text}> *** username here ***</Text>
-	  <Text>Profile picture here</Text>
-	  <Text>Full name</Text>
-	  <Text>Total Pins</Text>
+      <Text>Profile picture here</Text>
+      <Text style={styles.username}>username</Text>
+      <Text>Full name</Text>
+    <Text>Total Pins</Text>
 	  	<Button
 				//onPress={} - link to function that signs out user
 				style={styles.circleButton}
 				size="small"
-				textColour={ReMapColors.primary.black}
+				textColour='white'
 			>
 				Sign out
 			</Button>
@@ -49,13 +49,13 @@ function ProfileTab() {
 function CirclesTab() {
   return (
     <View style={styles.tabContent}>
-      <Text style={styles.text}>Your Circles</Text>
+      <Text>Your Circles</Text>
       <View style={styles.buttonContainer}>
 			<Button
 				//onPress={} we'll implement function laterrrr
 				style={styles.circleButton}
 				size="small"
-				textColour={ReMapColors.primary.black}
+				textColour='white'
 			>
 				Create
 			</Button>
@@ -63,7 +63,7 @@ function CirclesTab() {
 				//onPress={}
 				style={styles.circleButton}
 				size="small"
-				textColour={ReMapColors.primary.black}
+				textColour='white'
 			>
 				Join
 			</Button>
@@ -75,9 +75,9 @@ function CirclesTab() {
 function PinsTab() {
   return (
     <View style={styles.tabContent}>
-      <Text style={styles.text}>Your Pins</Text>
-	  <Text>pin display here</Text>
-	  <Text>maybe we should have the option to delete pins here</Text>
+      <Text>Your Pins</Text>
+      <Text>pin display here</Text>
+      <Text>maybe we should have the option to delete pins here</Text>
     </View>
   );
 }
@@ -122,7 +122,13 @@ export default function ProfileScreen() {
   );
 }
 
+
+
+// =========================================================================
+//                            STYLE SHEET
+// =========================================================================
 const styles = StyleSheet.create({
+  
   container: {
     flex: 1,
     backgroundColor: 'white',
@@ -149,11 +155,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
 
-  text: {
-    fontSize: 18,
-    fontWeight: '600',
+
+  username: {
+    fontSize: 20,
+    fontWeight: 600,
   },
 
   buttonContainer: {
@@ -164,15 +172,15 @@ const styles = StyleSheet.create({
   },
 
   circleButton: {
-    backgroundColor: 'lightgray',
+    backgroundColor: ReMapColors.primary.black,
     paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    paddingHorizontal: 32,
+    borderRadius: 18,
   },
 
   buttonText: {
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 10,
     color: 'black',
   },
 });
