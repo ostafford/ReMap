@@ -15,7 +15,7 @@ import {
 	Text,
 	TouchableOpacity,
 	TouchableWithoutFeedback,
-	View,
+	View, 
 } from 'react-native';
 
 // ==================================
@@ -307,13 +307,31 @@ export default function WorldMapScreen() {
 	// =============================
 	//   SEARCH FUNCTIONALITY SECTION
 	// =============================
-	const searchAnimation = useSlideAnimation({
-		animationType: 'timing',
-		duration: 300,
-	});
+	const [searchVisible, setSearchVisible] = useState(false);
+	const slideAnim = useRef(new Animated.Value(-100)).current;
+
+	// Search handlers
+	const openSearch = () => {
+		setSearchVisible(true);
+		Animated.timing(slideAnim, {
+			toValue: 0,
+			duration: 300,
+			useNativeDriver: true,
+		}).start();
+	};
+
+	const closeSearch = () => {
+		Animated.timing(slideAnim, {
+			toValue: -100,
+			duration: 100,
+			useNativeDriver: true,
+		}).start(() => {
+			setSearchVisible(false);
+		});
+	};
 
 	const onSelectSuggestion = (item: Suggestion) => {
-		searchAnimation.slideOut(); // Changed from closeSearch()
+		closeSearch();
 		if (
 			'geocodes' in item &&
 			item.geocodes?.main?.latitude !== undefined &&
@@ -330,6 +348,7 @@ export default function WorldMapScreen() {
 			Alert.alert('Location data is not available');
 		}
 	};
+
 
 	// =============================
 	//   SOCIAL CIRCLES SECTION
@@ -360,6 +379,10 @@ export default function WorldMapScreen() {
 		router.replace('/createPin');
 	};
 
+	const navigateToProfile = () => {
+		router.push('/profile')
+	}
+
 	// =========================
 	//   WORLDMAP PAGE RENDER
 	// =========================
@@ -368,15 +391,11 @@ export default function WorldMapScreen() {
 			{/**********************************************/}
 			{/******** AUTOCOMPLETE SLIDE FROM TOP *********/}
 			{/* *********************************************/}
-			{searchAnimation.isVisible && (
+			{searchVisible && (
 				<Animated.View
 					style={[
 						styles.animatedSearchContainer,
-						{
-							transform: [
-								{ translateY: searchAnimation.animatedValue },
-							],
-						},
+						{ transform: [{translateY: slideAnim }] },
 					]}
 				>
 					<FoursquareSearch
@@ -414,12 +433,6 @@ export default function WorldMapScreen() {
 									latitude: -37.817979,
 									longitude: 144.960408,
 								}}
-								// onPress={() =>
-								// 	handleMarkerPress({
-								// 		latitude: -37.817979,
-								// 		longitude: 144.960408,
-								// 	})
-								// }
 							>
 								<Image
 									source={require('../assets/images/holberton_logo.jpg')}
@@ -473,7 +486,7 @@ export default function WorldMapScreen() {
 								{ top: insets.top + 100 },
 							]}
 						>
-							<IconButton
+							{/* <IconButton
 								icon="globe"
 								onPress={navigateToCreatePin}
 								size={28}
@@ -484,85 +497,119 @@ export default function WorldMapScreen() {
 								onPress={navigateToCreatePin}
 								size={28}
 								style={styles.circleSelections}
-							/>
+							/> */}
 
-							{/* Social Circles with Animation (Drop-Down) */}
-							<View style={{ alignItems: 'flex-end' }}>
-								<IconButton
-									icon="users"
-									onPress={socialsAnimation.toggleSimple}
-									size={28}
-									style={styles.socialSelection}
-								/>
-								<Animated.View
-									style={[
-										styles.socialsBacking,
-										{
-											transform: [
-												{
-													translateY:
-														socialsAnimation.animatedValue,
-												},
-											],
-											opacity:
-												socialsAnimation.animatedValue.interpolate(
+								{/* Social Circles with Animation (Drop-Down) */}
+								<View style={{ alignItems: 'flex-end' }}>
+									{/* <IconButton
+										icon="users"
+										onPress={toggleSocials}
+										size={28}
+										style={styles.socialSelection}
+									/> */}
+									{/* <Animated.View
+										style={[
+											styles.socialsBacking,
+											{
+												transform: [
 													{
-														inputRange: [-100, 0],
-														outputRange: [0, 1],
-														extrapolate: 'clamp',
-													}
-												),
-										},
-									]}
-								>
-									<ScrollView
-										contentContainerStyle={
-											styles.socialsList
-										}
-									>
-										{mockCircles.map((circle, index) => (
-											<TouchableOpacity
-												key={index}
-												style={
-													styles.socialCircleWrapper
-												}
-											>
-												<Image
-													source={{
-														uri: circle.avatar,
-													}}
-													style={
-														styles.socialCircleImage
-													}
-												/>
-											</TouchableOpacity>
-										))}
-									</ScrollView>
-								</Animated.View>
+														translateY:
+															socialsSlideAnim,
+													},
+												],
+												opacity:
+													socialsSlideAnim.interpolate(
+														{
+															inputRange: [
+																-100, 0,
+															],
+															outputRange: [0, 1],
+															extrapolate:
+																'clamp',
+														}
+													),
+											},
+										]}
+									> */}
+										<ScrollView
+											contentContainerStyle={
+												styles.socialsList
+											}
+										>
+											{mockCircles.map(
+												(circle, index) => (
+													<TouchableOpacity
+														key={index}
+														style={
+															styles.socialCircleWrapper
+														}
+													>
+														<Image
+															source={{
+																uri: circle.avatar,
+															}}
+															style={
+																styles.socialCircleImage
+															}
+														/>
+													</TouchableOpacity>
+												)
+											)}
+										</ScrollView>
+									{/* </Animated.View> */}
+								</View>
 							</View>
-						</View>
-						{/* ******************************** */}
-						{/*  FILTER CONTROLS (STARTER PACK)  */}
-						{/* ******************************** */}
-						{userStarterPacks &&
-							userStarterPacks.selectedIds?.length > 0 && (
-								<View style={styles.filterControls}>
-									<View style={styles.filterHeader}>
-										<CaptionText
-											style={styles.filterStatus}
-										>
-											{getFilterStatusText()}
-										</CaptionText>
-										<Button
-											onPress={togglePersonalizedView}
-											style={styles.filterToggle}
-											size="small"
-										>
-											{showPersonalizedPins
-												? 'Show All'
-												: 'My Interests'}
-										</Button>
-									</View>
+
+							{/**********************************************/}
+							{/************ UNDER MAP CONTENT ***************/}
+							{/**********************************************/}
+							<View style={styles.scrollContent}>
+								<TouchableOpacity
+									style={
+										searchVisible
+											? styles.fakeInputClose
+											: styles.fakeInput
+									}
+									onPress={
+										searchVisible ? closeSearch : openSearch
+									}
+								>
+									<Text
+										style={{
+											color: searchVisible
+												? 'white'
+												: ReMapColors.ui.textSecondary,
+										}}
+									>
+										{searchVisible
+											? 'Close'
+											: 'Search Location'}
+									</Text>
+								</TouchableOpacity>
+							</View>
+
+							{/* ******************************** */}
+							{/*  FILTER CONTROLS (STARTER PACK)  */}
+							{/* ******************************** */}
+							{userStarterPacks &&
+								userStarterPacks.selectedIds?.length > 0 && (
+									<View style={styles.filterControls}>
+										<View style={styles.filterHeader}>
+											<CaptionText
+												style={styles.filterStatus}
+											>
+												{getFilterStatusText()}
+											</CaptionText>
+											<Button
+												onPress={togglePersonalizedView}
+												style={styles.filterToggle}
+												size="small"
+											>
+												{showPersonalizedPins
+													? 'Show All'
+													: 'My Interests'}
+											</Button>
+										</View>
 
 									{/* Show selected categories */}
 									<View style={styles.selectedCategories}>
@@ -585,38 +632,6 @@ export default function WorldMapScreen() {
 									</View>
 								</View>
 							)}
-						{/**********************************************/}
-						{/************ UNDER MAP CONTENT ***************/}
-						{/**********************************************/}
-						<View style={styles.searchContent}>
-							<Text style={styles.remapTitle}>
-								ReMap Your Journey
-							</Text>
-							<TouchableOpacity
-								style={
-									searchAnimation.isVisible
-										? styles.fakeInputClose
-										: styles.fakeInput
-								}
-								onPress={
-									searchAnimation.isVisible
-										? searchAnimation.hide
-										: searchAnimation.show
-								}
-							>
-								<Text
-									style={{
-										color: searchAnimation.isVisible
-											? 'white'
-											: ReMapColors.ui.textSecondary,
-									}}
-								>
-									{searchAnimation.isVisible
-										? 'Close'
-										: 'Search Location'}
-								</Text>
-							</TouchableOpacity>
-						</View>
 					</MainContent>
 
 					{/**********************************************/}
@@ -629,6 +644,7 @@ export default function WorldMapScreen() {
 									isAuthenticated ? 'address-card' : 'reply'
 								}
 								onPress={
+									user ? navigateToProfile : 
 									isAuthenticated ? profileModal.open : goBack
 								}
 							/>
@@ -715,6 +731,7 @@ export default function WorldMapScreen() {
 					</Modal>
 				</KeyboardAvoidingView>
 			</TouchableWithoutFeedback>
+			
 			{/* ==================== */}
 			{/*   PIN BOTTOMSHEET    */}
 			{/* ==================== */}
@@ -740,6 +757,18 @@ const styles = StyleSheet.create({
 	keyboardAvoidingView: {
 		flex: 1,
 	},
+		scrollContent: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+		borderRadius: 35,
+		borderTopLeftRadius: 30,
+		borderTopRightRadius: 30,
+		marginTop: -5,
+		padding: 20,
+		shadowColor: ReMapColors.primary.black,
+		shadowOffset: { width: 0, height: -2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+	},
 
 	// =====================
 	//   TYPOGRAPHY STYLES
@@ -757,12 +786,6 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 		marginBottom: 30,
 	},
-	remapTitle: {
-		fontSize: 34,
-		alignSelf: 'center',
-		padding: 8,
-		fontWeight: 'bold',
-	},
 	circleName: {
 		color: ReMapColors.ui.text,
 		fontSize: 14,
@@ -778,9 +801,10 @@ const styles = StyleSheet.create({
 	mapFlex: {
 		flex: 1,
 		width: '100%',
+		height: 645,
 	},
 	mapContent: {
-		backgroundColor: ReMapColors.primary.accent, // this colour is just for examples sake - not gonna be purple
+		backgroundColor: ReMapColors.primary.accent,
 		borderRadius: 16,
 		height: 35,
 		left: '25%',

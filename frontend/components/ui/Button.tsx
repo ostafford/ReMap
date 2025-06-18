@@ -32,6 +32,7 @@ interface CustomButtonProps {
 	loadingText?: string;
 	variant?: 'primary' | 'secondary' | 'danger' | 'success';
 	size?: 'small' | 'medium' | 'large';
+	textColour?: string;
 }
 
 // ========================
@@ -46,6 +47,7 @@ export const Button = ({
 	loadingText,
 	variant = 'primary',
 	size = 'medium',
+	textColour,
 }: CustomButtonProps) => {
 	// ==================
 	//   BUTTON STATE LOGIC
@@ -92,7 +94,7 @@ export const Button = ({
 	};
 
 	const getTextColor = () => {
-		// NOTE: Most buttons use white text, but we can customize per variant if needed
+		if (textColour) return textColour;
 		return ReMapColors.ui.cardBackground;
 	};
 

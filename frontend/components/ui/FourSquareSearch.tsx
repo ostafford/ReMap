@@ -1,7 +1,7 @@
 // ================
 //   CORE IMPORTS
 // ================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
 	View,
 	TextInput,
@@ -67,6 +67,7 @@ type Props = {
 //   AUTOCOMPLETE SEARCH COMPONENT
 // ==================================
 export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' }: Props) => {
+	const inputRef = useRef<TextInput>(null);
 	const [query, setQuery] = useState('');
 	const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 	
@@ -102,8 +103,6 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 						query,
 						limit: 5,
 						ll: '-37.817979,144.960408',
-						// im commenting this out because some reason the session token causes issues with fetching API data (going to troubleshoot this)
-						//session_token: sessionToken,
 					},
 				});
 
@@ -114,9 +113,64 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 			}
 		};
 
-		const timeout = setTimeout(fetchSuggestions, 300);
+		const timeout = setTimeout(fetchSuggestions, 500);
 		return () => clearTimeout(timeout);
 	}, [query]);
+
+
+	useEffect(() => {
+	const timeout = setTimeout(() => {
+		inputRef.current?.focus();
+	}, 100);
+	return () => clearTimeout(timeout);
+}, []);
+
+
+
+	const handleSelect = async (item: Suggestion) => {
+	try {
+		if (item.type === 'place' && item.place?.fsq_id) {
+		const apiKey = Constants.expoConfig?.extra?.foursquareApiKey;
+		const detailRes = await axios.get(
+			`https://api.foursquare.com/v3/places/${item.place.fsq_id}`,
+			{
+			headers: {
+				Authorization: `fsq${apiKey.trim()}`,
+				accept: 'application/json',
+			},
+			}
+		);
+
+		const fullPlace = detailRes.data;
+		const updatedItem = ({
+			...item,
+			place: {
+			...item.place,
+			location: fullPlace.location,
+			},
+			geocodes: fullPlace.geocodes,
+		});
+
+		const coords = fullPlace.geocodes?.main;
+		console.log("Selected Name:", fullPlace.name);
+		if (coords) {
+			console.log("Selected Coordinates:", coords.latitude, coords.longitude);
+		}
+
+      onSelect(updatedItem);
+
+		} else {
+		onSelect(item);
+		}
+
+		setQuery(item.text?.primary || item.place?.name || '');
+		setSuggestions([]);
+		setSessionToken(null);
+	} catch (error) {
+		console.error('Failed to fetch place details:', error);
+		onSelect(item);
+	}
+	};
 
 	
 // ===========================================
@@ -125,6 +179,7 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 	return (
 		<View style={styles.container}>
 			<TextInput
+				ref={inputRef}
 				placeholder={placeholder}
 				placeholderTextColor= {ReMapColors.ui.textSecondary}
 				value={query}
@@ -138,15 +193,17 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 					keyboardShouldPersistTaps="handled"
 				>
 					{suggestions.map((item, index) => {
-						let displayText = 'Unknown';
+						let displayText = "";
 
 						if (item.type === 'place' && item.place?.name) {
 							displayText = item.place.name;
 						} else if (item.type === 'search' && item.text?.primary) {
 							displayText = item.text.primary;
-						} else if (item.type === 'address' && item.address?.formatted_address) {
-							displayText = item.address.formatted_address;
+						} else if (item.type === 'address' && (item.address?.formatted_address || item.text?.primary)) {
+							displayText = item.address.formatted_address || item.text.primary;
 						} else if (item.type === 'geo' && item.text?.primary) {
+							displayText = item.text.primary;
+						} else if (item.text?.primary) {
 							displayText = item.text.primary;
 						}
 
@@ -154,12 +211,8 @@ export const FoursquareSearch = ({ onSelect, placeholder = 'Search location...' 
 							<TouchableOpacity
 								key={item.place?.fsq_id || index}
 								style={styles.item}
-								onPress={() => {
-									setQuery(displayText);
-									setSuggestions([]);
-									onSelect(item);
-									setSessionToken(null);
-								}}
+								onPress={() => handleSelect(item)}
+								
 								>
 								<Text>{displayText}</Text>
 							</TouchableOpacity>
