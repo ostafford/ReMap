@@ -161,7 +161,6 @@ const styles = StyleSheet.create({
 
   username: {
     fontSize: 20,
-    fontWeight: 600,
   },
 
   buttonContainer: {
