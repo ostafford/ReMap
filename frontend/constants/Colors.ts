@@ -1,24 +1,3 @@
-<<<<<<< HEAD
-/**
- * Brand Color Palette
- * These colors define ReMap's visual identity
- */
-
-/**
- * Color usage Doc String:
- *
- * import { Colors, AppColors } from '@/constants/Colors';
- *
- * // Quick usage:
- * backgroundColor: Colors.primary
- *
- * // Specific brand color:
- * backgroundColor: AppColors.primary.cetacean
- *
- * // Semantic colors:
- * color: AppColors.semantic.success
- */
-
 const tintColorLight = '#2f95dc';
 const tintColorDark = '#fff';
 
@@ -82,24 +61,3 @@ export const BrandColors = {
 	white: ReMapColors.ui.cardBackground,
 	text: ReMapColors.ui.text,
 };
-=======
-const tintColorLight = '#2f95dc';
-const tintColorDark = '#fff';
-
-export default {
-  light: {
-    text: '#000',
-    background: '#fff',
-    tint: tintColorLight,
-    tabIconDefault: '#ccc',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#fff',
-    background: '#000',
-    tint: tintColorDark,
-    tabIconDefault: '#ccc',
-    tabIconSelected: tintColorDark,
-  },
-};
->>>>>>> origin/backend

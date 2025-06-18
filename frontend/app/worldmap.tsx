@@ -15,7 +15,7 @@ import {
 	Text,
 	TouchableOpacity,
 	TouchableWithoutFeedback,
-	View, 
+	View,
 } from 'react-native';
 
 // ==================================
@@ -349,7 +349,6 @@ export default function WorldMapScreen() {
 		}
 	};
 
-
 	// =============================
 	//   SOCIAL CIRCLES SECTION
 	// =============================
@@ -380,8 +379,8 @@ export default function WorldMapScreen() {
 	};
 
 	const navigateToProfile = () => {
-		router.push('/profile')
-	}
+		router.push('/profile');
+	};
 
 	// =========================
 	//   WORLDMAP PAGE RENDER
@@ -395,7 +394,7 @@ export default function WorldMapScreen() {
 				<Animated.View
 					style={[
 						styles.animatedSearchContainer,
-						{ transform: [{translateY: slideAnim }] },
+						{ transform: [{ translateY: slideAnim }] },
 					]}
 				>
 					<FoursquareSearch
@@ -499,15 +498,15 @@ export default function WorldMapScreen() {
 								style={styles.circleSelections}
 							/> */}
 
-								{/* Social Circles with Animation (Drop-Down) */}
-								<View style={{ alignItems: 'flex-end' }}>
-									{/* <IconButton
+							{/* Social Circles with Animation (Drop-Down) */}
+							<View style={{ alignItems: 'flex-end' }}>
+								{/* <IconButton
 										icon="users"
 										onPress={toggleSocials}
 										size={28}
 										style={styles.socialSelection}
 									/> */}
-									{/* <Animated.View
+								{/* <Animated.View
 										style={[
 											styles.socialsBacking,
 											{
@@ -531,85 +530,77 @@ export default function WorldMapScreen() {
 											},
 										]}
 									> */}
-										<ScrollView
-											contentContainerStyle={
-												styles.socialsList
-											}
-										>
-											{mockCircles.map(
-												(circle, index) => (
-													<TouchableOpacity
-														key={index}
-														style={
-															styles.socialCircleWrapper
-														}
-													>
-														<Image
-															source={{
-																uri: circle.avatar,
-															}}
-															style={
-																styles.socialCircleImage
-															}
-														/>
-													</TouchableOpacity>
-												)
-											)}
-										</ScrollView>
-									{/* </Animated.View> */}
-								</View>
-							</View>
-
-							{/**********************************************/}
-							{/************ UNDER MAP CONTENT ***************/}
-							{/**********************************************/}
-							<View style={styles.scrollContent}>
-								<TouchableOpacity
-									style={
-										searchVisible
-											? styles.fakeInputClose
-											: styles.fakeInput
-									}
-									onPress={
-										searchVisible ? closeSearch : openSearch
-									}
+								<ScrollView
+									contentContainerStyle={styles.socialsList}
 								>
-									<Text
-										style={{
-											color: searchVisible
-												? 'white'
-												: ReMapColors.ui.textSecondary,
-										}}
-									>
-										{searchVisible
-											? 'Close'
-											: 'Search Location'}
-									</Text>
-								</TouchableOpacity>
+									{mockCircles.map((circle, index) => (
+										<TouchableOpacity
+											key={index}
+											style={styles.socialCircleWrapper}
+										>
+											<Image
+												source={{
+													uri: circle.avatar,
+												}}
+												style={styles.socialCircleImage}
+											/>
+										</TouchableOpacity>
+									))}
+								</ScrollView>
+								{/* </Animated.View> */}
 							</View>
+						</View>
 
-							{/* ******************************** */}
-							{/*  FILTER CONTROLS (STARTER PACK)  */}
-							{/* ******************************** */}
-							{userStarterPacks &&
-								userStarterPacks.selectedIds?.length > 0 && (
-									<View style={styles.filterControls}>
-										<View style={styles.filterHeader}>
-											<CaptionText
-												style={styles.filterStatus}
-											>
-												{getFilterStatusText()}
-											</CaptionText>
-											<Button
-												onPress={togglePersonalizedView}
-												style={styles.filterToggle}
-												size="small"
-											>
-												{showPersonalizedPins
-													? 'Show All'
-													: 'My Interests'}
-											</Button>
-										</View>
+						{/**********************************************/}
+						{/************ UNDER MAP CONTENT ***************/}
+						{/**********************************************/}
+						<View style={styles.scrollContent}>
+							<TouchableOpacity
+								style={
+									searchVisible
+										? styles.fakeInputClose
+										: styles.fakeInput
+								}
+								onPress={
+									searchVisible ? closeSearch : openSearch
+								}
+							>
+								<Text
+									style={{
+										color: searchVisible
+											? 'white'
+											: ReMapColors.ui.textSecondary,
+									}}
+								>
+									{searchVisible
+										? 'Close'
+										: 'Search Location'}
+								</Text>
+							</TouchableOpacity>
+						</View>
+
+						{/* ******************************** */}
+						{/*  FILTER CONTROLS (STARTER PACK)  */}
+						{/* ******************************** */}
+						{userStarterPacks &&
+							userStarterPacks.selectedIds?.length > 0 && (
+								<View style={styles.filterControls}>
+									<View style={styles.filterHeader}>
+										<CaptionText
+											style={styles.filterStatus}
+										>
+											{getFilterStatusText()}
+										</CaptionText>
+										<Button
+											onPress={togglePersonalizedView}
+											style={styles.filterToggle}
+											size="small"
+										>
+											{showPersonalizedPins
+												? 'Show All'
+												: 'My Interests'}
+										</Button>
+									</View>
 
 									{/* Show selected categories */}
 									<View style={styles.selectedCategories}>
@@ -644,8 +635,11 @@ export default function WorldMapScreen() {
 									isAuthenticated ? 'address-card' : 'reply'
 								}
 								onPress={
-									user ? navigateToProfile : 
-									isAuthenticated ? profileModal.open : goBack
+									user
+										? navigateToProfile
+										: isAuthenticated
+										? profileModal.open
+										: goBack
 								}
 							/>
 							<IconButton
@@ -731,7 +725,7 @@ export default function WorldMapScreen() {
 					</Modal>
 				</KeyboardAvoidingView>
 			</TouchableWithoutFeedback>
-			
+
 			{/* ==================== */}
 			{/*   PIN BOTTOMSHEET    */}
 			{/* ==================== */}
@@ -757,7 +751,7 @@ const styles = StyleSheet.create({
 	keyboardAvoidingView: {
 		flex: 1,
 	},
-		scrollContent: {
+	scrollContent: {
 		backgroundColor: ReMapColors.ui.cardBackground,
 		borderRadius: 35,
 		borderTopLeftRadius: 30,

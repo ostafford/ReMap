@@ -1,4 +1,3 @@
-// components/createPin/PreviewModal.tsx
 import React from 'react';
 import {
 	View,
