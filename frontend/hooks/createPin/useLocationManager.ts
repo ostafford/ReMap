@@ -9,7 +9,6 @@ import * as Location from 'expo-location';
 //   TYPE DEFINITIONS
 // ======================
 
-// Blueprint for location data structure
 type LocationManagerData = {
 	searchQuery: string;
 	currentCoordinates: { latitude: number; longitude: number } | null;
@@ -17,7 +16,6 @@ type LocationManagerData = {
 	isFromGPS: boolean;
 };
 
-// Hook return interface
 interface LocationManagerHook {
 	locationData: LocationManagerData;
 	isLoadingGPS: boolean;
@@ -43,7 +41,7 @@ interface LocationManagerHook {
 
 export const useLocationManager = (): LocationManagerHook => {
 	// =========================
-	// STATE MANAGEMENT: Empty canvas with initial values
+	// STATE MANAGEMENT:
 	// =========================
 	const [locationData, setLocationData] = useState<LocationManagerData>({
 		searchQuery: '',
@@ -56,7 +54,7 @@ export const useLocationManager = (): LocationManagerHook => {
 	const [isLoadingGeocode, setIsLoadingGeocode] = useState(false);
 
 	// =========================
-	// UPDATE FUNCTIONS: Generic functions with natural language naming
+	// UPDATE FUNCTIONS:
 	// =========================
 
 	// Update function for dynamic field updates
@@ -73,7 +71,6 @@ export const useLocationManager = (): LocationManagerHook => {
 		[]
 	);
 
-	// Reset all location data to empty state
 	const resetLocationData = useCallback(() => {
 		setLocationData({
 			searchQuery: '',
@@ -185,7 +182,7 @@ export const useLocationManager = (): LocationManagerHook => {
 		[updateLocationField]
 	);
 
-	// Convert coordinates to real address (reverse geocoding)
+	// (reverse geocoding)
 	const convertCoordinatesToAddress = useCallback(
 		async (coords: { latitude: number; longitude: number }) => {
 			setIsLoadingGeocode(true);
@@ -234,7 +231,6 @@ export const useLocationManager = (): LocationManagerHook => {
 	// USER INTERACTION FUNCTIONS
 	// =========================
 
-	// Update location when user types in search box
 	const updateLocationFromUserInput = useCallback(
 		(query: string) => {
 			updateLocationField('searchQuery', query);
@@ -243,7 +239,6 @@ export const useLocationManager = (): LocationManagerHook => {
 		[updateLocationField]
 	);
 
-	// Update location when user drags pin on map
 	const updateLocationFromMapDrag = useCallback(
 		(coords: { latitude: number; longitude: number; address?: string }) => {
 			updateLocationField('currentCoordinates', coords);
@@ -265,7 +260,7 @@ export const useLocationManager = (): LocationManagerHook => {
 	);
 
 	// =========================
-	// RETURN INTERFACE: Public API for components
+	// RETURN INTERFACE:
 	// =========================
 	return {
 		// State data

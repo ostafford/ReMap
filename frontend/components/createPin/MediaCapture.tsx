@@ -30,11 +30,11 @@ interface MediaCaptureProps {
 	isRecording: boolean;
 	isPlayingAudio: boolean;
 	onCameraPress: () => Promise<void>;
-	onAudioPress?: () => Promise<void>; // ← Add ?
+	onAudioPress?: () => Promise<void>;
 	onRemoveMedia: (index: number) => void;
-	onRemoveAudio?: () => void; // ← Add ?
-	onPlayAudio?: () => Promise<void>; // ← Add ?
-	onStopAudio?: () => Promise<void>; // ← Add ?
+	onRemoveAudio?: () => void;
+	onPlayAudio?: () => Promise<void>;
+	onStopAudio?: () => Promise<void>;
 	onImagePreview?: (uri: string) => void;
 	title?: string;
 	helperText?: string;

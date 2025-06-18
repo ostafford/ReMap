@@ -1,9 +1,3 @@
-/*
- * VISIBILITY SELECTOR COMPONENT
- * UI component for selecting privacy visibility options (public, social, private)
- * Updated to work with refactored usePrivacySettings hook
- */
-
 // ================
 //   CORE IMPORTS
 // ================
@@ -74,7 +68,7 @@ const VISIBILITY_OPTIONS: VisibilityOptionConfig[] = [
 // ==========================
 
 export function VisibilitySelector({
-	selectedVisibility,
+	// selectedVisibility,
 	onSelect,
 	isSelected,
 	description,

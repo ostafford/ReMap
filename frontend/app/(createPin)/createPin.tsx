@@ -61,10 +61,6 @@ import { ImageModal } from '@/components/createPin/ImageModal';
 // TESTING
 // import { PrivacySettingsTest } from '@/components/createPin/PrivacySettingsTest';
 
-// =========================
-//   TYPE DEFINITIONS
-// =========================
-
 // ========================
 //   COMPONENT DEFINITION
 // ========================
@@ -73,24 +69,6 @@ export default function CreatePinScreen() {
 	// ====================
 	//   STATE MANAGEMENT
 	// ====================
-
-	// ===========================
-	//   SPECIALIZED MODAL STATES
-	// ===========================
-
-	// Notification Modal (success, error, warning, info)
-	const [notificationState, setNotificationState] = useState<{
-		visible: boolean;
-		type: 'success' | 'error' | 'warning' | 'info';
-		title: string;
-		message: string;
-	}>({
-		visible: false,
-		type: 'info',
-		title: '',
-		message: '',
-	});
-
 	// Image Preview Modal
 	const [imageModalState, setImageModalState] = useState<{
 		visible: boolean;
@@ -99,15 +77,6 @@ export default function CreatePinScreen() {
 		visible: false,
 		imageUri: null,
 	});
-
-	// Preview Modal (memory preview)
-	const [previewModalState, setPreviewModalState] = useState({
-		visible: false,
-	});
-
-	// ===================
-	// 	HELPER FUNCTIONS
-	// ===================
 
 	// ====================
 	//   MODAL COMPONENTS
@@ -121,11 +90,8 @@ export default function CreatePinScreen() {
 		[]
 	);
 
-	const hideModal = useCallback(() => {
-		// Simple dismiss
-	}, []);
+	const hideModal = useCallback(() => {}, []);
 
-	// Keep your image preview functions as they were working
 	const showImagePreview = useCallback((imageUri: string) => {
 		setImageModalState({
 			visible: true,
@@ -235,11 +201,11 @@ export default function CreatePinScreen() {
 
 	const {
 		previewData,
-		isSaving,
-		uploadProgress,
+		// isSaving,
+		// uploadProgress,
 		handlePreviewMemory,
 		handleConfirmSave,
-		resetForm,
+		// resetForm,
 	} = createPinLogic;
 
 	// ===================
@@ -364,13 +330,12 @@ export default function CreatePinScreen() {
 						<Button
 							onPress={() => {
 								if (validateMemoryContent()) {
-									// ← This shows errors if validation fails
 									handlePreviewMemory();
 								}
 							}}
 							style={styles.previewButton}
 							variant="primary"
-							disabled={!hasValidMemoryContent} // ← This silently checks without showing errors
+							disabled={!hasValidMemoryContent}
 						>
 							Preview Memory
 						</Button>

@@ -7,16 +7,14 @@ import { useState, useCallback, useEffect } from 'react';
 //   SERVICE IMPORTS (API LAYER)
 // ================================
 // TODO: Replace with actual API service once backend is ready
-// import { fetchUserSocialCircles } from '@/services/api/socialCircleService';
+// import { APIfetchName } from '@/services/api/ExampleSocialCircleService';
 
 // ==================
 // TYPE DEFINITIONS
 // ==================
-
-// Privacy visibility options that user can select
 type VisibilityOption = 'public' | 'social' | 'private';
 
-// Social circle data structure matching backend API response
+// API Structure (OPEN TO CHANGE IF NEEDED)
 interface SocialCircle {
 	id: string;
 	name: string;
@@ -29,7 +27,6 @@ interface SocialCircle {
 	}>;
 }
 
-// Main state structure for privacy settings - "empty canvas" approach
 type PrivacySettingsState = {
 	selectedVisibility: VisibilityOption[];
 	selectedSocialCircles: string[];
@@ -49,7 +46,7 @@ interface UsePrivacySettingsReturn {
 	isLoading: boolean;
 	error: string | null;
 
-	// Action handlers with descriptive names
+	// Action handlers
 	toggleVisibilityOption: (option: VisibilityOption) => void;
 	toggleSocialCircleSelection: (circleId: string) => void;
 
@@ -70,23 +67,23 @@ interface UsePrivacySettingsReturn {
 }
 
 // =============================
-// PLACEHOLDER API FUNCTIONS
+// PLACEHOLDER API FUNCTIONS (TESTING MODE)
 // =============================
-const fetchUserSocialCircles = async (): Promise<SocialCircle[]> => {
-	// TODO: Replace with actual API call
-	// Example: const response = await apiClient.get('/user/social-circles');
-	// return response.data;
+// const fetchUserSocialCircles = async (): Promise<SocialCircle[]> => {
+// 	// TODO: Replace with actual API call
+// 	// Example: const response = await apiClient.get('/user/social-circles');
+// 	// return response.data;
 
-	// Temporary placeholder - simulates API delay
-	return new Promise((resolve) => {
-		setTimeout(() => {
-			console.log(
-				'📡 API Placeholder: Would fetch user social circles here'
-			);
-			resolve([]); // Empty array until backend is connected
-		}, 500);
-	});
-};
+// 	// Temporary placeholder - simulates API delay
+// 	return new Promise((resolve) => {
+// 		setTimeout(() => {
+// 			console.log(
+// 				'📡 API Placeholder: Would fetch user social circles here'
+// 			);
+// 			resolve([]); // Empty array until backend is connected
+// 		}, 500);
+// 	});
+// };
 
 // ============================
 // CUSTOM HOOK IMPLEMENTATION
@@ -106,15 +103,15 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 	});
 
 	// ===========================
-	// UPDATE FUNCTION: Generic state updater following team template
+	// UPDATE FUNCTION:
 	// ===========================
 	const updatePrivacyField = <Field extends keyof PrivacySettingsState>(
 		field: Field,
 		value: PrivacySettingsState[Field]
 	) => {
 		setPrivacyState((prev) => ({
-			...prev, // Spread operator: preserve existing values
-			[field]: value, // Dynamic property assignment
+			...prev,
+			[field]: value,
 		}));
 	};
 
@@ -127,9 +124,10 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 			updatePrivacyField('error', null);
 
 			try {
+				// ATTN: COMMENTED THIS OUT TO TEST WITHOUT TEST API TEMPLATE
 				// API call placeholder - ready for backend integration
-				const socialCircles = await fetchUserSocialCircles();
-				updatePrivacyField('userSocialCircles', socialCircles);
+				// const socialCircles = await fetchUserSocialCircles();
+				// updatePrivacyField('userSocialCircles', socialCircles);
 			} catch (error) {
 				console.error('Failed to load social circles:', error);
 				updatePrivacyField('error', 'Failed to load social circles');
@@ -143,18 +141,17 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 	}, []);
 
 	// ===============================
-	// VISIBILITY SELECTION LOGIC: Handles mutual exclusivity rules
+	// VISIBILITY SELECTION LOGIC:
 	// ===============================
 	const toggleVisibilityOption = useCallback((option: VisibilityOption) => {
 		setPrivacyState((prev) => {
-			// If option is already selected, remove it (but keep at least one)
+			// Essentially creates the array of choices
 			if (prev.selectedVisibility.includes(option)) {
 				if (prev.selectedVisibility.length > 1) {
 					const newVisibility = prev.selectedVisibility.filter(
 						(item) => item !== option
 					);
 
-					// If removing social, hide dropdown and clear selections
 					if (option === 'social') {
 						return {
 							...prev,
@@ -169,7 +166,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 						selectedVisibility: newVisibility,
 					};
 				}
-				return prev; // Don't allow removing last option
+				return prev;
 			}
 
 			// Adding new option
@@ -193,7 +190,6 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 				);
 			}
 
-			// Show social dropdown when social is selected
 			const shouldShowDropdown = newVisibility.includes('social');
 
 			return {
@@ -205,7 +201,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 	}, []);
 
 	// ===============================
-	// SOCIAL CIRCLE SELECTION LOGIC: Toggle individual circles
+	// SOCIAL CIRCLE SELECTION LOGIC:
 	// ===============================
 	const toggleSocialCircleSelection = useCallback((circleId: string) => {
 		setPrivacyState((prev) => {
@@ -224,7 +220,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 	}, []);
 
 	// ===============================
-	// UTILITY FUNCTIONS: Helper functions for components
+	// UTILITY FUNCTIONS
 	// ===============================
 
 	const isVisibilitySelected = useCallback(
@@ -275,7 +271,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 	}, []);
 
 	// ===============================
-	// COMPUTED PROPERTIES: Summary data for parent components
+	// COMPUTED PROPERTIES
 	// ===============================
 	const privacySummary = {
 		isPublic: privacyState.selectedVisibility.includes('public'),
@@ -304,7 +300,7 @@ export function usePrivacySettings(): UsePrivacySettingsReturn {
 	};
 
 	// ===============================
-	// RETURN INTERFACE: Public API for components
+	// RETURN INTERFACE:
 	// ===============================
 	return {
 		// Current state

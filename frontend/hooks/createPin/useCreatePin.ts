@@ -109,6 +109,8 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	// =======================
 	//  DATA TRANSFORMATION
 	// =======================
+
+	// Global
 	const createCoreMemoryData = useCallback(() => {
 		// Shared validation and data preparation
 		if (!coordinates) {
@@ -146,7 +148,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		selectedMedia,
 		audioUri,
 	]);
-
+	// Frontend
 	const createPreviewData = useCallback((): MemoryData => {
 		const coreData = createCoreMemoryData();
 
@@ -180,6 +182,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		};
 	}, [createCoreMemoryData]);
 
+	// Backend
 	const createSubmissionData = useCallback((): CreateMemoryRequest => {
 		const coreData = createCoreMemoryData();
 
@@ -208,17 +211,12 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	// ===========================
 	const handlePreviewMemory = useCallback(() => {
 		if (!validateMemoryContent()) {
-			return; // Validation errors handled by memoryContent hook
+			return;
 		}
 
 		const memoryData = createPreviewData();
 		setPreviewData(memoryData);
 	}, [validateMemoryContent, createPreviewData]);
-
-	// const hideModal = useCallback(() => {
-	// 	hideModal();
-	// 	setPreviewData(null);
-	// }, [hideModal]);
 
 	// ===========================
 	//   SAVE FUNCTIONALITY
@@ -251,9 +249,8 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 
 				await new Promise((resolve) => setTimeout(resolve, 1000));
 
-				console.log('Frontend data:', memoryData);
-				console.log('Backend payload:', backendData);
-				console.log('✅ Test save completed');
+				console.log('Frontend data (OBJECT):', memoryData);
+				console.log('Backend payload (OBJECT):', backendData);
 
 				const result = {
 					success: true,
@@ -301,12 +298,10 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		(memoryData: MemoryData, result: any) => {
 			hideModal();
 			console.log('Save successful:', memoryData, result);
-
-			// Navigate directly without showing another modal
 			router.replace('/worldmap');
 			resetForm();
 		},
-		[hideModal] // Only depend on stable functions
+		[hideModal]
 	);
 
 	const handleSaveError = useCallback((error: string) => {

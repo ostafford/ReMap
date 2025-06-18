@@ -1,9 +1,3 @@
-/*
- * SOCIAL CIRCLE SELECTOR COMPONENT
- * UI component for displaying and selecting social circles in a grid layout
- * Updated to work with refactored usePrivacySettings hook
- */
-
 // ================
 //   CORE IMPORTS
 // ================

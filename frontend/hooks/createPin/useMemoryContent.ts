@@ -14,7 +14,7 @@ interface UseMemoryContentReturn {
 	memoryDescription: string;
 	setMemoryDescription: (description: string) => void;
 
-	// Location fields (simplified - no duplicate state management)
+	// Location fields
 	locationQuery: string;
 	setLocationQuery: (query: string) => void;
 	coordinates: {
@@ -55,12 +55,12 @@ export function useMemoryContent({
 	showModal,
 }: UseMemoryContentProps): UseMemoryContentReturn {
 	// ==================
-	// STATE MANAGEMENT: Memory content only (location managed by useLocationManager)
+	// STATE MANAGEMENT:
 	// ==================
 	const [memoryTitle, setMemoryTitle] = useState('');
 	const [memoryDescription, setMemoryDescription] = useState('');
 
-	// Location state: Only store final results (no duplicate management)
+	// Location state: Only store final results
 	const [locationQuery, setLocationQuery] = useState('');
 	const [coordinates, setCoordinates] = useState<{
 		latitude: number;
@@ -76,23 +76,23 @@ export function useMemoryContent({
 	const descriptionInputRef = useRef<any>(null);
 
 	// ======================
-	// COORDINATE HANDLERS: Simplified to just receive final results
+	// COORDINATE HANDLERS:
 	// ======================
 
 	// Receive final coordinates from LocationSelector (which gets them from useLocationManager)
 	const updateCoordinatesFromLocationSelector = useCallback(
 		(coords: { latitude: number; longitude: number; address: string }) => {
 			setCoordinates(coords);
-			console.log('📍 Final coordinates for memory:', coords); // Debug log for development
+			console.log('📍 Final coordinates for memory:', coords);
 		},
 		[]
 	);
 
 	// ===================
-	// VALIDATION LOGIC: Separate checking from error display
+	// VALIDATION LOGIC:
 	// ===================
 
-	// Silent validation - just returns true/false (for button disabled state)
+	// just returns true/false (for button disabled state)
 	const checkValidation = useCallback((): boolean => {
 		return (
 			memoryTitle.trim() !== '' &&
@@ -102,9 +102,8 @@ export function useMemoryContent({
 		);
 	}, [memoryTitle, locationQuery, coordinates, memoryDescription]);
 
-	// Validation with error messages - only call when user tries to submit
+	// only call when user tries to submit
 	const validateMemoryContent = useCallback((): boolean => {
-		// Check memory title
 		if (!memoryTitle.trim()) {
 			showModal(
 				'error',
@@ -114,7 +113,6 @@ export function useMemoryContent({
 			return false;
 		}
 
-		// Check location
 		if (!locationQuery.trim()) {
 			showModal(
 				'error',
@@ -134,7 +132,6 @@ export function useMemoryContent({
 			return false;
 		}
 
-		// Check description
 		if (!memoryDescription.trim()) {
 			showModal(
 				'error',
@@ -151,7 +148,6 @@ export function useMemoryContent({
 	// UTILITY FUNCTIONS
 	// ====================
 
-	// Reset all memory content to empty state
 	const resetMemoryContent = useCallback(() => {
 		setMemoryTitle('');
 		setMemoryDescription('');
@@ -160,24 +156,24 @@ export function useMemoryContent({
 	}, []);
 
 	// ======================
-	// COMPUTED PROPERTIES: Check if form has valid content
+	// COMPUTED PROPERTIES:
 	// ======================
 
-	const hasValidMemoryContent =
-		memoryTitle.trim() !== '' &&
-		locationQuery.trim() !== '' &&
-		coordinates !== null &&
-		memoryDescription.trim() !== '';
+	// const hasValidMemoryContent =
+	// 	memoryTitle.trim() !== '' &&
+	// 	locationQuery.trim() !== '' &&
+	// 	coordinates !== null &&
+	// 	memoryDescription.trim() !== '';
 
-	console.log('Memory validation check:', {
-		title: !!memoryTitle.trim(),
-		location: !!locationQuery.trim(),
-		coordinates: !!coordinates,
-		description: !!memoryDescription.trim(),
-	});
+	// console.log('Memory validation check:', {
+	// 	title: !!memoryTitle.trim(),
+	// 	location: !!locationQuery.trim(),
+	// 	coordinates: !!coordinates,
+	// 	description: !!memoryDescription.trim(),
+	// });
 
 	// =======================
-	// RETURN HOOK INTERFACE: Public API for components
+	// RETURN HOOK INTERFACE:
 	// =======================
 
 	return {
@@ -187,7 +183,7 @@ export function useMemoryContent({
 		memoryDescription,
 		setMemoryDescription,
 
-		// Location state (simplified - no duplicate management)
+		// Location state
 		locationQuery,
 		setLocationQuery,
 		coordinates,

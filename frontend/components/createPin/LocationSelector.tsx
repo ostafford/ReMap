@@ -116,10 +116,9 @@ export function LocationSelector({
 	// EVENT HANDLERS
 	// ================
 
-	// Handle when user types in search box
 	const handleSearchInputChange = (searchText: string) => {
-		onChange(searchText); // Update parent form
-		updateLocationFromUserInput(searchText); // Update location hook
+		onChange(searchText);
+		updateLocationFromUserInput(searchText);
 	};
 
 	// Handle GPS button press
@@ -127,7 +126,6 @@ export function LocationSelector({
 		await fetchDeviceGPSLocation();
 	};
 
-	// Handle when user drags pin on map
 	const handleMapPinDrag = (coords: {
 		latitude: number;
 		longitude: number;
@@ -148,7 +146,7 @@ export function LocationSelector({
 			) {
 				convertAddressToCoordinates(locationData.searchQuery);
 			}
-		}, 3000); // 3-second debounce for API policy compliance
+		}, 3000); // API policy compliance
 
 		return () => clearTimeout(timeoutId);
 	}, [
@@ -173,7 +171,7 @@ export function LocationSelector({
 		onCoordinateChange,
 	]);
 
-	// Sync GPS results to search input
+	// Sync GPS results to search input (Converting long & lat to text)
 	useEffect(() => {
 		if (locationData.isFromGPS && locationData.displayAddress) {
 			onChange(locationData.displayAddress);
@@ -188,7 +186,6 @@ export function LocationSelector({
 	const shouldShowMap =
 		value.length > 2 || locationData.currentCoordinates !== null;
 
-	// Determine overall loading state
 	const isAnyLoading = isLoadingGPS || isLoadingGeocode;
 
 	// =================

@@ -56,7 +56,7 @@ interface UseMediaCaptureProps {
 		title: string,
 		message: string
 	) => void;
-	// New configuration options
+
 	mode?: 'full' | 'photo-only' | 'single-photo';
 	allowAudio?: boolean;
 	allowMultiple?: boolean;
@@ -94,22 +94,18 @@ export function useMediaCapture({
 	useEffect(() => {
 		return () => {
 			try {
-				// Only try to stop if recorder exists and is recording
+				// Only try to stop if recorder exists and is recording (THIS PLAYER NEEDS TO EXIST)
 				if (audioRecorder && audioRecorder.isRecording) {
 					audioRecorder.stop();
 				}
-			} catch (error) {
-				// Silently handle - this is expected during cleanup
-			}
+			} catch (error) {}
 
 			try {
 				// Only try to remove if player exists
 				if (audioPlayer) {
 					audioPlayer.remove();
 				}
-			} catch (error) {
-				// Silently handle - this is expected during cleanup
-			}
+			} catch (error) {}
 		};
 	}, [audioRecorder, audioPlayer]);
 
@@ -186,7 +182,7 @@ export function useMediaCapture({
 				);
 			}
 		} catch (error) {
-			console.error('Error opening camera:', error);
+			// console.error('Error opening camera:', error);
 			Alert.alert(
 				'Camera Error',
 				'Could not open camera. Please try again.'
@@ -208,9 +204,9 @@ export function useMediaCapture({
 					name: `Library Photo ${selectedMedia.length + 1}`,
 				};
 				if (mode === 'single-photo') {
-					setSelectedMedia([newMedia]); // Replace existing photo
+					setSelectedMedia([newMedia]); // Replace existing photo (THIS IS USED FOR PROFILE PHOTO)
 				} else {
-					setSelectedMedia((prev) => [...prev, newMedia]); // Add to collection
+					setSelectedMedia((prev) => [...prev, newMedia]); // Add to Object
 				}
 				showModal(
 					'success',
@@ -265,13 +261,10 @@ export function useMediaCapture({
 
 	const stopRecording = useCallback(async () => {
 		try {
-			console.log('Stopping recording...');
 			setIsRecording(false);
 
-			// Stop recording - the hook handles the rest!
 			await audioRecorder.stop();
 
-			// Get the recording URI
 			const uri = audioRecorder.uri;
 			if (uri) {
 				setAudioUri(uri);
@@ -284,7 +277,6 @@ export function useMediaCapture({
 				console.log('Recording saved to:', uri);
 			}
 		} catch (error) {
-			console.error('Error stopping recording:', error);
 			Alert.alert(
 				'Recording Error',
 				'Could not stop recording. Please try again.',
@@ -318,11 +310,11 @@ export function useMediaCapture({
 		try {
 			setIsPlayingAudio(true);
 
-			// Use the new player hook - much simpler!
+			// Use new player hook
 			audioPlayer.replace({ uri: audioUri });
 			audioPlayer.play();
 
-			console.log('Playing recording from:', audioUri);
+			// console.log('Playing recording from:', audioUri);
 		} catch (error) {
 			console.error('Error playing recording:', error);
 			setIsPlayingAudio(false);
@@ -339,7 +331,7 @@ export function useMediaCapture({
 			audioPlayer.pause();
 			setIsPlayingAudio(false);
 		} catch (error) {
-			console.error('Error stopping playback:', error);
+			// console.error('Error stopping playback:', error);
 		}
 	}, [audioPlayer]);
 
@@ -348,9 +340,7 @@ export function useMediaCapture({
 			if (audioPlayer) {
 				audioPlayer.pause();
 			}
-		} catch (error) {
-			// Silently handle
-		}
+		} catch (error) {}
 		setIsPlayingAudio(false);
 		setAudioUri(null);
 	}, [audioPlayer]);

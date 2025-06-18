@@ -24,13 +24,13 @@ import { ReMapColors } from '@/constants/Colors';
 // ==================
 
 interface MiniMapDisplayProps {
-	// Data to display (comes from useLocationManager)
+	// Data to display
 	coordinates: { latitude: number; longitude: number } | null;
 	displayAddress: string;
 	isLoading: boolean;
 	visible: boolean;
 
-	// User interaction callbacks (sent back to parent)
+	// User interaction callbacks
 	onPinDragComplete: (coords: {
 		latitude: number;
 		longitude: number;
@@ -55,7 +55,7 @@ export function MiniMapDisplay({
 	style,
 }: MiniMapDisplayProps) {
 	// ==================
-	// EARLY RETURN: Don't render if not visible
+	// EARLY RETURN:
 	// ==================
 	if (!visible) return null;
 
@@ -68,7 +68,7 @@ export function MiniMapDisplay({
 	};
 
 	// ==================
-	// MAP REGION: Set zoom level around coordinates
+	// MAP REGION:
 	// ==================
 	const mapRegion: Region = {
 		latitude: displayCoordinates.latitude,
@@ -77,17 +77,15 @@ export function MiniMapDisplay({
 		longitudeDelta: 0.01,
 	};
 
-	// ===================
+	// ===========================
 	// USER INTERACTION HANDLERS
-	// ===================
+	// ===========================
 
-	// Handle when user drags the red pin to new location
 	const handlePinDragEnd = (event: any) => {
 		const newCoordinates = event.nativeEvent.coordinate;
 		onPinDragComplete(newCoordinates);
 	};
 
-	// Handle when user moves the map view (optional)
 	const handleMapRegionChangeComplete = (region: Region) => {
 		onMapRegionChange?.(region);
 	};
