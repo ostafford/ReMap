@@ -78,7 +78,7 @@ export const useLocationManager = (): LocationManagerHook => {
 			displayAddress: '',
 			isFromGPS: false,
 		});
-	}, []);
+	}, [setLocationData]);
 
 	// =========================
 	// GPS LOCATION FUNCTIONS

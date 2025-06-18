@@ -91,7 +91,46 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
 							: 'Now'}
 					</CaptionText>
 				</View>
+				{/* Media Preview */}
 
+				{/* Simple Photo Preview */}
+				{previewData.media.photos.length > 0 && (
+					<View style={styles.simplePhotoPreview}>
+						{previewData.media.photos
+							.slice(0, 3)
+							.map((photo, index) => (
+								<TouchableOpacity
+									key={index}
+									style={styles.simplePhotoThumbnail}
+									onPress={() => onImagePreview(photo.uri)}
+								>
+									<Image
+										source={{ uri: photo.uri }}
+										style={styles.simpleThumbImage}
+										resizeMode="cover"
+									/>
+								</TouchableOpacity>
+							))}
+						{previewData.media.photos.length > 3 && (
+							<View style={styles.morePhotosIndicator}>
+								<CaptionText style={styles.morePhotosText}>
+									+{previewData.media.photos.length - 3}
+								</CaptionText>
+							</View>
+						)}
+					</View>
+				)}
+				{previewData.metadata.totalMediaItems > 0 && (
+					<View style={styles.previewSection}>
+						<LabelText>Attached Media:</LabelText>
+						<BodyText style={styles.mediaCount}>
+							{getMediaSummary().photoCount} photo(s),{' '}
+							{getMediaSummary().videoCount} video(s)
+							{getMediaSummary().hasAudio &&
+								', 1 audio recording'}
+						</BodyText>
+					</View>
+				)}
 				{/* Description */}
 				{previewData?.content?.description && (
 					<View style={styles.previewSection}>
@@ -135,53 +174,6 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
 						</View>
 					)}
 				</View>
-
-				{/* Media Preview */}
-				{previewData.metadata.totalMediaItems > 0 && (
-					<View style={styles.previewSection}>
-						<LabelText>Attached Media:</LabelText>
-						<BodyText style={styles.mediaCount}>
-							{getMediaSummary().photoCount} photo(s),{' '}
-							{getMediaSummary().videoCount} video(s)
-							{getMediaSummary().hasAudio &&
-								', 1 audio recording'}
-						</BodyText>
-
-						{/* Simple Photo Preview */}
-						{previewData.media.photos.length > 0 && (
-							<View style={styles.simplePhotoPreview}>
-								{previewData.media.photos
-									.slice(0, 3)
-									.map((photo, index) => (
-										<TouchableOpacity
-											key={index}
-											style={styles.simplePhotoThumbnail}
-											onPress={() =>
-												onImagePreview(photo.uri)
-											}
-										>
-											<Image
-												source={{ uri: photo.uri }}
-												style={styles.simpleThumbImage}
-												resizeMode="cover"
-											/>
-										</TouchableOpacity>
-									))}
-								{previewData.media.photos.length > 3 && (
-									<View style={styles.morePhotosIndicator}>
-										<CaptionText
-											style={styles.morePhotosText}
-										>
-											+
-											{previewData.media.photos.length -
-												3}
-										</CaptionText>
-									</View>
-								)}
-							</View>
-						)}
-					</View>
-				)}
 
 				<CaptionText align="center" style={styles.previewFooter}>
 					Review your memory above, then choose to edit or confirm
