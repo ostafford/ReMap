@@ -83,6 +83,7 @@ const validateMemoryData = (data: CreateMemoryRequest): string[] => {
 
 	return errors;
 };
+
 export const createMemoryPin = async (
 	memoryData: CreateMemoryRequest,
 	callbacks?: UploadProgressCallbacks
@@ -97,11 +98,7 @@ export const createMemoryPin = async (
 				`Validation failed: ${validationErrors.join(', ')}`
 			);
 		}
-		const totalSteps =
-			memoryData.media.photos.length +
-			memoryData.media.videos.length +
-			(memoryData.media.audio ? 1 : 0) +
-			1;
+		const totalSteps = 1;
 
 		let completedSteps = 0;
 		const updateProgress = (currentFile: string) => {
@@ -116,67 +113,106 @@ export const createMemoryPin = async (
 		};
 
 		// Upload all media with concurrency control
-		const allMediaFiles = [
-			...memoryData.media.photos.map((photo) => ({
-				...photo,
-				folder: 'images' as const,
-			})),
-			...memoryData.media.videos.map((video) => ({
-				...video,
-				folder: 'videos' as const,
-			})),
-		];
+		// const allMediaFiles = [
+		// 	...memoryData.media.photos.map((photo) => ({
+		// 		...photo,
+		// 		folder: 'images' as const,
+		// 	})),
+		// 	...memoryData.media.videos.map((video) => ({
+		// 		...video,
+		// 		folder: 'videos' as const,
+		// 	})),
+		// ];
 
-		const mediaUrls = await uploadWithConcurrency(
-			allMediaFiles,
-			async (file) => {
-				const url = await uploadMediaFile(
-					file.uri,
-					file.folder,
-					user.id
-				);
-				updateProgress(file.name);
-				return url;
-			},
-			3 // Max 3 concurrent uploads
-		);
+		// const mediaUrls = await uploadWithConcurrency(
+		// 	allMediaFiles,
+		// 	async (file) => {
+		// 		const url = await uploadMediaFile(
+		// 			file.uri,
+		// 			file.folder,
+		// 			user.id
+		// 		);
+		// 		updateProgress(file.name);
+		// 		return url;
+		// 	},
+		// 	3 // Max 3 concurrent uploads
+		// );
 
 		// Upload audio
-		let audioUrl: string | null = null;
-		if (memoryData.media.audio) {
-			audioUrl = await uploadMediaFile(
-				memoryData.media.audio.uri,
-				'audio',
-				user.id
-			);
-			updateProgress('Audio recording');
+		// let audioUrl: string | null = null;
+		// if (memoryData.media.audio) {
+		// 	audioUrl = await uploadMediaFile(
+		// 		memoryData.media.audio.uri,
+		// 		'audio',
+		// 		user.id
+		// 	);
+		// 	updateProgress('Audio recording');
+		// }
+
+		// New Express backend approach
+		const API_BASE_URL = 'http://localhost:3000/api'; // Your backend URL
+
+		// Get JWT token for backend authentication
+		const {
+			data: { session },
+		} = await supabase.auth.getSession();
+		const token = session?.access_token;
+
+		if (!token) {
+			throw new Error('No authentication token found');
 		}
 
-		// Insert pin
-		const { data: pinData, error: pinError } = await supabase
-			.from('pins')
-			.insert([
-				{
-					name: memoryData.name,
-					description: memoryData.description,
-					latitude: memoryData.latitude,
-					longitude: memoryData.longitude,
-					image_urls: mediaUrls.length ? mediaUrls : null,
-					audio_url: audioUrl,
-					owner_id: user.id,
-				},
-			])
-			.select()
-			.single();
+		// Create FormData for file uploads
+		const formData = new FormData();
 
-		if (pinError)
-			throw new Error(`Failed to create pin: ${pinError.message}`);
+		// Add text fields
+		formData.append('name', memoryData.name);
+		formData.append('description', memoryData.description);
+		formData.append('latitude', memoryData.latitude.toString());
+		formData.append('longitude', memoryData.longitude.toString());
+		formData.append('location_query', memoryData.location_query);
+		formData.append('visibility', memoryData.visibility[0] || 'public'); // Take first item from array
+		formData.append(
+			'social_circle_ids',
+			JSON.stringify(memoryData.social_circle_ids)
+		);
 
-		updateProgress('Pin created successfully');
-		callbacks?.onComplete?.();
-		console.log('Memory pin created:', pinData.id);
+		// Add image files
+		memoryData.media.photos.forEach((photo, index) => {
+			formData.append('image', {
+				uri: photo.uri,
+				type: 'image/jpeg',
+				name: `photo_${index}.jpg`,
+			} as any);
+		});
 
-		return { success: true, data: pinData };
+		// Add audio file
+		if (memoryData.media.audio) {
+			formData.append('audio', {
+				uri: memoryData.media.audio.uri,
+				type: 'audio/m4a',
+				name: 'audio.m4a',
+			} as any);
+		}
+
+		// Send to backend using fetch
+		const response = await fetch(`${API_BASE_URL}/pins/user`, {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${token}`,
+				// Don't set Content-Type - let fetch set it automatically for FormData
+			},
+			body: formData,
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json();
+			throw new Error(errorData.message || 'Failed to create pin');
+		}
+
+		const result = await response.json();
+
+		return { success: true, data: result };
 	} catch (error) {
 		console.error('Memory creation failed:', error);
 		return {

@@ -358,7 +358,7 @@ export function PinBottomSheet({
 
 const styles = StyleSheet.create({
 	bottomSheetBackground: {
-		backgroundColor: ReMapColors.primary.testing,
+		backgroundColor: ReMapColors.ui.background,
 		borderTopLeftRadius: 20,
 		borderTopRightRadius: 20,
 		shadowColor: '#000',
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
 		elevation: 5,
 	},
 	bottomSheetHandle: {
-		backgroundColor: ReMapColors.primary.testing,
+		backgroundColor: ReMapColors.ui.background,
 		borderTopLeftRadius: 20,
 		borderTopRightRadius: 20,
 	},
