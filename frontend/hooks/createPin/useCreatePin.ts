@@ -222,7 +222,8 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	//   SAVE FUNCTIONALITY
 	// ===========================
 	const handleConfirmSave = useCallback(async () => {
-		const TESTING_MODE = __DEV__ || process.env.NODE_ENV === 'development';
+		console.log('🎯 [DEBUG] handleConfirmSave called');
+		const TESTING_MODE = false;
 
 		setIsSaving(true);
 		setUploadProgress({
@@ -264,7 +265,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 			} else {
 				const result = await createMemoryPin(backendData, {
 					onStart: () => {
-						console.log('Upload started');
+						console.log('📊 [DEBUG] Upload started');
 					},
 					onProgress: setUploadProgress,
 					onFileComplete: (fileName) => {
@@ -277,6 +278,8 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 						console.error('Upload error:', error);
 					},
 				});
+
+				console.log('🎯 [DEBUG] createMemoryPin result:', result);
 
 				if (result.success) {
 					console.log('Memory saved:', result.data);

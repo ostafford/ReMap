@@ -1,5 +1,15 @@
-import { supabase } from '@/lib/supabase';
+// =====================================
+//   MEMORY SERVICE - BACKEND API INTEGRATION
+// =====================================
+// Purpose: API communication layer between frontend hooks and Express.js backend
+// Replaces direct Supabase calls with backend API calls
+
+import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/supabase';
 import { getCurrentUser } from '@/services/auth';
+
+// ==================
+// TYPE DEFINITIONS
+// ==================
 
 export interface CreateMemoryRequest {
 	name: string;
@@ -31,46 +41,202 @@ export interface UploadProgressCallbacks {
 	onError?: (error: Error) => void;
 }
 
-interface UserSocialCircle {
-	id: string;
-	name: string;
-	visibility: string[];
-	isOwner: boolean;
+interface ApiResponse {
+	success: boolean;
+	data?: any;
+	error?: string;
 }
 
-const MEDIA_BUCKET = 'memory-media';
+// ==================
+// CONFIGURATION
+// ==================
 
-const uploadWithConcurrency = async <T>(
-	items: T[],
-	uploadFn: (item: T) => Promise<string>,
-	maxConcurrent: number = 3
-): Promise<string[]> => {
-	const results: string[] = [];
+const API_BASE_URL = __DEV__
+	? 'http://192.168.1.22:3000'
+	: 'https://your-production-api.com'; // TODO: Replace with actual production URL
 
-	for (let i = 0; i < items.length; i += maxConcurrent) {
-		const batch = items.slice(i, i + maxConcurrent);
-		const batchResults = await Promise.all(
-			batch.map((item) => uploadFn(item))
-		);
-		results.push(...batchResults);
+const API_ENDPOINTS = {
+	CREATE_PIN: '/api/pins/user',
+	HEALTH_CHECK: '/api/profiles',
+} as const;
+
+// ==================
+// AUTHENTICATION HELPER
+// ==================
+
+/**
+ * Gets the JWT token from Supabase auth for backend API calls
+ * Following your teammate's noted pattern:
+ * "Add JWT to headers as 'Authorization': 'Bearer {token}'"
+ */
+const getAuthToken = async (): Promise<string> => {
+	try {
+		const { user } = await getCurrentUser();
+		if (!user) {
+			throw new Error('User not authenticated');
+		}
+
+		// Get the session to access the JWT token
+		const { supabase } = await import('@/lib/supabase');
+		const {
+			data: { session },
+			error,
+		} = await supabase.auth.getSession();
+
+		if (error || !session?.access_token) {
+			throw new Error('Could not retrieve authentication token');
+		}
+
+		return session.access_token;
+	} catch (error) {
+		console.error('Failed to get auth token:', error);
+		throw new Error('Authentication failed');
 	}
-
-	return results;
 };
 
+// ==================
+// DATA TRANSFORMATION
+// ==================
+
+/**
+ * Converts frontend data format to FormData for backend API
+ * Handles the separation of regular data vs files
+ */
+const buildFormDataForBackend = async (
+	memoryData: CreateMemoryRequest
+): Promise<FormData> => {
+	const formData = new FormData();
+
+	// Add regular text data
+	formData.append('name', memoryData.name);
+	formData.append('description', memoryData.description);
+	formData.append('latitude', memoryData.latitude.toString());
+	formData.append('longitude', memoryData.longitude.toString());
+
+	// Add visibility as JSON string (since FormData doesn't handle arrays well)
+	formData.append('visibility', JSON.stringify(memoryData.visibility));
+	formData.append(
+		'social_circle_ids',
+		JSON.stringify(memoryData.social_circle_ids)
+	);
+	formData.append('location_query', memoryData.location_query);
+
+	// Add image files
+	for (const photo of memoryData.media.photos) {
+		try {
+			// Convert URI to blob for upload
+			const response = await fetch(photo.uri);
+			const blob = await response.blob();
+
+			formData.append('image', blob, photo.name);
+		} catch (error) {
+			console.error(`Failed to process photo ${photo.name}:`, error);
+			throw new Error(`Could not process photo: ${photo.name}`);
+		}
+	}
+
+	// Add video files
+	for (const video of memoryData.media.videos) {
+		try {
+			const response = await fetch(video.uri);
+			const blob = await response.blob();
+
+			formData.append('video', blob, video.name);
+		} catch (error) {
+			console.error(`Failed to process video ${video.name}:`, error);
+			throw new Error(`Could not process video: ${video.name}`);
+		}
+	}
+
+	// Add audio file
+	if (memoryData.media.audio) {
+		try {
+			const response = await fetch(memoryData.media.audio.uri);
+			const blob = await response.blob();
+
+			formData.append('audio', blob, 'audio_recording.m4a');
+		} catch (error) {
+			console.error('Failed to process audio:', error);
+			throw new Error('Could not process audio recording');
+		}
+	}
+
+	return formData;
+};
+
+// ==================
+// PROGRESS TRACKING
+// ==================
+
+/**
+ * Simulates upload progress for better UX
+ * In a real implementation, you might track actual upload progress
+ */
+const simulateUploadProgress = (
+	totalFiles: number,
+	callbacks?: UploadProgressCallbacks
+): Promise<void> => {
+	return new Promise((resolve) => {
+		let completed = 0;
+
+		const updateProgress = (fileName: string) => {
+			completed++;
+			const percentage = Math.round((completed / (totalFiles + 1)) * 100);
+
+			callbacks?.onProgress?.({
+				total: totalFiles + 1,
+				completed,
+				currentFile: fileName,
+				percentage,
+			});
+
+			callbacks?.onFileComplete?.(fileName);
+		};
+
+		// Simulate file uploads
+		const files = [
+			'Preparing files...',
+			'Uploading images...',
+			'Uploading audio...',
+			'Creating memory...',
+		];
+
+		files.slice(0, totalFiles + 1).forEach((fileName, index) => {
+			setTimeout(() => {
+				updateProgress(fileName);
+				if (index === files.length - 1 || index === totalFiles) {
+					resolve();
+				}
+			}, index * 800); // 800ms delay between updates
+		});
+	});
+};
+
+// ==================
+// VALIDATION
+// ==================
+
+/**
+ * Client-side validation before sending to backend
+ * Backend will also validate, but this provides immediate feedback
+ */
 const validateMemoryData = (data: CreateMemoryRequest): string[] => {
 	const errors: string[] = [];
 
 	if (!data.name.trim()) {
-		errors.push('Title is required');
+		errors.push('Memory title is required');
 	}
 
 	if (data.name.trim().length > 100) {
-		errors.push('Title must be less than 100 characters');
+		errors.push('Memory title must be less than 100 characters');
+	}
+
+	if (!data.description.trim()) {
+		errors.push('Memory description is required');
 	}
 
 	if (data.description.trim().length > 500) {
-		errors.push('Description must be less than 500 characters');
+		errors.push('Memory description must be less than 500 characters');
 	}
 
 	if (!data.latitude || !data.longitude) {
@@ -81,104 +247,117 @@ const validateMemoryData = (data: CreateMemoryRequest): string[] => {
 		errors.push('Location description is required');
 	}
 
+	if (data.visibility.length === 0) {
+		errors.push('Please select at least one visibility option');
+	}
+
 	return errors;
 };
+
+// ==================
+// MAIN API FUNCTION
+// ==================
+
+/**
+ * Creates a memory pin by calling the backend API
+ * Replaces the previous direct Supabase implementation
+ *
+ * @param memoryData - The memory data from frontend hooks
+ * @param callbacks - Progress and status callbacks for UI updates
+ * @returns Promise with success/error result
+ */
 export const createMemoryPin = async (
 	memoryData: CreateMemoryRequest,
 	callbacks?: UploadProgressCallbacks
-): Promise<{ success: boolean; data?: any; error?: string }> => {
+): Promise<ApiResponse> => {
 	try {
-		const { user } = await getCurrentUser();
-		if (!user) throw new Error('User not authenticated');
+		console.log('🚀 [DEBUG] createMemoryPin called with data:', {
+			name: memoryData.name,
+			hasPhotos: memoryData.media.photos.length > 0,
+			hasAudio: !!memoryData.media.audio,
+		});
+		// Start the process
 		callbacks?.onStart?.();
+		console.log('🚀 Starting memory creation via backend API...');
+
+		// Validate data before sending
+		console.log('🔍 [DEBUG] Starting validation...');
 		const validationErrors = validateMemoryData(memoryData);
 		if (validationErrors.length > 0) {
 			throw new Error(
 				`Validation failed: ${validationErrors.join(', ')}`
 			);
 		}
-		const totalSteps =
+		console.log('✅ [DEBUG] Validation passed');
+
+		// Get authentication token
+		console.log('🔍 [DEBUG] Getting auth token...');
+		const authToken = await getAuthToken();
+		console.log('✅ Authentication token retrieved');
+
+		// Calculate total files for progress tracking
+		const totalFiles =
 			memoryData.media.photos.length +
 			memoryData.media.videos.length +
-			(memoryData.media.audio ? 1 : 0) +
-			1;
+			(memoryData.media.audio ? 1 : 0);
 
-		let completedSteps = 0;
-		const updateProgress = (currentFile: string) => {
-			completedSteps++;
-			const percentage = Math.round((completedSteps / totalSteps) * 100);
-			callbacks?.onProgress?.({
-				total: totalSteps,
-				completed: completedSteps,
-				currentFile,
-				percentage,
-			});
-		};
+		// Start progress simulation (you can replace this with real progress tracking)
+		const progressPromise = simulateUploadProgress(totalFiles, callbacks);
 
-		// Upload all media with concurrency control
-		const allMediaFiles = [
-			...memoryData.media.photos.map((photo) => ({
-				...photo,
-				folder: 'images' as const,
-			})),
-			...memoryData.media.videos.map((video) => ({
-				...video,
-				folder: 'videos' as const,
-			})),
-		];
+		// Build FormData for backend
+		console.log('📦 Preparing files and data for upload...');
+		const formData = await buildFormDataForBackend(memoryData);
+		console.log('✅ [DEBUG] FormData built');
 
-		const mediaUrls = await uploadWithConcurrency(
-			allMediaFiles,
-			async (file) => {
-				const url = await uploadMediaFile(
-					file.uri,
-					file.folder,
-					user.id
-				);
-				updateProgress(file.name);
-				return url;
-			},
-			3 // Max 3 concurrent uploads
+		// Make API call to your backend
+		console.log(
+			'📡 [DEBUG] Making API call to:',
+			`${API_BASE_URL}${API_ENDPOINTS.CREATE_PIN}`
 		);
+		const response = await fetch(
+			`${API_BASE_URL}${API_ENDPOINTS.CREATE_PIN}`,
+			{
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${authToken}`,
+					// Note: Don't set Content-Type header when using FormData
+					// The browser will set it automatically with boundary
+				},
+				body: formData,
+			}
+		);
+		console.log('📡 [DEBUG] Response received, status:', response.status);
 
-		// Upload audio
-		let audioUrl: string | null = null;
-		if (memoryData.media.audio) {
-			audioUrl = await uploadMediaFile(
-				memoryData.media.audio.uri,
-				'audio',
-				user.id
-			);
-			updateProgress('Audio recording');
+		// Wait for progress simulation to complete
+		await progressPromise;
+
+		// Handle response
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error('❌ Backend API error:', {
+				status: response.status,
+				statusText: response.statusText,
+				body: errorText,
+			});
+
+			throw new Error(`Backend error (${response.status}): ${errorText}`);
 		}
 
-		// Insert pin
-		const { data: pinData, error: pinError } = await supabase
-			.from('pins')
-			.insert([
-				{
-					name: memoryData.name,
-					description: memoryData.description,
-					latitude: memoryData.latitude,
-					longitude: memoryData.longitude,
-					image_urls: mediaUrls.length ? mediaUrls : null,
-					audio_url: audioUrl,
-					owner_id: user.id,
-				},
-			])
-			.select()
-			.single();
+		// Parse successful response
+		const result = await response.json();
+		console.log('✅ Memory created successfully:', result);
 
-		if (pinError)
-			throw new Error(`Failed to create pin: ${pinError.message}`);
-
-		updateProgress('Pin created successfully');
 		callbacks?.onComplete?.();
-		console.log('Memory pin created:', pinData.id);
 
-		return { success: true, data: pinData };
+		return {
+			success: true,
+			data: result,
+		};
 	} catch (error) {
-		console.error('Memory creation failed:', error);
+		console.error('💥 Memory creation failed:', error);
+
+		callbacks?.onError?.(error as Error);
+
 		return {
 			success: false,
 			error:
@@ -189,86 +368,36 @@ export const createMemoryPin = async (
 	}
 };
 
-// Media upload helper
-const RANDOM_SUFFIX_LENGTH = 7;
+// ==================
+// HEALTH CHECK UTILITY
+// ==================
 
-const uploadMediaFile = async (
-	fileUri: string,
-	folder: 'images' | 'videos' | 'audio',
-	userId: string
-): Promise<string> => {
-	const timestamp = Date.now();
-	const randomSuffix = Math.random()
-		.toString(36)
-		.substring(2, 2 + RANDOM_SUFFIX_LENGTH);
-	const fileName = `${userId}/${folder}/${timestamp}-${randomSuffix}`;
-
-	let response: Response | null = null;
-	let blob: Blob | null = null;
-
+/**
+ * Simple health check to verify backend connectivity
+ * Useful for debugging connection issues
+ */
+export const checkBackendHealth = async (): Promise<boolean> => {
 	try {
-		response = await fetch(fileUri);
-		if (!response.ok) {
-			throw new Error(
-				`Failed to fetch file: ${response.status} ${response.statusText}`
-			);
-		}
+		const response = await fetch(
+			`${API_BASE_URL}${API_ENDPOINTS.HEALTH_CHECK}`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			}
+		);
 
-		blob = await response.blob();
-
-		const { error } = await supabase.storage
-			.from(MEDIA_BUCKET)
-			.upload(fileName, blob);
-		if (error)
-			throw new Error(`Failed to upload ${folder}: ${error.message}`);
-
-		const { data: publicUrlData } = supabase.storage
-			.from(MEDIA_BUCKET)
-			.getPublicUrl(fileName);
-		if (!publicUrlData?.publicUrl)
-			throw new Error(`Failed to retrieve ${folder} public URL`);
-
-		return publicUrlData.publicUrl;
+		return response.ok;
 	} catch (error) {
-		// Clean up resources on error
-		blob = null;
-		response = null;
-		throw error;
+		console.error('Backend health check failed:', error);
+		return false;
 	}
 };
 
-// Social circles
-export const getUserSocialCircles = async (): Promise<UserSocialCircle[]> => {
-	try {
-		const { user } = await getCurrentUser();
-		if (!user) return [];
+// ==================
+// EXPORT ALL TYPES AND FUNCTIONS
+// ==================
 
-		console.log('🔍 Fetching user social circles...');
-		const { data, error } = await supabase
-			.from('members')
-			.select(
-				`
-				circle_id,
-				circles (
-					id,
-					name,
-					visibility,
-					owner_id
-				)
-			`
-			)
-			.eq('user_id', user.id);
-
-		if (error) throw error;
-
-		return data.map((member) => ({
-			id: member.circles.id,
-			name: member.circles.name,
-			visibility: member.circles.visibility,
-			isOwner: member.circles.owner_id === user.id,
-		}));
-	} catch (error) {
-		console.error('Failed to fetch social circles:', error);
-		return [];
-	}
-};
+export type { ApiResponse };
+export default createMemoryPin;
