@@ -18,12 +18,6 @@ import {
 	View,
 } from 'react-native';
 
-// ==================================
-//   SUPABASE FOR USER AUTH IMPORTS
-// ==================================
-// import { supabase } from '@/lib/supabase';
-// import type { User } from '@supabase/supabase-js';
-
 // ===============================
 //   EXPO/NAVIGATION IMPORTS
 // ===============================
@@ -58,6 +52,7 @@ import { PinBottomSheet } from '@/components/ui/PinBottomSheet';
 import { useAuth } from '@/hooks/shared/useAuth';
 import { useModal } from '@/hooks/shared/useModal';
 import { useSlideAnimation } from '@/hooks/useSlideAnimation';
+import { useNotificationSheet } from '@/hooks/shared/useNotificationSheet';
 
 // ======================
 //  LAYOUT COMPONENTS
@@ -73,6 +68,7 @@ import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Input } from '@/components/ui/TextInput';
 import { Modal } from '@/components/ui/Modal';
+import { TopNotificationSheet } from '@/components/ui/TopNotificationSheet';
 
 // ======================
 //   TYPOGRAPHY IMPORTS
@@ -113,7 +109,14 @@ export default function WorldMapScreen() {
 	// ===============================
 	const { height } = Dimensions.get('window');
 	const insets = useSafeAreaInsets();
-	const { userPreferences } = useLocalSearchParams();
+	const {
+		userPreferences,
+		// ADDED: Extract notification parameters from route
+		showNotification,
+		notificationTitle,
+		pinTitle,
+		pinLocation,
+	} = useLocalSearchParams();
 
 	// ================
 	//   MAP SETTINGS
@@ -178,6 +181,43 @@ export default function WorldMapScreen() {
 	// =============================
 	const profileModal = useModal();
 	const signInModal = useModal();
+
+	// =============================
+	//   NOTIFICATION MANAGEMENT SECTION - NEW
+	// =============================
+	const {
+		notificationData,
+		isVisible: isNotificationVisible,
+		showNotification: showNotificationSheet,
+		hideNotification,
+		resetNotification,
+	} = useNotificationSheet({
+		defaultAutoCloseDelay: 3000, // 3 seconds as requested
+	});
+
+	// Handle notification from route parameters
+	useEffect(() => {
+		if (showNotification === 'true' && notificationTitle) {
+			console.log(
+				'🔔 [WORLDMAP] Triggering notification from route params'
+			);
+
+			// Show the notification with the title from route
+			showNotificationSheet(
+				notificationTitle as string,
+				pinLocation ? `Added to ${pinLocation}` : undefined
+			);
+
+			// Clear the route parameters to prevent re-triggering
+			// Note: In a real app, you might want to use a different approach
+			// to clear these params, but this works for the current implementation
+		}
+	}, [
+		showNotification,
+		notificationTitle,
+		pinLocation,
+		showNotificationSheet,
+	]);
 
 	// =============================
 	//   USER PREFERENCES & FILTERING SECTION
@@ -260,13 +300,6 @@ export default function WorldMapScreen() {
 		},
 		pinData?: DummyPin
 	) => {
-		// mapRef.current?.animateToRegion({
-		// 	latitude: coordinate.latitude,
-		// 	longitude: coordinate.longitude,
-		// 	latitudeDelta: 0.01,
-		// 	longitudeDelta: 0.01,
-		// });
-
 		if (pinData) {
 			setSelectedPinData(pinData);
 			setIsBottomSheetVisible(true);
@@ -360,7 +393,6 @@ export default function WorldMapScreen() {
 			mass: 1,
 		},
 	});
-	// Social circles handlers
 
 	// =============================
 	//   NAVIGATION SECTION
@@ -387,6 +419,17 @@ export default function WorldMapScreen() {
 	// =========================
 	return (
 		<GestureHandlerRootView style={styles.container}>
+			{/* ==================== */}
+			{/*   TOP NOTIFICATION    */}
+			{/* ==================== */}
+			<TopNotificationSheet
+				isVisible={isNotificationVisible}
+				title={notificationData.title}
+				message={notificationData.message}
+				onClose={hideNotification}
+				autoCloseDelay={notificationData.autoCloseDelay}
+			/>
+
 			{/**********************************************/}
 			{/******** AUTOCOMPLETE SLIDE FROM TOP *********/}
 			{/* *********************************************/}
@@ -408,7 +451,6 @@ export default function WorldMapScreen() {
 				<KeyboardAvoidingView
 					style={styles.keyboardAvoidingView}
 					behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-					// keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
 				>
 					{/**********************************************/}
 					{/**************** MAIN CONTENT ****************/}
@@ -485,51 +527,8 @@ export default function WorldMapScreen() {
 								{ top: insets.top + 100 },
 							]}
 						>
-							{/* <IconButton
-								icon="globe"
-								onPress={navigateToCreatePin}
-								size={28}
-								style={styles.circleSelections}
-							/>
-							<IconButton
-								icon="user"
-								onPress={navigateToCreatePin}
-								size={28}
-								style={styles.circleSelections}
-							/> */}
-
 							{/* Social Circles with Animation (Drop-Down) */}
 							<View style={{ alignItems: 'flex-end' }}>
-								{/* <IconButton
-										icon="users"
-										onPress={toggleSocials}
-										size={28}
-										style={styles.socialSelection}
-									/> */}
-								{/* <Animated.View
-										style={[
-											styles.socialsBacking,
-											{
-												transform: [
-													{
-														translateY:
-															socialsSlideAnim,
-													},
-												],
-												opacity:
-													socialsSlideAnim.interpolate(
-														{
-															inputRange: [
-																-100, 0,
-															],
-															outputRange: [0, 1],
-															extrapolate:
-																'clamp',
-														}
-													),
-											},
-										]}
-									> */}
 								<ScrollView
 									contentContainerStyle={styles.socialsList}
 								>
@@ -547,7 +546,6 @@ export default function WorldMapScreen() {
 										</TouchableOpacity>
 									))}
 								</ScrollView>
-								{/* </Animated.View> */}
 							</View>
 						</View>
 

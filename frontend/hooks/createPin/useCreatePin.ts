@@ -222,11 +222,11 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	}, [validateMemoryContent, createPreviewData]);
 
 	// ===========================
-	//   SAVE FUNCTIONALITY
+	//   SAVE FUNCTIONALITY - UPDATED FOR TOP NOTIFICATION
 	// ===========================
 	const handleConfirmSave = useCallback(async () => {
 		console.log('🎯 [DEBUG] handleConfirmSave called');
-		const TESTING_MODE = true; // Set to false for real API calls
+		const TESTING_MODE = false; // Set to false for real API calls
 
 		// STEP 1: Start upload state (this shows upload modal)
 		setIsSaving(true);
@@ -292,6 +292,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 					},
 				};
 
+				// UPDATED: Navigate immediately to worldmap with notification data
 				handleSaveSuccess(memoryData, result);
 			} else {
 				const result = await createMemoryPin(backendData, {
@@ -325,7 +326,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 			handleSaveError('Unexpected error occurred');
 			hidePreviewModal();
 		} finally {
-			// Keep isSaving true until success modal is shown
+			// Keep isSaving true until navigation happens
 			// Don't reset here - let handleSaveSuccess manage it
 		}
 	}, [
@@ -336,21 +337,34 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		hidePreviewModal,
 	]);
 
+	// UPDATED: New success handler that navigates to worldmap with notification
 	const handleSaveSuccess = useCallback(
 		(memoryData: MemoryData, result: any) => {
 			console.log('Save successful:', memoryData, result);
 
-			// IMPORTANT: Keep upload modal visible until success modal takes over
-			// The success modal will be triggered by useEffect in CreatePinModals
-			// when isSaving becomes false and uploadProgress is 100%
-
-			// Wait a moment to let user see 100% completion, then trigger success
+			// Wait a moment to let user see 100% completion
 			setTimeout(() => {
-				setIsSaving(false); // This will trigger success modal in CreatePinModals
+				console.log(
+					'🎯 [HOOK] Navigating to worldmap with notification'
+				);
 
-				// Navigation and cleanup will happen in CreatePinModals success handler
-				// Remove automatic navigation from here
-			}, 1000); // 1 second delay to show completion
+				// Reset all form state
+				setIsSaving(false);
+				setUploadProgress(null);
+				setPreviewData(null);
+
+				// Navigate to worldmap with notification flag
+				// Using router.replace with params to trigger top notification
+				router.replace({
+					pathname: '/worldmap',
+					params: {
+						showNotification: 'true',
+						notificationTitle: 'Pin created successfully! 🎉',
+						pinTitle: memoryData.content.title,
+						pinLocation: memoryData.location.query,
+					},
+				});
+			}, 2000);
 		},
 		[]
 	);
