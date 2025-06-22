@@ -4,9 +4,9 @@ import { router } from 'expo-router';
 import {
 	createMemoryPin,
 	type CreateMemoryRequest,
-	type UploadProgress,
 } from '@/services/memoryService';
 import { MediaItem } from './useMediaCapture';
+import { useNotification } from '@/contexts/NotificationContext';
 
 // ========================
 //   TYPE DEFINITIONS
@@ -67,7 +67,7 @@ interface UseCreatePinProps {
 	setMemoryTitle: (title: string) => void;
 	setMemoryDescription: (description: string) => void;
 
-	// Simple success callback - replaces modal system
+	// Success callback (kept for compatibility, but Context handles notifications)
 	onSuccess: (title: string, message: string) => void;
 }
 
@@ -87,23 +87,25 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		resetAllPrivacySettings,
 		setMemoryTitle,
 		setMemoryDescription,
-		onSuccess,
 	} = props;
+
+	// ==================
+	//   CONTEXT HOOKS
+	// ==================
+	const { showSuccess, showError } = useNotification();
 
 	// ==================
 	//   STATE MANAGEMENT
 	// ==================
 	const [previewData, setPreviewData] = useState<MemoryData | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
-	const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
-		null
-	);
+	const [saveError, setSaveError] = useState<string | null>(null);
 
 	// =======================
 	//  DATA TRANSFORMATION
 	// =======================
 
-	// Global
+	// Global - shared data preparation
 	const createCoreMemoryData = useCallback(() => {
 		// Shared validation and data preparation
 		if (!coordinates) {
@@ -111,7 +113,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		}
 
 		return {
-			// Core content (used by both formatters)
+			// Core content
 			title: memoryTitle.trim(),
 			description: memoryDescription.trim(),
 			coordinates,
@@ -119,7 +121,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 			visibility: selectedVisibility,
 			socialCircles: selectedSocialCircles,
 
-			// Processed media (used by both formatters)
+			// Processed media
 			processedMedia: {
 				photos: selectedMedia.filter((item) => item.type === 'photo'),
 				videos: selectedMedia.filter((item) => item.type === 'video'),
@@ -142,7 +144,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		audioUri,
 	]);
 
-	// Frontend
+	// Frontend - creates preview data structure
 	const createPreviewData = useCallback((): MemoryData => {
 		const coreData = createCoreMemoryData();
 
@@ -176,7 +178,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		};
 	}, [createCoreMemoryData]);
 
-	// Backend
+	// Backend - creates API submission data
 	const createSubmissionData = useCallback((): CreateMemoryRequest => {
 		const coreData = createCoreMemoryData();
 
@@ -207,6 +209,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	const hidePreviewModal = useCallback(() => {
 		console.log('🎯 [HOOK] Hiding preview modal');
 		setPreviewData(null);
+		setSaveError(null);
 	}, []);
 
 	// ===========================
@@ -219,162 +222,86 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 
 		const memoryData = createPreviewData();
 		setPreviewData(memoryData);
+		setSaveError(null);
 	}, [validateMemoryContent, createPreviewData]);
 
 	// ===========================
-	//   SAVE FUNCTIONALITY - UPDATED FOR TOP NOTIFICATION
+	//   SAVE FUNCTIONALITY
 	// ===========================
 	const handleConfirmSave = useCallback(async () => {
-		console.log('🎯 [DEBUG] handleConfirmSave called');
-		const TESTING_MODE = false; // Set to false for real API calls
+		console.log('🎯 [HOOK] Starting memory save process');
 
-		// STEP 1: Start upload state (this shows upload modal)
+		// Clear any previous errors
+		setSaveError(null);
+
+		hidePreviewModal();
+
+		// Start saving state (shows loading in modal)
 		setIsSaving(true);
-		setUploadProgress({
-			total: 0,
-			completed: 0,
-			currentFile: 'Preparing...',
-			percentage: 0,
-		});
-
-		// STEP 2: Hide preview modal AFTER upload starts
-		// Small delay to ensure upload modal is visible first
-		setTimeout(() => {
-			hidePreviewModal();
-		}, 100);
 
 		try {
 			const memoryData = createPreviewData();
 			const backendData = createSubmissionData();
 
-			if (TESTING_MODE) {
-				console.log('Testing mode: Simulating save...');
+			console.log('📡 [HOOK] Calling backend API');
 
-				const totalFiles = selectedMedia.length + (audioUri ? 1 : 0);
+			// SIMPLIFIED: Direct backend call, no progress callbacks
+			const result = await createMemoryPin(backendData);
 
-				// Simulate realistic upload progress
-				const steps = [
-					{ file: 'Preparing files...', delay: 800 },
-					{ file: 'Uploading images...', delay: 1200 },
-					{ file: 'Uploading audio...', delay: 1000 },
-					{ file: 'Creating memory...', delay: 800 },
-					{ file: 'Finalizing...', delay: 600 },
-				];
+			console.log('🎯 [HOOK] Backend response:', result);
 
-				// Simulate each step with realistic timing
-				for (let i = 0; i < steps.length; i++) {
-					const step = steps[i];
-					const percentage = Math.round(
-						((i + 1) / steps.length) * 100
-					);
-
-					setUploadProgress({
-						total: steps.length,
-						completed: i + 1,
-						currentFile: step.file,
-						percentage: percentage,
-					});
-
-					// Wait for each step
-					await new Promise((resolve) =>
-						setTimeout(resolve, step.delay)
-					);
-				}
-
-				console.log('Frontend data (OBJECT):', memoryData);
-				console.log('Backend payload (OBJECT):', backendData);
-
-				const result = {
-					success: true,
-					data: {
-						id: `test-${Date.now()}`,
-						name: backendData.name,
-					},
-				};
-
-				// UPDATED: Navigate immediately to worldmap with notification data
+			if (result.success) {
+				console.log(
+					'✅ [HOOK] Memory saved successfully:',
+					result.data
+				);
 				handleSaveSuccess(memoryData, result);
 			} else {
-				const result = await createMemoryPin(backendData, {
-					onStart: () => {
-						console.log('📊 [DEBUG] Upload started');
-					},
-					onProgress: setUploadProgress,
-					onFileComplete: (fileName) => {
-						console.log(`File completed: ${fileName}`);
-					},
-					onComplete: () => {
-						console.log('All uploads completed');
-					},
-					onError: (error) => {
-						console.error('Upload error:', error);
-						hidePreviewModal();
-					},
-				});
-
-				console.log('🎯 [DEBUG] createMemoryPin result:', result);
-
-				if (result.success) {
-					console.log('Memory saved:', result.data);
-					handleSaveSuccess(memoryData, result);
-				} else {
-					handleSaveError(result.error || 'Unknown error occurred');
-				}
+				handleSaveError(result.error || 'Unknown error occurred');
 			}
 		} catch (error) {
-			console.error('Save error:', error);
+			console.error('💥 [HOOK] Save error:', error);
 			handleSaveError('Unexpected error occurred');
-			hidePreviewModal();
-		} finally {
-			// Keep isSaving true until navigation happens
-			// Don't reset here - let handleSaveSuccess manage it
 		}
-	}, [
-		createPreviewData,
-		createSubmissionData,
-		selectedMedia,
-		audioUri,
-		hidePreviewModal,
-	]);
+	}, [createPreviewData, createSubmissionData, hidePreviewModal]);
 
-	// UPDATED: New success handler that navigates to worldmap with notification
+	// Success handler - uses Context notification
 	const handleSaveSuccess = useCallback(
 		(memoryData: MemoryData, result: any) => {
-			console.log('Save successful:', memoryData, result);
+			console.log(
+				'🎉 [HOOK] Save successful, showing notification and navigating'
+			);
 
-			// Wait a moment to let user see 100% completion
-			setTimeout(() => {
-				console.log(
-					'🎯 [HOOK] Navigating to worldmap with notification'
-				);
+			// Reset all form state
+			setIsSaving(false);
+			setSaveError(null);
 
-				// Reset all form state
-				setIsSaving(false);
-				setUploadProgress(null);
-				setPreviewData(null);
+			// Show success notification via Context (TOP SHEET)
+			showSuccess(
+				'Pin created successfully! 🎉',
+				`"${memoryData.content.title}" added to ${memoryData.location.query}`
+			);
 
-				// Navigate to worldmap with notification flag
-				// Using router.replace with params to trigger top notification
-				router.replace({
-					pathname: '/worldmap',
-					params: {
-						showNotification: 'true',
-						notificationTitle: 'Pin created successfully! 🎉',
-						pinTitle: memoryData.content.title,
-						pinLocation: memoryData.location.query,
-					},
-				});
-			}, 2000);
+			// Navigate to worldmap (notification will show automatically via Context)
+			router.replace('/worldmap');
 		},
-		[]
+		[showSuccess]
 	);
 
-	const handleSaveError = useCallback((error: string) => {
-		console.log('Save Failed', error);
-		setIsSaving(false);
-		setUploadProgress(null);
-	}, []);
+	// Error handler
+	const handleSaveError = useCallback(
+		(error: string) => {
+			console.error('❌ [HOOK] Save failed:', error);
+			setIsSaving(false);
+			setSaveError(error);
 
+			// Show error notification via Context
+			showError('Failed to create pin', error);
+		},
+		[showError]
+	);
+
+	// Form reset utility
 	const resetForm = useCallback(() => {
 		hidePreviewModal();
 		setMemoryTitle('');
@@ -384,7 +311,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		resetAllPrivacySettings();
 		setPreviewData(null);
 		setIsSaving(false);
-		setUploadProgress(null);
+		setSaveError(null);
 	}, [
 		hidePreviewModal,
 		setMemoryTitle,
@@ -401,7 +328,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		// State
 		previewData,
 		isSaving,
-		uploadProgress,
+		saveError,
 
 		// Actions
 		handlePreviewMemory,
@@ -409,7 +336,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		handleConfirmSave,
 		resetForm,
 
-		// Data creators (in case you need them elsewhere)
+		// Data creators (exported in case needed elsewhere)
 		createPreviewData,
 		createSubmissionData,
 	};

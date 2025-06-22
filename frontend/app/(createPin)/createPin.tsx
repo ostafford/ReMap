@@ -156,11 +156,8 @@ export default function CreatePinScreen() {
 	// Success callback for hook - will trigger success modal
 	const handleSuccess = useCallback((title: string, message: string) => {
 		console.log('🎯 [COMPONENT] Success callback triggered:', title);
-		// CreatePinModals will handle this via its auto-detection effect
-		// when upload completes successfully
 	}, []);
 
-	// FIXED: Image preview callback that actually triggers the modal
 	const handleImagePreview = useCallback((imageUri: string) => {
 		console.log('🎯 [COMPONENT] Image preview requested:', imageUri);
 		setImagePreviewState({
@@ -198,8 +195,8 @@ export default function CreatePinScreen() {
 
 	const {
 		previewData,
+		saveError,
 		isSaving,
-		uploadProgress,
 		handlePreviewMemory,
 		handleConfirmSave,
 		hidePreviewModal,
@@ -314,7 +311,7 @@ export default function CreatePinScreen() {
 				{/*   MEDIA CAPTURE          */}
 				{/* ======================== */}
 				<MediaCapture
-					onImagePreview={handleImagePreview} // FIXED: Now using actual callback
+					onImagePreview={handleImagePreview}
 					onRemoveMedia={removeMedia}
 					selectedMedia={selectedMedia}
 					audioUri={audioUri}
@@ -365,8 +362,8 @@ export default function CreatePinScreen() {
 			<CreatePinModals
 				// Data from hooks
 				previewData={previewData}
-				uploadProgress={uploadProgress}
 				isUploading={isSaving}
+				saveError={saveError}
 				// Callbacks to hook
 				onConfirmSave={handleConfirmSave}
 				onNavigateToMap={handleNavigateToMap}

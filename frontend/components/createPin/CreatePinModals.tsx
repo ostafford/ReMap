@@ -1,23 +1,29 @@
-/**
- * CREATEPIN MODALS - CENTRALIZED MODAL MANAGEMENT (UPDATED FOR TOP NOTIFICATION)
- * Purpose: Handles all modal states and transitions for the CreatePin feature
- * Owns: Preview, Upload, and Image preview modal states
- * Pattern: Single component manages related modal states with clear callbacks
- * UPDATED: Removed success modal since we now use TopNotificationSheet on worldmap
- */
-
+// ========================
+//   REACT NATIVE IMPORTS
+// ========================
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 
-// Base UI Components
+// ================
+//   UI IMPORTS
+// ================
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { BodyText, CaptionText } from '@/components/ui/Typography';
+import {
+	HeaderText,
+	SubheaderText,
+	CaptionText,
+	ErrorText,
+} from '@/components/ui/Typography';
 
-// Feature Components
+// ================
+//   MODAL IMPORTS
+// ================
 import { PreviewModal } from './PreviewModal';
 
-// Constants
+// =====================
+//   CONSTANTS IMPORTS
+// =====================
 import { ReMapColors } from '@/constants/Colors';
 
 // ========================
@@ -57,8 +63,8 @@ interface ImagePreviewState {
 interface CreatePinModalsProps {
 	// Data from hooks
 	previewData: MemoryData | null;
-	uploadProgress: UploadProgress | null;
 	isUploading: boolean;
+	saveError: string | null;
 
 	// Callbacks to hook
 	onConfirmSave: () => void;
@@ -92,8 +98,8 @@ interface CreatePinModalsProps {
 // ========================
 export const CreatePinModals: React.FC<CreatePinModalsProps> = ({
 	previewData,
-	uploadProgress,
 	isUploading,
+	saveError,
 	onConfirmSave,
 	onNavigateToMap,
 	onResetForm,
@@ -161,16 +167,38 @@ export const CreatePinModals: React.FC<CreatePinModalsProps> = ({
 								selectedSocialCircles={selectedSocialCircles}
 							/>
 						)}
+
+						{/* ERROR DISPLAY SECTION */}
+						{saveError && (
+							<View style={styles.errorContainer}>
+								<View style={styles.errorHeader}>
+									<HeaderText style={styles.errorIcon}>
+										⚠️
+									</HeaderText>
+									<SubheaderText style={styles.errorTitle}>
+										Save Failed
+									</SubheaderText>
+								</View>
+								<CaptionText style={styles.errorMessage}>
+									{saveError}
+								</CaptionText>
+								<ErrorText style={styles.errorHint}>
+									Please check your connection and try again,
+									or edit your memory if needed.
+								</ErrorText>
+							</View>
+						)}
 					</Modal.Body>
 					<Modal.Footer>
 						<Button onPress={onClosePreview} variant="secondary">
-							Edit
+							{saveError ? 'Edit & Try Again' : 'Edit'}
 						</Button>
 						<Button
 							onPress={handleConfirmAndPost}
 							variant="primary"
+							disabled={!!saveError} // Disable if there's an error
 						>
-							Confirm & Post
+							{saveError ? 'Fix Error First' : 'Confirm & Post'}
 						</Button>
 					</Modal.Footer>
 				</Modal.Container>
@@ -179,8 +207,8 @@ export const CreatePinModals: React.FC<CreatePinModalsProps> = ({
 			{/* ============ */}
 			{/* UPLOAD MODAL */}
 			{/* ============ */}
-			<Modal
-				isVisible={isUploading}
+			{/* <Modal
+				isVisible={false}
 				onBackdropPress={() => {}} // Prevent closing during upload
 			>
 				<Modal.Container>
@@ -219,7 +247,6 @@ export const CreatePinModals: React.FC<CreatePinModalsProps> = ({
 								</>
 							)}
 
-							{/* UPDATED: Changed completion message to indicate navigation */}
 							{uploadProgress?.percentage === 100 && (
 								<CaptionText style={styles.completionMessage}>
 									✅ Upload complete! Navigating to map...
@@ -228,7 +255,7 @@ export const CreatePinModals: React.FC<CreatePinModalsProps> = ({
 						</View>
 					</Modal.Body>
 				</Modal.Container>
-			</Modal>
+			</Modal> */}
 
 			{/* REMOVED: Success modal - now handled by TopNotificationSheet on worldmap */}
 
@@ -268,41 +295,41 @@ export const CreatePinModals: React.FC<CreatePinModalsProps> = ({
 // ===============
 const styles = StyleSheet.create({
 	// UPLOAD MODAL STYLES
-	uploadProgressContent: {
-		alignItems: 'center',
-		padding: 20,
-	},
-	uploadIcon: {
-		fontSize: 48,
-		marginBottom: 16,
-	},
-	uploadStatus: {
-		textAlign: 'center',
-		marginBottom: 16,
-		fontWeight: '500',
-	},
-	progressBarContainer: {
-		width: '100%',
-		height: 8,
-		backgroundColor: '#E5E7EB',
-		borderRadius: 4,
-		marginBottom: 12,
-		overflow: 'hidden',
-	},
-	progressBar: {
-		height: '100%',
-		backgroundColor: ReMapColors.primary.violet,
-		borderRadius: 4,
-	},
-	uploadPercentage: {
-		fontWeight: '600',
-		marginBottom: 4,
-	},
-	uploadDetails: {
-		opacity: 0.7,
-		marginBottom: 8,
-	},
-	// UPDATED: Completion message styling
+	// uploadProgressContent: {
+	// 	alignItems: 'center',
+	// 	padding: 20,
+	// },
+	// uploadIcon: {
+	// 	fontSize: 48,
+	// 	marginBottom: 16,
+	// },
+	// uploadStatus: {
+	// 	textAlign: 'center',
+	// 	marginBottom: 16,
+	// 	fontWeight: '500',
+	// },
+	// progressBarContainer: {
+	// 	width: '100%',
+	// 	height: 8,
+	// 	backgroundColor: '#E5E7EB',
+	// 	borderRadius: 4,
+	// 	marginBottom: 12,
+	// 	overflow: 'hidden',
+	// },
+	// progressBar: {
+	// 	height: '100%',
+	// 	backgroundColor: ReMapColors.primary.violet,
+	// 	borderRadius: 4,
+	// },
+	// uploadPercentage: {
+	// 	fontWeight: '600',
+	// 	marginBottom: 4,
+	// },
+	// uploadDetails: {
+	// 	opacity: 0.7,
+	// 	marginBottom: 8,
+	// },
+	// Completion message styling
 	completionMessage: {
 		color: ReMapColors.semantic?.success || '#10B981',
 		fontStyle: 'italic',
@@ -320,5 +347,41 @@ const styles = StyleSheet.create({
 		width: '100%',
 		height: '100%',
 		borderRadius: 8,
+	},
+
+	// Error Display Styles
+	errorContainer: {
+		marginTop: 16,
+		padding: 16,
+		backgroundColor: '#FEF2F2',
+		borderRadius: 8,
+		borderLeftWidth: 4,
+		borderLeftColor: '#EF4444',
+	},
+	errorHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 8,
+	},
+	errorIcon: {
+		fontSize: 18,
+		marginRight: 8,
+	},
+	errorTitle: {
+		fontSize: 16,
+		fontWeight: '600',
+		color: '#991B1B',
+	},
+	errorMessage: {
+		fontSize: 14,
+		color: '#7F1D1D',
+		marginBottom: 8,
+		lineHeight: 20,
+	},
+	errorHint: {
+		fontSize: 12,
+		color: '#991B1B',
+		fontStyle: 'italic',
+		opacity: 0.8,
 	},
 });

@@ -53,6 +53,7 @@ import { useAuth } from '@/hooks/shared/useAuth';
 import { useModal } from '@/hooks/shared/useModal';
 import { useSlideAnimation } from '@/hooks/useSlideAnimation';
 import { useNotificationSheet } from '@/hooks/shared/useNotificationSheet';
+import { useNotification } from '@/contexts/NotificationContext';
 
 // ======================
 //  LAYOUT COMPONENTS
@@ -109,14 +110,12 @@ export default function WorldMapScreen() {
 	// ===============================
 	const { height } = Dimensions.get('window');
 	const insets = useSafeAreaInsets();
+	const { userPreferences } = useLocalSearchParams();
 	const {
-		userPreferences,
-		// ADDED: Extract notification parameters from route
-		showNotification,
-		notificationTitle,
-		pinTitle,
-		pinLocation,
-	} = useLocalSearchParams();
+		notification,
+		isVisible: isNotificationVisible,
+		hideNotification,
+	} = useNotification();
 
 	// ================
 	//   MAP SETTINGS
@@ -181,43 +180,6 @@ export default function WorldMapScreen() {
 	// =============================
 	const profileModal = useModal();
 	const signInModal = useModal();
-
-	// =============================
-	//   NOTIFICATION MANAGEMENT SECTION - NEW
-	// =============================
-	const {
-		notificationData,
-		isVisible: isNotificationVisible,
-		showNotification: showNotificationSheet,
-		hideNotification,
-		resetNotification,
-	} = useNotificationSheet({
-		defaultAutoCloseDelay: 3000, // 3 seconds as requested
-	});
-
-	// Handle notification from route parameters
-	useEffect(() => {
-		if (showNotification === 'true' && notificationTitle) {
-			console.log(
-				'🔔 [WORLDMAP] Triggering notification from route params'
-			);
-
-			// Show the notification with the title from route
-			showNotificationSheet(
-				notificationTitle as string,
-				pinLocation ? `Added to ${pinLocation}` : undefined
-			);
-
-			// Clear the route parameters to prevent re-triggering
-			// Note: In a real app, you might want to use a different approach
-			// to clear these params, but this works for the current implementation
-		}
-	}, [
-		showNotification,
-		notificationTitle,
-		pinLocation,
-		showNotificationSheet,
-	]);
 
 	// =============================
 	//   USER PREFERENCES & FILTERING SECTION
@@ -424,10 +386,10 @@ export default function WorldMapScreen() {
 			{/* ==================== */}
 			<TopNotificationSheet
 				isVisible={isNotificationVisible}
-				title={notificationData.title}
-				message={notificationData.message}
+				title={notification?.title || ''}
+				message={notification?.message || ''}
 				onClose={hideNotification}
-				autoCloseDelay={notificationData.autoCloseDelay}
+				autoCloseDelay={notification?.autoCloseDelay || 3000}
 			/>
 
 			{/**********************************************/}

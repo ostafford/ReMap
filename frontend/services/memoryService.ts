@@ -1,9 +1,8 @@
-// =====================================
-//   MEMORY SERVICE - BACKEND API INTEGRATION
-// =====================================
-// Purpose: API communication layer between frontend hooks and Express.js backend
-// Replaces direct Supabase calls with backend API calls
+// ===================
+//   SERVICES IMPORT
+// ===================
 import { getCurrentUser } from '@/services/auth';
+import { supabase } from '@/lib/supabase';
 
 // ==================
 // TYPE DEFINITIONS
@@ -22,21 +21,6 @@ export interface CreateMemoryRequest {
 		videos: Array<{ uri: string; name: string }>;
 		audio: { uri: string } | null;
 	};
-}
-
-export interface UploadProgress {
-	total: number;
-	completed: number;
-	currentFile: string;
-	percentage: number;
-}
-
-export interface UploadProgressCallbacks {
-	onStart?: () => void;
-	onProgress?: (progress: UploadProgress) => void;
-	onFileComplete?: (fileName: string) => void;
-	onComplete?: () => void;
-	onError?: (error: Error) => void;
 }
 
 interface ApiResponse {
@@ -64,8 +48,7 @@ const API_ENDPOINTS = {
 
 /**
  * Gets the JWT token from Supabase auth for backend API calls
- * Following your teammate's noted pattern:
- * "Add JWT to headers as 'Authorization': 'Bearer {token}'"
+ * Pattern: "Add JWT to headers as 'Authorization': 'Bearer {token}'"
  */
 const getAuthToken = async (): Promise<string> => {
 	try {
@@ -73,9 +56,6 @@ const getAuthToken = async (): Promise<string> => {
 		if (!user) {
 			throw new Error('User not authenticated');
 		}
-
-		// Get the session to access the JWT token
-		const { supabase } = await import('@/lib/supabase');
 		const {
 			data: { session },
 			error,
@@ -87,14 +67,14 @@ const getAuthToken = async (): Promise<string> => {
 
 		return session.access_token;
 	} catch (error) {
-		console.error('Failed to get auth token:', error);
+		console.error('❌ [SERVICE] Failed to get auth token:', error);
 		throw new Error('Authentication failed');
 	}
 };
 
-// ==================
+// ======================
 // DATA TRANSFORMATION
-// ==================
+// ======================
 
 /**
  * Converts frontend data format to FormData for backend API
@@ -128,7 +108,10 @@ const buildFormDataForBackend = async (
 
 			formData.append('image', blob, photo.name);
 		} catch (error) {
-			console.error(`Failed to process photo ${photo.name}:`, error);
+			console.error(
+				`❌ [SERVICE] Failed to process photo ${photo.name}:`,
+				error
+			);
 			throw new Error(`Could not process photo: ${photo.name}`);
 		}
 	}
@@ -141,7 +124,10 @@ const buildFormDataForBackend = async (
 
 			formData.append('video', blob, video.name);
 		} catch (error) {
-			console.error(`Failed to process video ${video.name}:`, error);
+			console.error(
+				`❌ [SERVICE] Failed to process video ${video.name}:`,
+				error
+			);
 			throw new Error(`Could not process video: ${video.name}`);
 		}
 	}
@@ -154,60 +140,12 @@ const buildFormDataForBackend = async (
 
 			formData.append('audio', blob, 'audio_recording.m4a');
 		} catch (error) {
-			console.error('Failed to process audio:', error);
+			console.error('❌ [SERVICE] Failed to process audio:', error);
 			throw new Error('Could not process audio recording');
 		}
 	}
 
 	return formData;
-};
-
-// ==================
-// PROGRESS TRACKING
-// ==================
-
-/**
- * Simulates upload progress for better UX
- * In a real implementation, you might track actual upload progress
- */
-const simulateUploadProgress = (
-	totalFiles: number,
-	callbacks?: UploadProgressCallbacks
-): Promise<void> => {
-	return new Promise((resolve) => {
-		let completed = 0;
-
-		const updateProgress = (fileName: string) => {
-			completed++;
-			const percentage = Math.round((completed / (totalFiles + 1)) * 100);
-
-			callbacks?.onProgress?.({
-				total: totalFiles + 1,
-				completed,
-				currentFile: fileName,
-				percentage,
-			});
-
-			callbacks?.onFileComplete?.(fileName);
-		};
-
-		// Simulate file uploads
-		const files = [
-			'Preparing files...',
-			'Uploading images...',
-			'Uploading audio...',
-			'Creating memory...',
-		];
-
-		files.slice(0, totalFiles + 1).forEach((fileName, index) => {
-			setTimeout(() => {
-				updateProgress(fileName);
-				if (index === files.length - 1 || index === totalFiles) {
-					resolve();
-				}
-			}, index * 800); // 800ms delay between updates
-		});
-	});
 };
 
 // ==================
@@ -255,22 +193,11 @@ const validateMemoryData = (data: CreateMemoryRequest): string[] => {
 // ==================
 // MAIN API FUNCTION
 // ==================
-
-/**
- * Creates a memory pin by calling the backend API
- * Replaces the previous direct Supabase implementation
- *
- * @param memoryData - The memory data from frontend hooks
- * @param callbacks - Progress and status callbacks for UI updates
- * @returns Promise with success/error result
- */
 export const createMemoryPin = async (
-	memoryData: CreateMemoryRequest,
-	callbacks?: UploadProgressCallbacks
+	memoryData: CreateMemoryRequest
 ): Promise<ApiResponse> => {
 	try {
-		// Start the process
-		callbacks?.onStart?.();
+		console.log('📡 [SERVICE] Starting memory pin creation');
 
 		// Validate data before sending
 		const validationErrors = validateMemoryData(memoryData);
@@ -283,43 +210,30 @@ export const createMemoryPin = async (
 		// Get authentication token
 		const authToken = await getAuthToken();
 
-		// Calculate total files for progress tracking
-		const totalFiles =
-			memoryData.media.photos.length +
-			memoryData.media.videos.length +
-			(memoryData.media.audio ? 1 : 0);
-
-		// Start progress simulation (you can replace this with real progress tracking)
-		const progressPromise = simulateUploadProgress(totalFiles, callbacks);
-
 		// Build FormData for backend
 		const formData = await buildFormDataForBackend(memoryData);
 
-		// Make API call to your backend
+		// Make API call to backend
 		console.log(
-			'📡 [DEBUG] Making API call to:',
+			'📡 [SERVICE] Making API call to:',
 			`${API_BASE_URL}${API_ENDPOINTS.CREATE_PIN}`
 		);
+
 		const response = await fetch(
 			`${API_BASE_URL}${API_ENDPOINTS.CREATE_PIN}`,
 			{
 				method: 'POST',
 				headers: {
 					Authorization: `Bearer ${authToken}`,
-					// Note: Don't set Content-Type header when using FormData
-					// The browser will set it automatically with boundary
 				},
 				body: formData,
 			}
 		);
 
-		// Wait for progress simulation to complete
-		await progressPromise;
-
 		// Handle response
 		if (!response.ok) {
 			const errorText = await response.text();
-			console.error('❌ Backend API error:', {
+			console.error('❌ [SERVICE] Backend API error:', {
 				status: response.status,
 				statusText: response.statusText,
 				body: errorText,
@@ -330,18 +244,14 @@ export const createMemoryPin = async (
 
 		// Parse successful response
 		const result = await response.json();
-		console.log('✅ Memory created successfully:', result);
-
-		callbacks?.onComplete?.();
+		console.log('✅ [SERVICE] Memory created successfully:', result);
 
 		return {
 			success: true,
 			data: result,
 		};
 	} catch (error) {
-		console.error('💥 Memory creation failed:', error);
-
-		callbacks?.onError?.(error as Error);
+		console.error('💥 [SERVICE] Memory creation failed:', error);
 
 		return {
 			success: false,
@@ -353,9 +263,9 @@ export const createMemoryPin = async (
 	}
 };
 
-// ==================
+// ================================
 // EXPORT ALL TYPES AND FUNCTIONS
-// ==================
+// ================================
 
 export type { ApiResponse };
 export default createMemoryPin;
