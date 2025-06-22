@@ -3,8 +3,6 @@
 // =====================================
 // Purpose: API communication layer between frontend hooks and Express.js backend
 // Replaces direct Supabase calls with backend API calls
-
-import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/supabase';
 import { getCurrentUser } from '@/services/auth';
 
 // ==================
@@ -271,29 +269,19 @@ export const createMemoryPin = async (
 	callbacks?: UploadProgressCallbacks
 ): Promise<ApiResponse> => {
 	try {
-		console.log('🚀 [DEBUG] createMemoryPin called with data:', {
-			name: memoryData.name,
-			hasPhotos: memoryData.media.photos.length > 0,
-			hasAudio: !!memoryData.media.audio,
-		});
 		// Start the process
 		callbacks?.onStart?.();
-		console.log('🚀 Starting memory creation via backend API...');
 
 		// Validate data before sending
-		console.log('🔍 [DEBUG] Starting validation...');
 		const validationErrors = validateMemoryData(memoryData);
 		if (validationErrors.length > 0) {
 			throw new Error(
 				`Validation failed: ${validationErrors.join(', ')}`
 			);
 		}
-		console.log('✅ [DEBUG] Validation passed');
 
 		// Get authentication token
-		console.log('🔍 [DEBUG] Getting auth token...');
 		const authToken = await getAuthToken();
-		console.log('✅ Authentication token retrieved');
 
 		// Calculate total files for progress tracking
 		const totalFiles =
@@ -305,9 +293,7 @@ export const createMemoryPin = async (
 		const progressPromise = simulateUploadProgress(totalFiles, callbacks);
 
 		// Build FormData for backend
-		console.log('📦 Preparing files and data for upload...');
 		const formData = await buildFormDataForBackend(memoryData);
-		console.log('✅ [DEBUG] FormData built');
 
 		// Make API call to your backend
 		console.log(
@@ -326,7 +312,6 @@ export const createMemoryPin = async (
 				body: formData,
 			}
 		);
-		console.log('📡 [DEBUG] Response received, status:', response.status);
 
 		// Wait for progress simulation to complete
 		await progressPromise;
@@ -365,33 +350,6 @@ export const createMemoryPin = async (
 					? error.message
 					: 'Unknown error occurred',
 		};
-	}
-};
-
-// ==================
-// HEALTH CHECK UTILITY
-// ==================
-
-/**
- * Simple health check to verify backend connectivity
- * Useful for debugging connection issues
- */
-export const checkBackendHealth = async (): Promise<boolean> => {
-	try {
-		const response = await fetch(
-			`${API_BASE_URL}${API_ENDPOINTS.HEALTH_CHECK}`,
-			{
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-			}
-		);
-
-		return response.ok;
-	} catch (error) {
-		console.error('Backend health check failed:', error);
-		return false;
 	}
 };
 

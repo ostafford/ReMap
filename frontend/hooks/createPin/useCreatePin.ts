@@ -67,14 +67,8 @@ interface UseCreatePinProps {
 	setMemoryTitle: (title: string) => void;
 	setMemoryDescription: (description: string) => void;
 
-	// Modal system
-	showModal: (
-		type: string,
-		title: string,
-		message: string,
-		actions?: any[]
-	) => void;
-	hideModal: () => void;
+	// Simple success callback - replaces modal system
+	onSuccess: (title: string, message: string) => void;
 }
 
 export const useCreatePin = (props: UseCreatePinProps) => {
@@ -93,8 +87,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		resetAllPrivacySettings,
 		setMemoryTitle,
 		setMemoryDescription,
-		showModal,
-		hideModal,
+		onSuccess,
 	} = props;
 
 	// ==================
@@ -148,6 +141,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		selectedMedia,
 		audioUri,
 	]);
+
 	// Frontend
 	const createPreviewData = useCallback((): MemoryData => {
 		const coreData = createCoreMemoryData();
@@ -207,6 +201,15 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	}, [createCoreMemoryData]);
 
 	// ===========================
+	//   MODAL CONTROL FUNCTIONS
+	// ===========================
+
+	const hidePreviewModal = useCallback(() => {
+		console.log('🎯 [HOOK] Hiding preview modal');
+		setPreviewData(null);
+	}, []);
+
+	// ===========================
 	//   PREVIEW FUNCTIONALITY
 	// ===========================
 	const handlePreviewMemory = useCallback(() => {
@@ -223,8 +226,9 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	// ===========================
 	const handleConfirmSave = useCallback(async () => {
 		console.log('🎯 [DEBUG] handleConfirmSave called');
-		const TESTING_MODE = false;
+		const TESTING_MODE = true; // Set to false for real API calls
 
+		// STEP 1: Start upload state (this shows upload modal)
 		setIsSaving(true);
 		setUploadProgress({
 			total: 0,
@@ -232,6 +236,12 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 			currentFile: 'Preparing...',
 			percentage: 0,
 		});
+
+		// STEP 2: Hide preview modal AFTER upload starts
+		// Small delay to ensure upload modal is visible first
+		setTimeout(() => {
+			hidePreviewModal();
+		}, 100);
 
 		try {
 			const memoryData = createPreviewData();
@@ -241,14 +251,35 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 				console.log('Testing mode: Simulating save...');
 
 				const totalFiles = selectedMedia.length + (audioUri ? 1 : 0);
-				setUploadProgress({
-					total: totalFiles,
-					completed: totalFiles,
-					currentFile: 'Complete',
-					percentage: 100,
-				});
 
-				await new Promise((resolve) => setTimeout(resolve, 1000));
+				// Simulate realistic upload progress
+				const steps = [
+					{ file: 'Preparing files...', delay: 800 },
+					{ file: 'Uploading images...', delay: 1200 },
+					{ file: 'Uploading audio...', delay: 1000 },
+					{ file: 'Creating memory...', delay: 800 },
+					{ file: 'Finalizing...', delay: 600 },
+				];
+
+				// Simulate each step with realistic timing
+				for (let i = 0; i < steps.length; i++) {
+					const step = steps[i];
+					const percentage = Math.round(
+						((i + 1) / steps.length) * 100
+					);
+
+					setUploadProgress({
+						total: steps.length,
+						completed: i + 1,
+						currentFile: step.file,
+						percentage: percentage,
+					});
+
+					// Wait for each step
+					await new Promise((resolve) =>
+						setTimeout(resolve, step.delay)
+					);
+				}
 
 				console.log('Frontend data (OBJECT):', memoryData);
 				console.log('Backend payload (OBJECT):', backendData);
@@ -276,6 +307,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 					},
 					onError: (error) => {
 						console.error('Upload error:', error);
+						hidePreviewModal();
 					},
 				});
 
@@ -285,42 +317,62 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 					console.log('Memory saved:', result.data);
 					handleSaveSuccess(memoryData, result);
 				} else {
-					handleSaveError(result.error || 'Unknown error occurred'); // ✅ Fixed
+					handleSaveError(result.error || 'Unknown error occurred');
 				}
 			}
 		} catch (error) {
 			console.error('Save error:', error);
 			handleSaveError('Unexpected error occurred');
+			hidePreviewModal();
 		} finally {
-			setIsSaving(false);
-			setUploadProgress(null);
+			// Keep isSaving true until success modal is shown
+			// Don't reset here - let handleSaveSuccess manage it
 		}
-	}, [createPreviewData, createSubmissionData, selectedMedia, audioUri]);
+	}, [
+		createPreviewData,
+		createSubmissionData,
+		selectedMedia,
+		audioUri,
+		hidePreviewModal,
+	]);
 
 	const handleSaveSuccess = useCallback(
 		(memoryData: MemoryData, result: any) => {
-			hideModal();
 			console.log('Save successful:', memoryData, result);
-			router.replace('/worldmap');
-			resetForm();
+
+			// IMPORTANT: Keep upload modal visible until success modal takes over
+			// The success modal will be triggered by useEffect in CreatePinModals
+			// when isSaving becomes false and uploadProgress is 100%
+
+			// Wait a moment to let user see 100% completion, then trigger success
+			setTimeout(() => {
+				setIsSaving(false); // This will trigger success modal in CreatePinModals
+
+				// Navigation and cleanup will happen in CreatePinModals success handler
+				// Remove automatic navigation from here
+			}, 1000); // 1 second delay to show completion
 		},
-		[hideModal]
+		[]
 	);
 
 	const handleSaveError = useCallback((error: string) => {
 		console.log('Save Failed', error);
+		setIsSaving(false);
+		setUploadProgress(null);
 	}, []);
 
 	const resetForm = useCallback(() => {
-		hideModal();
+		hidePreviewModal();
 		setMemoryTitle('');
 		setMemoryDescription('');
 		resetMemoryContent();
 		resetMedia();
 		resetAllPrivacySettings();
 		setPreviewData(null);
+		setIsSaving(false);
+		setUploadProgress(null);
 	}, [
-		hideModal,
+		hidePreviewModal,
 		setMemoryTitle,
 		setMemoryDescription,
 		resetMemoryContent,
@@ -339,7 +391,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 
 		// Actions
 		handlePreviewMemory,
-		hideModal,
+		hidePreviewModal,
 		handleConfirmSave,
 		resetForm,
 

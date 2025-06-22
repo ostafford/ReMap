@@ -1,8 +1,8 @@
 // ========================
 //   REACT NATIVE IMPORTS
 // ========================
-import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, StyleSheet, Alert } from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
@@ -20,14 +20,7 @@ import { Footer } from '@/components/layout/Footer';
 //   UI COMPONENTS
 // =================
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/TextInput';
-import {
-	SuccessMessage,
-	ErrorMessage,
-	WarningMessage,
-	InfoMessage,
-} from '@/components/ui/Messages';
 
 // ======================
 //   TYPOGRAPHY IMPORTS
@@ -54,12 +47,7 @@ import { LocationSelector } from '@/components/createPin/LocationSelector';
 import { MediaCapture } from '@/components/createPin/MediaCapture';
 import { VisibilitySelector } from '@/components/createPin/VisibilitySelector';
 import { SocialCircleSelector } from '@/components/createPin/SocialCircleSelector';
-import { PreviewModal } from '@/components/createPin/PreviewModal';
-import { NotificationModal } from '@/components/createPin/NotificationModal';
-import { ImageModal } from '@/components/createPin/ImageModal';
-
-// TESTING
-// import { PrivacySettingsTest } from '@/components/createPin/PrivacySettingsTest';
+import { CreatePinModals } from '@/components/createPin/CreatePinModals';
 
 // ========================
 //   COMPONENT DEFINITION
@@ -67,10 +55,9 @@ import { ImageModal } from '@/components/createPin/ImageModal';
 
 export default function CreatePinScreen() {
 	// ====================
-	//   STATE MANAGEMENT
+	//   IMAGE PREVIEW STATE
 	// ====================
-	// Image Preview Modal
-	const [imageModalState, setImageModalState] = useState<{
+	const [imagePreviewState, setImagePreviewState] = useState<{
 		visible: boolean;
 		imageUri: string | null;
 	}>({
@@ -79,43 +66,29 @@ export default function CreatePinScreen() {
 	});
 
 	// ====================
-	//   MODAL COMPONENTS
+	//   SIMPLE MODAL CALLBACKS
 	// ====================
 
-	// Simple fallback modal functions
-	const showModal = useCallback(
-		(type: string, title: string, message: string, actions?: any[]) => {
+	// Simple fallback for media capture alerts
+	const showMediaModal = useCallback(
+		(type: string, title: string, message: string) => {
+			// Keep this for media capture hook - it uses Alert.alert()
+			const { Alert } = require('react-native');
 			Alert.alert(title, message);
 		},
 		[]
 	);
-
-	const hideModal = useCallback(() => {}, []);
-
-	const showImagePreview = useCallback((imageUri: string) => {
-		setImageModalState({
-			visible: true,
-			imageUri: imageUri,
-		});
-	}, []);
-
-	const hideImagePreview = useCallback(() => {
-		setImageModalState({
-			visible: false,
-			imageUri: null,
-		});
-	}, []);
 
 	// ================
 	//   CUSTOM HOOKS
 	// ================
 
 	const memoryContent = useMemoryContent({
-		showModal,
+		showModal: showMediaModal,
 	});
 
 	const mediaCapture = useMediaCapture({
-		showModal,
+		showModal: showMediaModal,
 		mode: 'full',
 		allowAudio: true,
 		allowMultiple: true,
@@ -180,6 +153,31 @@ export default function CreatePinScreen() {
 	//   CREATE PIN ORCHESTRATION
 	// =============================
 
+	// Success callback for hook - will trigger success modal
+	const handleSuccess = useCallback((title: string, message: string) => {
+		console.log('🎯 [COMPONENT] Success callback triggered:', title);
+		// CreatePinModals will handle this via its auto-detection effect
+		// when upload completes successfully
+	}, []);
+
+	// FIXED: Image preview callback that actually triggers the modal
+	const handleImagePreview = useCallback((imageUri: string) => {
+		console.log('🎯 [COMPONENT] Image preview requested:', imageUri);
+		setImagePreviewState({
+			visible: true,
+			imageUri: imageUri,
+		});
+	}, []);
+
+	// Image preview close callback
+	const handleCloseImagePreview = useCallback(() => {
+		console.log('🎯 [COMPONENT] Closing image preview');
+		setImagePreviewState({
+			visible: false,
+			imageUri: null,
+		});
+	}, []);
+
 	const createPinLogic = useCreatePin({
 		memoryTitle,
 		memoryDescription,
@@ -195,17 +193,16 @@ export default function CreatePinScreen() {
 		resetMedia,
 		setMemoryTitle,
 		setMemoryDescription,
-		showModal,
-		hideModal,
+		onSuccess: handleSuccess,
 	});
 
 	const {
 		previewData,
-		// isSaving,
-		// uploadProgress,
+		isSaving,
+		uploadProgress,
 		handlePreviewMemory,
 		handleConfirmSave,
-		// resetForm,
+		hidePreviewModal,
 	} = createPinLogic;
 
 	// ===================
@@ -215,6 +212,24 @@ export default function CreatePinScreen() {
 	const goBack = () => {
 		router.replace('/worldmap');
 	};
+
+	const handleNavigateToMap = useCallback(() => {
+		router.replace('/worldmap');
+	}, []);
+
+	const handleResetForm = useCallback(() => {
+		setMemoryTitle('');
+		setMemoryDescription('');
+		resetMemoryContent();
+		resetMedia();
+		resetAllPrivacySettings();
+	}, [
+		setMemoryTitle,
+		setMemoryDescription,
+		resetMemoryContent,
+		resetMedia,
+		resetAllPrivacySettings,
+	]);
 
 	// ============================
 	//   MAIN COMPONENT RENDER
@@ -229,6 +244,7 @@ export default function CreatePinScreen() {
 				title="Create Memory Pin"
 				subtitle="Capture this moment forever"
 			/>
+
 			{/* ==================== */}
 			{/*   MAIN FORM CONTENT  */}
 			{/* ==================== */}
@@ -261,7 +277,6 @@ export default function CreatePinScreen() {
 						showSocialDropdown && isVisibilitySelected('social')
 					}
 				/>
-				{/* <PrivacySettingsTest /> */}
 
 				{/* ======================== */}
 				{/*   MEMORY CONTENT         */}
@@ -299,7 +314,7 @@ export default function CreatePinScreen() {
 				{/*   MEDIA CAPTURE          */}
 				{/* ======================== */}
 				<MediaCapture
-					onImagePreview={showImagePreview}
+					onImagePreview={handleImagePreview} // FIXED: Now using actual callback
 					onRemoveMedia={removeMedia}
 					selectedMedia={selectedMedia}
 					audioUri={audioUri}
@@ -313,6 +328,7 @@ export default function CreatePinScreen() {
 					onCameraPress={handleCameraPress}
 				/>
 			</MainContent>
+
 			{/* ==================== */}
 			{/*   FOOTER SECTION     */}
 			{/* ==================== */}
@@ -342,57 +358,30 @@ export default function CreatePinScreen() {
 					</View>
 				</View>
 			</Footer>
+
 			{/* ==================== */}
-			{/*   MODAL SYSTEM       */}
+			{/*   CONSOLIDATED MODALS */}
 			{/* ==================== */}
-			<ImageModal
-				visible={imageModalState.visible}
-				imageUri={imageModalState.imageUri}
-				onClose={hideImagePreview}
-				title="Memory Photo"
+			<CreatePinModals
+				// Data from hooks
+				previewData={previewData}
+				uploadProgress={uploadProgress}
+				isUploading={isSaving}
+				// Callbacks to hook
+				onConfirmSave={handleConfirmSave}
+				onNavigateToMap={handleNavigateToMap}
+				onResetForm={handleResetForm}
+				onClosePreview={hidePreviewModal}
+				onImagePreview={handleImagePreview}
+				// Helper functions from other hooks
+				getVisibilityDescription={getVisibilityDescription}
+				getSelectedSocialCirclesData={getSelectedSocialCirclesData}
+				getMediaSummary={getMediaSummary}
+				selectedSocialCircles={selectedSocialCircles}
+				// ADDED: Image preview state management
+				imagePreviewState={imagePreviewState}
+				onCloseImagePreview={handleCloseImagePreview}
 			/>
-			{/*preview modal*/}
-			{previewData && (
-				<Modal
-					isVisible={!!previewData}
-					onBackdropPress={() => hideModal()}
-				>
-					<Modal.Container>
-						<Modal.Header title="Preview Your Memory" />
-						<Modal.Body>
-							<PreviewModal
-								previewData={previewData}
-								onImagePreview={showImagePreview}
-								getVisibilityDescription={
-									getVisibilityDescription
-								}
-								getSelectedSocialCirclesData={
-									getSelectedSocialCirclesData
-								}
-								getMediaSummary={getMediaSummary}
-								selectedSocialCircles={selectedSocialCircles}
-							/>
-						</Modal.Body>
-						<Modal.Footer>
-							<Button
-								onPress={() => hideModal()}
-								variant="secondary"
-							>
-								Edit
-							</Button>
-							<Button
-								onPress={() => {
-									hideModal();
-									handleConfirmSave();
-								}}
-								variant="primary"
-							>
-								Confirm & Post
-							</Button>
-						</Modal.Footer>
-					</Modal.Container>
-				</Modal>
-			)}
 		</View>
 	);
 }
@@ -430,32 +419,5 @@ const styles = StyleSheet.create({
 	previewButton: {
 		backgroundColor: ReMapColors.primary.violet,
 		flex: 3,
-	},
-
-	// Modal Styles
-	modalButton: {
-		width: 150,
-	},
-	primaryModalButton: {
-		backgroundColor: ReMapColors.primary.violet,
-	},
-	secondaryModalButton: {
-		backgroundColor: ReMapColors.ui.textSecondary,
-	},
-	dangerModalButton: {
-		backgroundColor: ReMapColors.semantic.error,
-	},
-
-	// Image Preview Modal
-	imagePreviewContainer: {
-		alignItems: 'center',
-		justifyContent: 'center',
-		minHeight: 300,
-		maxHeight: 500,
-	},
-	fullImagePreview: {
-		width: '100%',
-		height: '100%',
-		borderRadius: 8,
 	},
 });

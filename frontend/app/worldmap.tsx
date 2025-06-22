@@ -105,23 +105,9 @@ import {
 } from '@/assets/dummyPinData';
 
 // =========================================================================
-import { checkBackendHealth } from '@/services/memoryService';
-// =========================================================================
-
-// =========================================================================
 //   						COMPONENT DEFINITION
 // =========================================================================
 export default function WorldMapScreen() {
-	const testBackend = async () => {
-		const isHealthy = await checkBackendHealth();
-		Alert.alert(
-			isHealthy ? '✅ Backend Connected!' : '❌ Backend Failed',
-			isHealthy
-				? 'Your Express.js server is running correctly!'
-				: 'Make sure your server is running on http://localhost:3000'
-		);
-	};
-
 	// ===============================
 	//   UTILITY CONSTANTS & SETUP
 	// ===============================
@@ -670,9 +656,6 @@ export default function WorldMapScreen() {
 								icon="sliders"
 								onPress={navigateToCreatePin}
 							/>
-							<Button onPress={testBackend}>
-								🏥 Test Backend
-							</Button>
 						</View>
 					</Footer>
 
