@@ -118,36 +118,30 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 	 * Main visibility effect - handles show/hide animations and auto-close timer
 	 */
 	useEffect(() => {
+		// Clear any existing timer first
+		if (autoCloseTimer.current) {
+			clearTimeout(autoCloseTimer.current);
+			autoCloseTimer.current = null;
+		}
+
 		if (isVisible) {
-			// Clear any existing timer
-			if (autoCloseTimer.current) {
-				clearTimeout(autoCloseTimer.current);
-			}
+			// Show immediately without delay
+			slideDown();
 
-			// Wait 1 second before showing (as requested)
-			setTimeout(() => {
-				slideDown();
+			// Set up auto-close timer
+			autoCloseTimer.current = setTimeout(() => {
+				slideUp();
+			}, autoCloseDelay);
+		}
 
-				// Set up auto-close timer
-				autoCloseTimer.current = setTimeout(() => {
-					slideUp();
-				}, autoCloseDelay);
-			}, 1000);
-		} else {
-			// Clear timer if component becomes invisible
+		// Cleanup function
+		return () => {
 			if (autoCloseTimer.current) {
 				clearTimeout(autoCloseTimer.current);
 				autoCloseTimer.current = null;
 			}
-		}
-
-		// Cleanup on unmount
-		return () => {
-			if (autoCloseTimer.current) {
-				clearTimeout(autoCloseTimer.current);
-			}
 		};
-	}, [isVisible, autoCloseDelay]);
+	}, [isVisible, autoCloseDelay]); // Keep dependencies the same
 
 	/**
 	 * Reset animation position when visibility changes

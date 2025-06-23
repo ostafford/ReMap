@@ -204,13 +204,19 @@ export default function WorldMapScreen() {
 	};
 
 	// Map helper functions (CALLOUT ETC)
-	const getMarkerColor = (visibility: string): string => {
+	const getMarkerColor = (visibility?: string | string[]): string => {
+		// Handle both single string and array formats
+		const visibilityValue = Array.isArray(visibility)
+			? visibility[0]
+			: visibility;
+
 		const colorMap: { [key: string]: string } = {
 			public: '#4CAF50', // Green for public
 			private: '#2196F3', // Blue for private
 			social: '#9C27B0', // Purple for social circles
 		};
-		return colorMap[visibility] || '#666666';
+
+		return colorMap[visibilityValue || 'public'] || '#666666';
 	};
 
 	// =============================
@@ -310,28 +316,26 @@ export default function WorldMapScreen() {
 	const [pinError, setPinError] = useState<string | null>(null);
 
 	const fetchPins = useCallback(async () => {
-		console.log('🔄 [WORLDMAP] Fetching pins from backend');
+		console.log('🔄 [WORLDMAP] Fetching pins from backend (static)');
 		setIsLoadingPins(true);
 		setPinError(null);
 
 		try {
-			// Get current map region for viewport filtering
-			// You can adjust this based on your map's current region
-			const currentRegion = {
+			// Use a large viewport to get all nearby pins
+			const wideRegion = {
 				latitude: -37.817979,
 				longitude: 144.960408,
-				latitudeDelta: 0.5, // Increased for wider area
-				longitudeDelta: 0.5,
+				latitudeDelta: 1.0, // Much wider area
+				longitudeDelta: 1.0,
 			};
 
-			// Create viewport from current region
-			const viewport = createViewportFromMapRegion(currentRegion);
-
-			// Fetch pins from backend
+			const viewport = createViewportFromMapRegion(wideRegion);
 			const result = await fetchAllVisiblePins(viewport);
 
 			if (result.success) {
-				console.log(`✅ [WORLDMAP] Loaded ${result.data.length} pins`);
+				console.log(
+					`✅ [WORLDMAP] Loaded ${result.data.length} pins (static)`
+				);
 				setRealPins(result.data);
 			} else {
 				console.error(
@@ -339,16 +343,77 @@ export default function WorldMapScreen() {
 					result.error
 				);
 				setPinError(result.error || 'Failed to load pins');
-				setRealPins([]); // Fallback to empty array
+				setRealPins([]);
 			}
 		} catch (error) {
 			console.error('💥 [WORLDMAP] Error fetching pins:', error);
 			setPinError('Unexpected error loading pins');
 			setRealPins([]);
 		} finally {
-			setIsLoadingPins(false);
+			console.log('🏁 [WORLDMAP] Setting isLoadingPins to false');
+			setIsLoadingPins(false); // This should clear "Loading pins..."
 		}
 	}, []);
+
+	function debounce(func: Function, wait: number) {
+		let timeout: ReturnType<typeof setTimeout>;
+		return function executedFunction(...args: any[]) {
+			const later = () => {
+				clearTimeout(timeout);
+				func(...args);
+			};
+			clearTimeout(timeout);
+			timeout = setTimeout(later, wait);
+		};
+	}
+
+	const onMapRegionChange = useCallback(
+		async (region: any) => {
+			console.log('🗺️ [WORLDMAP] Map region changed (debounced)');
+
+			// Don't reload if already loading
+			if (isLoadingPins) {
+				console.log('⏳ [WORLDMAP] Already loading pins, skipping');
+				return;
+			}
+
+			setIsLoadingPins(true);
+			setPinError(null);
+
+			try {
+				const viewport = createViewportFromMapRegion(region);
+				const result = await fetchAllVisiblePins(viewport);
+
+				if (result.success) {
+					console.log(
+						`✅ [WORLDMAP] Loaded ${result.data.length} pins for new region`
+					);
+					setRealPins(result.data);
+				} else {
+					console.error(
+						'❌ [WORLDMAP] Failed to load pins for new region:',
+						result.error
+					);
+					setPinError(result.error || 'Failed to load pins');
+				}
+			} catch (error) {
+				console.error(
+					'💥 [WORLDMAP] Error fetching pins for new region:',
+					error
+				);
+				setPinError('Unexpected error loading pins');
+			} finally {
+				setIsLoadingPins(false);
+			}
+		},
+		[isLoadingPins]
+	);
+
+	// Add debounced version
+	const debouncedOnMapRegionChange = useCallback(
+		debounce(onMapRegionChange, 500), // Wait 500ms after user stops panning
+		[onMapRegionChange]
+	);
 
 	// Load pins when component mounts
 	useEffect(() => {
@@ -358,6 +423,14 @@ export default function WorldMapScreen() {
 	// =========================
 	//   WORLDMAP PAGE RENDER
 	// =========================
+	console.log('🎯 [WORLDMAP] About to render', realPins.length, 'pins');
+	console.log(
+		'🎯 [WORLDMAP] Pin coordinates:',
+		realPins.map(
+			(p) =>
+				`${p.title}: ${p.coordinate.latitude}, ${p.coordinate.longitude}`
+		)
+	);
 	return (
 		<GestureHandlerRootView style={styles.container}>
 			{/* ==================== */}
@@ -407,6 +480,7 @@ export default function WorldMapScreen() {
 							initialRegion={INITIAL_REGION}
 							showsUserLocation
 							showsMyLocationButton
+							// onRegionChangeComplete={debouncedOnMapRegionChange}
 						>
 							<Marker
 								title="Holberton School"
@@ -423,7 +497,7 @@ export default function WorldMapScreen() {
 								/>
 							</Marker>
 
-							{/* UPDATED: Real pins from backend */}
+							{/* Real pins from backend */}
 							{realPins.map((pin) => (
 								<Marker
 									key={pin.id}
@@ -442,9 +516,8 @@ export default function WorldMapScreen() {
 											styles.customMarker,
 											{
 												backgroundColor: getMarkerColor(
-													pin.pinData?.memory
-														?.visibility?.[0] ||
-														'public'
+													pin.pinData.memory
+														.visibility
 												),
 											},
 										]}
@@ -509,7 +582,6 @@ export default function WorldMapScreen() {
 								</ScrollView>
 							</View>
 						</View>
-
 						{/**********************************************/}
 						{/************ UNDER MAP CONTENT ***************/}
 						{/**********************************************/}
@@ -537,7 +609,6 @@ export default function WorldMapScreen() {
 								</Text>
 							</TouchableOpacity>
 						</View>
-
 						{/* ******************************** */}
 						{/*  FILTER CONTROLS (STARTER PACK)  */}
 						{/* ******************************** */}

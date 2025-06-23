@@ -140,6 +140,33 @@ const getAuthToken = async (): Promise<string | null> => {
  * Converts backend pin data to frontend map pin format
  */
 const transformBackendPinToMapPin = (backendPin: BackendPin): MapPin => {
+	// Add validation at the start
+	if (!backendPin || typeof backendPin !== 'object') {
+		throw new Error('Invalid backend pin data');
+	}
+
+	// Ensure required fields exist
+	if (
+		!backendPin.id ||
+		!backendPin.name ||
+		typeof backendPin.latitude !== 'number' ||
+		typeof backendPin.longitude !== 'number'
+	) {
+		console.error(
+			'❌ [TRANSFORM] Missing required pin fields:',
+			backendPin
+		);
+		throw new Error('Missing required pin fields');
+	}
+
+	// Safe property access with defaults
+	const imageUrls = Array.isArray(backendPin.image_urls)
+		? backendPin.image_urls
+		: [];
+	const validImageUrls = imageUrls.filter(
+		(url) => url && typeof url === 'string'
+	);
+
 	return {
 		id: backendPin.id,
 		coordinate: {
@@ -147,30 +174,32 @@ const transformBackendPinToMapPin = (backendPin: BackendPin): MapPin => {
 			longitude: backendPin.longitude,
 		},
 		title: backendPin.name,
-		description: backendPin.description,
+		description: backendPin.description || '', // Default to empty string
 		pinData: {
 			memory: {
 				title: backendPin.name,
-				description: backendPin.description,
+				description: backendPin.description || '',
 				author: 'User', // TODO: Get actual username from backend
 				createdAt: backendPin.created_at,
 				media: {
-					photos: backendPin.image_urls.map((url, index) => ({
+					photos: validImageUrls.map((url, index) => ({
 						name: `photo_${index + 1}`,
 						uri: url,
 					})),
 					videos: [], // TODO: Add video support when backend supports it
-					audio: backendPin.audio_url
-						? {
-								recorded: backendPin.created_at,
-						  }
-						: null,
+					audio:
+						backendPin.audio_url &&
+						typeof backendPin.audio_url === 'string'
+							? {
+									recorded: backendPin.created_at,
+							  }
+							: null,
 				},
-				visibility: [backendPin.visibility],
+				visibility: [backendPin.visibility || 'public'], // Ensure array with default
 			},
 			name: backendPin.name,
 			location: {
-				address: backendPin.location_query,
+				address: backendPin.location_query || 'Unknown location', // Default value
 				latitude: backendPin.latitude,
 				longitude: backendPin.longitude,
 			},
@@ -423,11 +452,5 @@ export const createViewportFromMapRegion = (region: {
 // EXPORTS
 // ==================
 
-export type { ApiResponse, MapViewport };
-export {
-	fetchPublicPins,
-	fetchUserPins,
-	fetchAllVisiblePins,
-	createViewportFromMapRegion,
-	transformBackendPinToMapPin,
-};
+export type { ApiResponse };
+export { transformBackendPinToMapPin };
