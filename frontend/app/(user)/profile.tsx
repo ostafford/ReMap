@@ -9,13 +9,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // ==============================
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
+	View,
+	Text,
+	TouchableOpacity,
+	StyleSheet,
+	SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/hooks/shared/useAuth';
 
 // =================
 //   UI COMPONENTS
@@ -23,163 +24,168 @@ import { useRouter } from 'expo-router';
 import { ReMapColors } from '@/constants/Colors';
 import { Button } from '@/components/ui/Button';
 
-
-
 const Tab = createMaterialTopTabNavigator();
 
-function ProfileTab() {
-  return (
-    <View style={styles.tabContent}>
-      <Text>Profile picture here</Text>
-      <Text style={styles.username}>username</Text>
-      <Text>Full name</Text>
-    <Text>Total Pins</Text>
-	  	<Button
-				//onPress={} - link to function that signs out user
+function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
+	return (
+		<View style={styles.tabContent}>
+			<Text>Profile picture here</Text>
+			<Text style={styles.username}>username</Text>
+			<Text>Full name</Text>
+			<Text>Total Pins</Text>
+			<Button
+				onPress={onSignOut} // Connect the function here
 				style={styles.circleButton}
 				size="small"
-				textColour='white'
+				textColour="white"
 			>
 				Sign out
 			</Button>
-    </View>
-  );
+		</View>
+	);
 }
 
 function CirclesTab() {
-  return (
-    <View style={styles.tabContent}>
-      <Text>Your Circles</Text>
-      <View style={styles.buttonContainer}>
-			<Button
-				//onPress={} we'll implement function laterrrr
-				style={styles.circleButton}
-				size="small"
-				textColour='white'
-			>
-				Create
-			</Button>
-			<Button
-				//onPress={}
-				style={styles.circleButton}
-				size="small"
-				textColour='white'
-			>
-				Join
-			</Button>
-      </View>
-    </View>
-  );
+	return (
+		<View style={styles.tabContent}>
+			<Text>Your Circles</Text>
+			<View style={styles.buttonContainer}>
+				<Button
+					//onPress={} we'll implement function laterrrr
+					style={styles.circleButton}
+					size="small"
+					textColour="white"
+				>
+					Create
+				</Button>
+				<Button
+					//onPress={}
+					style={styles.circleButton}
+					size="small"
+					textColour="white"
+				>
+					Join
+				</Button>
+			</View>
+		</View>
+	);
 }
 
 function PinsTab() {
-  return (
-    <View style={styles.tabContent}>
-      <Text>Your Pins</Text>
-      <Text>pin display here</Text>
-      <Text>maybe we should have the option to delete pins here</Text>
-    </View>
-  );
+	return (
+		<View style={styles.tabContent}>
+			<Text>Your Pins</Text>
+			<Text>pin display here</Text>
+			<Text>maybe we should have the option to delete pins here</Text>
+		</View>
+	);
 }
 
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
+	const insets = useSafeAreaInsets();
+	const router = useRouter();
 
-  const goBack = () => {
-    router.back();
-  }
+	const goBack = () => {
+		router.back();
+	};
 
-  return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={goBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-      </View>
+	const { signOut, user } = useAuth();
+	const handleSignOut = async () => {
+		const success = await signOut();
+		if (success) {
+			router.replace('/');
+		}
+	};
 
-      <Tab.Navigator
-        screenOptions={{
-          tabBarStyle: {
-            backgroundColor: 'transparent',
-            elevation: 0,
-            shadowOpacity: 0,
-          },
-          tabBarIndicatorStyle: {
-            backgroundColor: 'black',
-          },
-          tabBarLabelStyle: {
-            fontWeight: 'bold',
-            color: 'black',
-          },
-        }}
-      >
-        <Tab.Screen name="Profile" component={ProfileTab} />
-		<Tab.Screen name="Pins" component={PinsTab} />
-        <Tab.Screen name="Circles" component={CirclesTab} />
-      </Tab.Navigator>
-    </SafeAreaView>
-  );
+	return (
+		<SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+			<View style={styles.header}>
+				<TouchableOpacity onPress={goBack} style={styles.backButton}>
+					<Text style={styles.backButtonText}>← Back</Text>
+				</TouchableOpacity>
+			</View>
+
+			<Tab.Navigator
+				screenOptions={{
+					tabBarStyle: {
+						backgroundColor: 'transparent',
+						elevation: 0,
+						shadowOpacity: 0,
+					},
+					tabBarIndicatorStyle: {
+						backgroundColor: 'black',
+					},
+					tabBarLabelStyle: {
+						fontWeight: 'bold',
+						color: 'black',
+					},
+				}}
+			>
+				<Tab.Screen
+					name="Profile"
+					children={() => <ProfileTab onSignOut={handleSignOut} />}
+				/>
+				<Tab.Screen name="Pins" component={PinsTab} />
+				<Tab.Screen name="Circles" component={CirclesTab} />
+			</Tab.Navigator>
+		</SafeAreaView>
+	);
 }
-
-
 
 // =========================================================================
 //                            STYLE SHEET
 // =========================================================================
 const styles = StyleSheet.create({
-  
-  container: {
-    flex: 1,
-    backgroundColor: 'white',
-  },
+	container: {
+		flex: 1,
+		backgroundColor: 'white',
+	},
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
+	header: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		paddingHorizontal: 16,
+		paddingBottom: 8,
+	},
 
-  backButton: {
-    padding: 8,
-    borderRadius: 8,
-  },
+	backButton: {
+		padding: 8,
+		borderRadius: 8,
+	},
 
-  backButtonText: {
-    fontSize: 16,
-    color: ReMapColors.primary.black,
-  },
+	backButtonText: {
+		fontSize: 16,
+		color: ReMapColors.primary.black,
+	},
 
-  tabContent: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+	tabContent: {
+		flex: 1,
+		padding: 24,
+		justifyContent: 'space-between',
+		alignItems: 'center',
+	},
 
+	username: {
+		fontSize: 20,
+	},
 
-  username: {
-    fontSize: 20,
-  },
+	buttonContainer: {
+		flexDirection: 'row',
+		justifyContent: 'space-evenly',
+		marginTop: 32,
+		paddingBottom: 24,
+	},
 
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    marginTop: 32,
-    paddingBottom: 24,
-  },
+	circleButton: {
+		backgroundColor: ReMapColors.primary.black,
+		paddingVertical: 12,
+		paddingHorizontal: 32,
+		borderRadius: 18,
+	},
 
-  circleButton: {
-    backgroundColor: ReMapColors.primary.black,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 18,
-  },
-
-  buttonText: {
-    fontWeight: '600',
-    fontSize: 10,
-    color: 'black',
-  },
+	buttonText: {
+		fontWeight: '600',
+		fontSize: 10,
+		color: 'black',
+	},
 });

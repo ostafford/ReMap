@@ -1,38 +1,44 @@
 // Pins routes
-import { Router } from "express";
+import { Router } from 'express';
 
-import { createPin, deletePin, getPin, listPins, updatePin } from "../controllers/pinsController";
+import {
+	createPin,
+	deletePin,
+	getPin,
+	listPins,
+	updatePin,
+} from '../controllers/pinsController';
 
-import checkUser from "../middleware/userAuth";
+import checkUser from '../middleware/userAuth';
 
-import { publicGetPin, publicListPins } from "../controllers/publicPinsController";
+import {
+	publicGetPin,
+	publicListPins,
+} from '../controllers/publicPinsController';
 
 const router = Router();
 
-
 /* ----------------- Private --------------------- */
 // Create pin
-router.post("/user", checkUser, createPin);
+router.post('/user', checkUser, createPin);
 
 // Get all pins
-router.get("/user", listPins);
+router.get('/user', checkUser, listPins);
 
 // Get single pin
-router.get("/user/:pinId", checkUser, getPin);
+router.get('/user/:pinId', checkUser, getPin);
 
 // Update pins
-router.put("/user/:pinId", checkUser, updatePin);
+router.put('/user/:pinId', checkUser, updatePin);
 
 // Delete pins
-router.delete("/user/:pinId", checkUser, deletePin);
-
+router.delete('/user/:pinId', checkUser, deletePin);
 
 /* ----------------- Public --------------------- */
 // Get all pins
-router.get("/", publicListPins);
+router.get('/', publicListPins);
 
 // Get single pin
-router.get("/:pinId", publicGetPin);
-
+router.get('/:pinId', publicGetPin);
 
 export default router;

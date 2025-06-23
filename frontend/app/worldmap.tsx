@@ -1,7 +1,13 @@
 // =========================================================================
 //   						EXTERNAL IMPORTS
 // =========================================================================
-import React, { useRef, useMemo, useState, useEffect } from 'react';
+import React, {
+	useRef,
+	useMemo,
+	useState,
+	useEffect,
+	useCallback,
+} from 'react';
 import {
 	Alert,
 	Animated,
@@ -54,6 +60,11 @@ import { useModal } from '@/hooks/shared/useModal';
 import { useSlideAnimation } from '@/hooks/useSlideAnimation';
 import { useNotificationSheet } from '@/hooks/shared/useNotificationSheet';
 import { useNotification } from '@/contexts/NotificationContext';
+import {
+	fetchAllVisiblePins,
+	createViewportFromMapRegion,
+	type MapPin,
+} from '@/services/pinsService';
 
 // ======================
 //  LAYOUT COMPONENTS
@@ -90,16 +101,6 @@ import { ReMapColors } from '@/constants/Colors';
 //   SERVICES IMPORTS
 // ===================
 import { getCurrentUser, signOut } from '@/services/auth';
-
-// ======================
-//   DUMMY DATA IMPORTS
-// ======================
-import {
-	DUMMY_PINS,
-	convertToMapMarker,
-	filterPinsByStarterPacks,
-	type DummyPin,
-} from '@/assets/dummyPinData';
 
 // =========================================================================
 //   						COMPONENT DEFINITION
@@ -182,76 +183,6 @@ export default function WorldMapScreen() {
 	const signInModal = useModal();
 
 	// =============================
-	//   USER PREFERENCES & FILTERING SECTION
-	// =============================
-	const [userStarterPacks, setUserStarterPacks] = useState<any>(null);
-	const [filteredPins, setFilteredPins] = useState<DummyPin[]>(DUMMY_PINS);
-	const [showPersonalizedPins, setShowPersonalizedPins] = useState(false);
-
-	// User preferences useEffect
-	useEffect(() => {
-		if (userPreferences) {
-			try {
-				const parsedPreferences = JSON.parse(userPreferences as string);
-				setUserStarterPacks(parsedPreferences);
-
-				// Filter pins based on user's starter pack selections
-				if (
-					parsedPreferences.selectedIds &&
-					parsedPreferences.selectedIds.length > 0
-				) {
-					const filtered = filterPinsByStarterPacks(
-						parsedPreferences.selectedIds
-					);
-					setFilteredPins(filtered);
-					setShowPersonalizedPins(true);
-
-					console.log('🎯 Filtered pins based on user preferences:', {
-						selectedPacks: parsedPreferences.selectedIds,
-						totalPins: filtered.length,
-						categories: parsedPreferences.starterPacks.map(
-							(p: any) => p.name
-						),
-					});
-				}
-			} catch (error) {
-				console.error('Error parsing user preferences:', error);
-			}
-		}
-	}, [userPreferences]);
-
-	// Filtering handlers
-	const togglePersonalizedView = () => {
-		if (showPersonalizedPins && userStarterPacks?.selectedIds?.length > 0) {
-			// Switch to all pins
-			setFilteredPins(DUMMY_PINS);
-			setShowPersonalizedPins(false);
-		} else {
-			// Switch to personalized pins
-			if (userStarterPacks?.selectedIds?.length > 0) {
-				const filtered = filterPinsByStarterPacks(
-					userStarterPacks.selectedIds
-				);
-				setFilteredPins(filtered);
-				setShowPersonalizedPins(true);
-			}
-		}
-	};
-
-	// Filter helper functions
-	const getFilterStatusText = () => {
-		if (!userStarterPacks?.selectedIds?.length) {
-			return 'Showing all locations';
-		}
-
-		if (showPersonalizedPins) {
-			return `Showing ${userStarterPacks.selectedIds.length} interest categories (${filteredPins.length} pins)`;
-		}
-
-		return `Showing all locations (${filteredPins.length} pins)`;
-	};
-
-	// =============================
 	//   MAP INTERACTION SECTION
 	// =============================
 	// Map handlers
@@ -260,38 +191,33 @@ export default function WorldMapScreen() {
 			latitude: number;
 			longitude: number;
 		},
-		pinData?: DummyPin
+		pinData?: any // Updated to accept the transformed pin data
 	) => {
 		if (pinData) {
 			setSelectedPinData(pinData);
 			setIsBottomSheetVisible(true);
 			console.log(
 				'📍 Opening BottomSheet for pin:',
-				pinData.memory.title
+				pinData.memory?.title || pinData.name
 			);
 		}
 	};
 
-	// Map helper functions
-	const getMarkerColor = (category: string): string => {
+	// Map helper functions (CALLOUT ETC)
+	const getMarkerColor = (visibility: string): string => {
 		const colorMap: { [key: string]: string } = {
-			cafes: '#8B4513',
-			nightlife: '#4A148C',
-			foodie: '#FF5722',
-			culture: '#9C27B0',
-			nature: '#4CAF50',
-			urban: '#2196F3',
+			public: '#4CAF50', // Green for public
+			private: '#2196F3', // Blue for private
+			social: '#9C27B0', // Purple for social circles
 		};
-		return colorMap[category] || '#666666';
+		return colorMap[visibility] || '#666666';
 	};
 
 	// =============================
 	//   BOTTOMSHEET STATE
 	// =============================
 	const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
-	const [selectedPinData, setSelectedPinData] = useState<DummyPin | null>(
-		null
-	);
+	const [selectedPinData, setSelectedPinData] = useState<any>(null);
 
 	const handleBottomSheetClose = () => {
 		setIsBottomSheetVisible(false);
@@ -376,6 +302,59 @@ export default function WorldMapScreen() {
 		router.push('/profile');
 	};
 
+	// =============================
+	//   PIN MARKER DISPLAY SECTION
+	// =============================
+	const [realPins, setRealPins] = useState<MapPin[]>([]);
+	const [isLoadingPins, setIsLoadingPins] = useState(false);
+	const [pinError, setPinError] = useState<string | null>(null);
+
+	const fetchPins = useCallback(async () => {
+		console.log('🔄 [WORLDMAP] Fetching pins from backend');
+		setIsLoadingPins(true);
+		setPinError(null);
+
+		try {
+			// Get current map region for viewport filtering
+			// You can adjust this based on your map's current region
+			const currentRegion = {
+				latitude: -37.817979,
+				longitude: 144.960408,
+				latitudeDelta: 0.5, // Increased for wider area
+				longitudeDelta: 0.5,
+			};
+
+			// Create viewport from current region
+			const viewport = createViewportFromMapRegion(currentRegion);
+
+			// Fetch pins from backend
+			const result = await fetchAllVisiblePins(viewport);
+
+			if (result.success) {
+				console.log(`✅ [WORLDMAP] Loaded ${result.data.length} pins`);
+				setRealPins(result.data);
+			} else {
+				console.error(
+					'❌ [WORLDMAP] Failed to load pins:',
+					result.error
+				);
+				setPinError(result.error || 'Failed to load pins');
+				setRealPins([]); // Fallback to empty array
+			}
+		} catch (error) {
+			console.error('💥 [WORLDMAP] Error fetching pins:', error);
+			setPinError('Unexpected error loading pins');
+			setRealPins([]);
+		} finally {
+			setIsLoadingPins(false);
+		}
+	}, []);
+
+	// Load pins when component mounts
+	useEffect(() => {
+		fetchPins();
+	}, [fetchPins]);
+
 	// =========================
 	//   WORLDMAP PAGE RENDER
 	// =========================
@@ -444,42 +423,62 @@ export default function WorldMapScreen() {
 								/>
 							</Marker>
 
-							{/* Dynamic pins based on user preferences with press handlers */}
-							{filteredPins.map((pin) => {
-								const marker = convertToMapMarker(pin);
-								return (
-									<Marker
-										key={marker.id}
-										coordinate={marker.coordinate}
-										onPress={() => {
-											// Handle pin press with both marker press animation AND optional memory details
-											handleMarkerPress(
-												marker.coordinate,
-												pin
-											);
-										}}
-										title={marker.title}
-										description={marker.description}
+							{/* UPDATED: Real pins from backend */}
+							{realPins.map((pin) => (
+								<Marker
+									key={pin.id}
+									coordinate={pin.coordinate}
+									onPress={() => {
+										handleMarkerPress(
+											pin.coordinate,
+											pin.pinData
+										);
+									}}
+									title={pin.title}
+									description={pin.description}
+								>
+									<View
+										style={[
+											styles.customMarker,
+											{
+												backgroundColor: getMarkerColor(
+													pin.pinData?.memory
+														?.visibility?.[0] ||
+														'public'
+												),
+											},
+										]}
 									>
-										<View
-											style={[
-												styles.customMarker,
-												{
-													backgroundColor:
-														getMarkerColor(
-															pin.starterPackCategory
-														),
-												},
-											]}
-										>
-											<Text style={styles.markerIcon}>
-												{marker.icon}
-											</Text>
-										</View>
-									</Marker>
-								);
-							})}
+										<Text style={styles.markerIcon}>
+											📍
+										</Text>
+									</View>
+								</Marker>
+							))}
+
+							{/* Loading indicator for pins */}
+							{isLoadingPins && (
+								<View style={styles.loadingOverlay}>
+									<Text style={styles.loadingText}>
+										Loading pins...
+									</Text>
+								</View>
+							)}
 						</MapView>
+						{/* PIN ERROR */}
+						{pinError && (
+							<View style={styles.errorContainer}>
+								<Text style={styles.errorText}>
+									⚠️ {pinError}
+								</Text>
+								<TouchableOpacity
+									onPress={fetchPins}
+									style={styles.retryButton}
+								>
+									<Text style={styles.retryText}>Retry</Text>
+								</TouchableOpacity>
+							</View>
+						)}
 						{/* ************************ */}
 						{/*   OVERLAY UI CONTROLS    */}
 						{/* ************************ */}
@@ -542,47 +541,6 @@ export default function WorldMapScreen() {
 						{/* ******************************** */}
 						{/*  FILTER CONTROLS (STARTER PACK)  */}
 						{/* ******************************** */}
-						{userStarterPacks &&
-							userStarterPacks.selectedIds?.length > 0 && (
-								<View style={styles.filterControls}>
-									<View style={styles.filterHeader}>
-										<CaptionText
-											style={styles.filterStatus}
-										>
-											{getFilterStatusText()}
-										</CaptionText>
-										<Button
-											onPress={togglePersonalizedView}
-											style={styles.filterToggle}
-											size="small"
-										>
-											{showPersonalizedPins
-												? 'Show All'
-												: 'My Interests'}
-										</Button>
-									</View>
-
-									{/* Show selected categories */}
-									<View style={styles.selectedCategories}>
-										{userStarterPacks.starterPacks.map(
-											(pack: any) => (
-												<View
-													key={pack.id}
-													style={styles.categoryChip}
-												>
-													<CaptionText
-														style={
-															styles.categoryChipText
-														}
-													>
-														{pack.icon} {pack.name}
-													</CaptionText>
-												</View>
-											)
-										)}
-									</View>
-								</View>
-							)}
 					</MainContent>
 
 					{/**********************************************/}
@@ -1008,5 +966,49 @@ const styles = StyleSheet.create({
 	},
 	signOutButton: {
 		backgroundColor: ReMapColors.semantic.error,
+	},
+
+	// NEW STYLES FOR REAL PINS
+	loadingOverlay: {
+		position: 'absolute',
+		top: 50,
+		left: 20,
+		backgroundColor: 'rgba(0,0,0,0.7)',
+		padding: 8,
+		borderRadius: 8,
+	},
+	loadingText: {
+		color: 'white',
+		fontSize: 12,
+	},
+	errorContainer: {
+		position: 'absolute',
+		top: 100,
+		left: 20,
+		right: 20,
+		backgroundColor: '#FEF2F2',
+		padding: 16,
+		borderRadius: 8,
+		borderLeftWidth: 4,
+		borderLeftColor: '#EF4444',
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+	},
+	errorText: {
+		color: '#991B1B',
+		flex: 1,
+		fontSize: 14,
+	},
+	retryButton: {
+		backgroundColor: '#EF4444',
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 4,
+	},
+	retryText: {
+		color: 'white',
+		fontSize: 12,
+		fontWeight: '600',
 	},
 });
