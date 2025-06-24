@@ -32,9 +32,9 @@ interface IconButtonProps {
 export const IconButton = ({
 	icon,
 	onPress,
-	size = 24,
+	size = 16,
 	color = ReMapColors.ui.cardBackground,
-	backgroundColor = ReMapColors.primary.accent,
+	backgroundColor = ReMapColors.primary.black,
 	style,
 	disabled = false,
 	variant = 'filled',
@@ -281,8 +281,8 @@ export const DeleteButton = ({
 
 const styles = StyleSheet.create({
 	button: {
-		width: 48,
-		height: 48,
+		width: 40,
+		height: 40,
 		borderRadius: 24,
 		justifyContent: 'center',
 		alignItems: 'center',
