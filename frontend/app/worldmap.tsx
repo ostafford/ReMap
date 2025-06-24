@@ -616,32 +616,27 @@ export default function WorldMapScreen() {
 						{/* ************************ */}
 						{/*   OVERLAY UI CONTROLS    */}
 						{/* ************************ */}
-						<View
-							style={[
-								styles.circlesContainer,
-								{ top: insets.top + 100 },
-							]}
-						>
-							{/* Social Circles with Animation (Drop-Down) */}
-							<View style={{ alignItems: 'flex-end' }}>
-								<ScrollView
-									contentContainerStyle={styles.socialsList}
-								>
-									{mockCircles.map((circle, index) => (
-										<TouchableOpacity
-											key={index}
-											style={styles.socialCircleWrapper}
-										>
-											<Image
-												source={{
-													uri: circle.avatar,
-												}}
-												style={styles.socialCircleImage}
-											/>
-										</TouchableOpacity>
-									))}
-								</ScrollView>
-							</View>
+                        <View
+                            style={[
+                                styles.topOverlayContainer,
+                                { top: insets.top },
+                            ]}
+                        >
+							<View style={styles.circleDropdownContainer}>
+                                <Dropdown
+                                    style={styles.circleDropdown}
+                                    data={circleData}
+                                    labelField="label"
+                                    valueField="value"
+                                    placeholder="Select circle"
+                                    value={circle}
+                                    onChange={item => {
+                                        setCircle(item.value);
+                                        console.log('selected', item);
+                                    }}
+                                />
+                            </View>
+
 						</View>
 						{/**********************************************/}
 						{/************ UNDER MAP CONTENT ***************/}
@@ -882,20 +877,34 @@ const styles = StyleSheet.create({
 	// ==========================
 	//   OVERLAY UI CONTROLS
 	// ==========================
-	circlesContainer: {
-		paddingRight: 12,
-		alignItems: 'flex-end',
-		justifyContent: 'center',
-		height: 'auto',
+	topOverlayContainer: {
 		position: 'absolute',
 		width: '100%',
-		top: 50,
+		flexDirection:'row',
+		alignItems:'center',
+		justifyContent: 'flex-end',
+		paddingRight: 12,
+		height: 'auto',
+		top: 0,
 	},
-	circleSelections: {
-		width: 54,
-		height: 54,
-		borderRadius: 27,
-		zIndex: 5,
+	circleDropdownContainer: {
+		position: 'absolute',
+		left: 0,
+		right: 0,
+		alignItems: 'center',
+		zIndex: 1,
+	},
+	circleDropdown: {
+		height: 35,
+		borderWidth: 1,
+		borderRadius: 20,
+		paddingHorizontal: 8,
+		minWidth: 160,
+		backgroundColor: ReMapColors.primary.black,
+		opacity: 0.5,
+	},
+	profileIcon: {
+		 zIndex: 2,
 	},
 
 	// ==========================
