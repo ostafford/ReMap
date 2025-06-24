@@ -189,15 +189,11 @@ export default function WorldMapScreen() {
 			latitude: number;
 			longitude: number;
 		},
-		pinData?: any // Updated to accept the transformed pin data
+		pinData?: any
 	) => {
 		if (pinData) {
 			setSelectedPinData(pinData);
 			setIsBottomSheetVisible(true);
-			console.log(
-				'📍 Opening BottomSheet for pin:',
-				pinData.memory?.title || pinData.name
-			);
 		}
 	};
 
@@ -212,6 +208,7 @@ export default function WorldMapScreen() {
 			public: '#4CAF50', // Green for public
 			private: '#2196F3', // Blue for private
 			social: '#9C27B0', // Purple for social circles
+			// We can change these colours later as well ^^^^^^^^^
 		};
 
 		return colorMap[visibilityValue || 'public'] || '#666666';
@@ -226,7 +223,6 @@ export default function WorldMapScreen() {
 	const handleBottomSheetClose = () => {
 		setIsBottomSheetVisible(false);
 		setSelectedPinData(null);
-		console.log('📍 BottomSheet closed');
 	};
 
 	// =============================
@@ -271,7 +267,6 @@ export default function WorldMapScreen() {
 	}) => {
 		closeSearch();
 
-		// Set the search result location for marker
 		setSearchResultLocation(result);
 
 		// Animate to location
@@ -332,7 +327,7 @@ export default function WorldMapScreen() {
 			const wideRegion = {
 				latitude: -37.817979,
 				longitude: 144.960408,
-				latitudeDelta: 1.0, // Much wider area
+				latitudeDelta: 1.0,
 				longitudeDelta: 1.0,
 			};
 
@@ -340,25 +335,16 @@ export default function WorldMapScreen() {
 			const result = await fetchAllVisiblePins(viewport);
 
 			if (result.success) {
-				console.log(
-					`✅ [WORLDMAP] Loaded ${result.data.length} pins (static)`
-				);
 				setRealPins(result.data);
 			} else {
-				console.error(
-					'❌ [WORLDMAP] Failed to load pins:',
-					result.error
-				);
 				setPinError(result.error || 'Failed to load pins');
 				setRealPins([]);
 			}
 		} catch (error) {
-			console.error('💥 [WORLDMAP] Error fetching pins:', error);
 			setPinError('Unexpected error loading pins');
 			setRealPins([]);
 		} finally {
-			console.log('🏁 [WORLDMAP] Setting isLoadingPins to false');
-			setIsLoadingPins(false); // This should clear "Loading pins..."
+			setIsLoadingPins(false);
 		}
 	}, []);
 
@@ -417,6 +403,7 @@ export default function WorldMapScreen() {
 	);
 
 	// Add debounced version
+	// This doesn't seem to be working so i'm in the process of fixing this.
 	const debouncedOnMapRegionChange = useCallback(
 		debounce(onMapRegionChange, 500), // Wait 500ms after user stops panning
 		[onMapRegionChange]
@@ -504,7 +491,9 @@ export default function WorldMapScreen() {
 								/>
 							</Marker>
 
-							{/* Real pins from backend */}
+							{/* ************************ */}
+							{/*      PIN FROM BACKEND    */}
+							{/* ************************ */}
 							{realPins.map((pin) => (
 								<Marker
 									key={pin.id}
@@ -535,7 +524,10 @@ export default function WorldMapScreen() {
 									</View>
 								</Marker>
 							))}
-							{/* Search result marker */}
+
+							{/* **************************************** */}
+							{/*   SEARCH MARKER + TOPSHEET NOTIFICATION  */}
+							{/* **************************************** */}
 							{searchResultLocation && (
 								<Marker
 									coordinate={{
@@ -547,15 +539,27 @@ export default function WorldMapScreen() {
 									description={searchResultLocation.address}
 									pinColor="blue"
 									onPress={() => {
+										// AUTHENTICATION CHECK
+										if (!isAuthenticated) {
+											showNotification(
+												'Sign In Required',
+												'Please sign in to create memory pins',
+												'info',
+												4000,
+												() => {
+													signInModal.open(); // Open sign-in modal instead
+												}
+											);
+											return;
+										}
+
+										// AUTHENTICATED USER - Show create pin option
 										showNotification(
 											'Create Memory Pin?',
 											'Tap here to create a memory at this location',
 											'info',
-											5000, // Longer delay for user decision
+											5000,
 											() => {
-												console.log(
-													'🎯 Navigation function triggered!'
-												);
 												router.navigate({
 													pathname: '/createPin',
 													params: {
@@ -576,7 +580,9 @@ export default function WorldMapScreen() {
 								/>
 							)}
 
-							{/* Loading indicator for pins */}
+							{/* ************************ */}
+							{/*   LOADING PIN INDICATOR  */}
+							{/* ************************ */}
 							{isLoadingPins && (
 								<View style={styles.loadingOverlay}>
 									<Text style={styles.loadingText}>
@@ -585,12 +591,14 @@ export default function WorldMapScreen() {
 								</View>
 							)}
 						</MapView>
+
 						{/* ATTRIBUTION - Policy requirement */}
 						<View style={styles.attributionContainer}>
 							<Text style={styles.attributionText}>
 								© OpenStreetMap contributors
 							</Text>
 						</View>
+
 						{/* PIN ERROR */}
 						{pinError && (
 							<View style={styles.errorContainer}>
@@ -1092,7 +1100,9 @@ const styles = StyleSheet.create({
 		backgroundColor: ReMapColors.semantic.error,
 	},
 
-	// NEW STYLES FOR REAL PINS
+	// =======================
+	// 	REAL PINS STYLES
+	// =======================
 	loadingOverlay: {
 		position: 'absolute',
 		top: 50,
@@ -1135,6 +1145,7 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		fontWeight: '600',
 	},
+
 	// Nomminatim Policy
 	attributionContainer: {
 		position: 'absolute',

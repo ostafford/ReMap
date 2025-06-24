@@ -1,3 +1,5 @@
+// IN TESTING STILL!!!
+
 /**
  * TOP NOTIFICATION SHEET - REVERSE BOTTOMSHEET COMPONENT
  * Purpose: Displays success notifications sliding down from the top of the screen
@@ -5,6 +7,9 @@
  * Pattern: Animated notification banner with auto-dismiss and gesture controls
  */
 
+// ================
+//   CORE IMPORTS
+// ================
 import React, { useEffect, useRef } from 'react';
 import {
 	View,
@@ -16,10 +21,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 
-// UI Components
+// ================================
+//   INTERNAL 'UI' COMPONENTS
+// ================================
 import { BodyText, CaptionText } from '@/components/ui/Typography';
 
-// Constants
+// ================================
+//   INTERNAL 'CONSTANTS' IMPORTS
+// ================================
 import { ReMapColors } from '@/constants/Colors';
 
 // ========================
@@ -30,7 +39,7 @@ interface TopNotificationSheetProps {
 	title: string;
 	message?: string;
 	onClose: () => void;
-	autoCloseDelay?: number; // in milliseconds
+	autoCloseDelay?: number;
 	onPress?: () => void;
 }
 
@@ -50,17 +59,13 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 	// ==================
 	const { height } = Dimensions.get('window');
 	const insets = useSafeAreaInsets();
-	const slideAnim = useRef(new Animated.Value(-200)).current; // Start above screen
+	const slideAnim = useRef(new Animated.Value(-200)).current;
 	const autoCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// ==================
 	//   ANIMATION FUNCTIONS
 	// ==================
 
-	/**
-	 * Slides the notification down from the top
-	 * Uses spring animation for natural feel
-	 */
 	const slideDown = () => {
 		Animated.spring(slideAnim, {
 			toValue: 0, // Final position at top of screen
@@ -71,10 +76,6 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 		}).start();
 	};
 
-	/**
-	 * Slides the notification back up and calls onClose
-	 * Uses timing animation for quick exit
-	 */
 	const slideUp = () => {
 		Animated.timing(slideAnim, {
 			toValue: -200, // Move back above screen
@@ -89,10 +90,6 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 	//   GESTURE HANDLING
 	// ==================
 
-	/**
-	 * Handles drag gestures to allow user to swipe up to dismiss
-	 * Follows the pattern of user dragging "up" to close
-	 */
 	const handleGestureEvent = Animated.event(
 		[{ nativeEvent: { translationY: slideAnim } }],
 		{ useNativeDriver: true }
@@ -116,9 +113,8 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 	//   LIFECYCLE EFFECTS
 	// ==================
 
-	/**
-	 * Main visibility effect - handles show/hide animations and auto-close timer
-	 */
+	// Main visibility effect - handles show/hide animations and auto-close timer
+	// THIS FUNCTION IS STILL UNDERGOING FINAL TESTING (IT WORKS OTHERWISE BUT THROW A RANDOM ERROR)
 	useEffect(() => {
 		// Clear any existing timer first
 		if (autoCloseTimer.current) {
@@ -127,15 +123,24 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 		}
 
 		if (isVisible) {
-			// Show immediately without delay
-			setTimeout(() => {
+			// Use requestAnimationFrame instead of setTimeout
+			const animationFrame = requestAnimationFrame(() => {
 				slideDown();
-			}, 0);
+			});
 
 			// Set up auto-close timer
 			autoCloseTimer.current = setTimeout(() => {
 				slideUp();
 			}, autoCloseDelay);
+
+			// Cleanup animation frame if component unmounts
+			return () => {
+				cancelAnimationFrame(animationFrame);
+				if (autoCloseTimer.current) {
+					clearTimeout(autoCloseTimer.current);
+					autoCloseTimer.current = null;
+				}
+			};
 		}
 
 		// Cleanup function
@@ -145,11 +150,9 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 				autoCloseTimer.current = null;
 			}
 		};
-	}, [isVisible, autoCloseDelay]); // Keep dependencies the same
+	}, [isVisible, autoCloseDelay]);
 
-	/**
-	 * Reset animation position when visibility changes
-	 */
+	// Reset animation position when visibility changes
 	useEffect(() => {
 		if (!isVisible) {
 			slideAnim.setValue(-200);
@@ -160,21 +163,15 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 	//   EVENT HANDLERS
 	// ==================
 
-	/**
-	 * Handles tap outside the notification content to close
-	 */
 	const handleBackdropPress = () => {
 		slideUp();
 	};
 
-	/**
-	 * Handles direct tap on close button or notification content
-	 */
 	const handleNotificationPress = () => {
 		if (onPress) {
-			onPress(); // Execute the action first
+			onPress();
 		}
-		slideUp(); // Then dismiss the notification
+		slideUp();
 	};
 
 	// ==================
@@ -249,7 +246,6 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 //   STYLE SHEET
 // ===============
 const styles = StyleSheet.create({
-	// CONTAINER: Full screen overlay
 	container: {
 		position: 'absolute',
 		top: 0,
@@ -259,13 +255,11 @@ const styles = StyleSheet.create({
 		zIndex: 1000,
 	},
 
-	// BACKDROP: Invisible area for outside taps
 	backdrop: {
 		flex: 1,
 		backgroundColor: 'transparent',
 	},
 
-	// NOTIFICATION SHEET: Main notification container
 	notificationSheet: {
 		position: 'absolute',
 		top: 0,
@@ -281,7 +275,6 @@ const styles = StyleSheet.create({
 		elevation: 8,
 	},
 
-	// NOTIFICATION CONTENT: Touchable content area
 	notificationContent: {
 		flexDirection: 'row',
 		alignItems: 'center',
@@ -290,7 +283,6 @@ const styles = StyleSheet.create({
 		paddingBottom: 20,
 	},
 
-	// ICON CONTAINER: Success icon styling
 	iconContainer: {
 		marginRight: 12,
 	},
@@ -299,7 +291,6 @@ const styles = StyleSheet.create({
 		fontSize: 24,
 	},
 
-	// TEXT CONTAINER: Title and message layout
 	textContainer: {
 		flex: 1,
 	},

@@ -68,6 +68,7 @@ interface UseCreatePinProps {
 	setMemoryDescription: (description: string) => void;
 
 	// Success callback (kept for compatibility, but Context handles notifications)
+	// OKKY: I want to have a look into this more as i think 'context' may be a 'hook like' method for notifications.
 	onSuccess: (title: string, message: string) => void;
 }
 
@@ -236,7 +237,6 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 
 		hidePreviewModal();
 
-		// Start saving state (shows loading in modal)
 		setIsSaving(true);
 
 		try {
@@ -245,7 +245,6 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 
 			console.log('📡 [HOOK] Calling backend API');
 
-			// SIMPLIFIED: Direct backend call, no progress callbacks
 			const result = await createMemoryPin(backendData);
 
 			console.log('🎯 [HOOK] Backend response:', result);
@@ -282,7 +281,6 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 				`"${memoryData.content.title}" added to ${memoryData.location.query}`
 			);
 
-			// Navigate to worldmap (notification will show automatically via Context)
 			router.replace('/worldmap');
 		},
 		[showSuccess]

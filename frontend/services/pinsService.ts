@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 // TYPE DEFINITIONS
 // ==================
 
-// Backend pin structure (based on your controller)
+// Backend pin structure
 export interface BackendPin {
 	id: string;
 	name: string;
@@ -28,7 +28,7 @@ export interface BackendPin {
 	updated_at: string;
 }
 
-// Frontend pin structure (what your map expects)
+// Frontend pin structure
 export interface MapPin {
 	id: string;
 	coordinate: {
@@ -37,7 +37,7 @@ export interface MapPin {
 	};
 	title: string;
 	description: string;
-	// Additional data for bottom sheet
+
 	pinData: {
 		memory: {
 			title: string;
@@ -63,6 +63,8 @@ export interface MapPin {
 }
 
 // Map viewport bounds for filtering
+// This is for when the pins are in 'view' it "kinda" works but also doesn't fully.
+// Still in progress fix......
 export interface MapViewport {
 	northEast: {
 		latitude: number;
@@ -98,9 +100,7 @@ const API_ENDPOINTS = {
 // AUTHENTICATION HELPER
 // ==================
 
-/**
- * Gets the JWT token for authenticated requests
- */
+// Gets the JWT token for authenticated requests
 const getAuthToken = async (): Promise<string | null> => {
 	try {
 		const { user } = await getCurrentUser();
@@ -114,15 +114,14 @@ const getAuthToken = async (): Promise<string | null> => {
 		} = await supabase.auth.getSession();
 
 		if (error || !session?.access_token) {
-			console.warn(
-				'⚠️ [PINS-SERVICE] Could not get auth token, fetching public pins only'
-			);
 			return null;
 		}
-		console.log(
-			'🔑 [PINS-SERVICE] Using JWT token:',
-			session.access_token.substring(0, 50) + '...'
-		);
+		// Do not comment out unless for testing.
+		// This will show the JWT token via console.
+		// console.log(
+		// 	'🔑 [PINS-SERVICE] Using JWT token:',
+		// 	session.access_token.substring(0, 50) + '...'
+		// );
 		return session.access_token;
 	} catch (error) {
 		console.warn(
@@ -136,9 +135,7 @@ const getAuthToken = async (): Promise<string | null> => {
 // DATA TRANSFORMATION
 // ==================
 
-/**
- * Converts backend pin data to frontend map pin format
- */
+// Converts backend pin data to frontend map pin format
 const transformBackendPinToMapPin = (backendPin: BackendPin): MapPin => {
 	// Add validation at the start
 	if (!backendPin || typeof backendPin !== 'object') {
@@ -152,10 +149,6 @@ const transformBackendPinToMapPin = (backendPin: BackendPin): MapPin => {
 		typeof backendPin.latitude !== 'number' ||
 		typeof backendPin.longitude !== 'number'
 	) {
-		console.error(
-			'❌ [TRANSFORM] Missing required pin fields:',
-			backendPin
-		);
 		throw new Error('Missing required pin fields');
 	}
 
@@ -174,7 +167,7 @@ const transformBackendPinToMapPin = (backendPin: BackendPin): MapPin => {
 			longitude: backendPin.longitude,
 		},
 		title: backendPin.name,
-		description: backendPin.description || '', // Default to empty string
+		description: backendPin.description || '',
 		pinData: {
 			memory: {
 				title: backendPin.name,
@@ -195,11 +188,11 @@ const transformBackendPinToMapPin = (backendPin: BackendPin): MapPin => {
 							  }
 							: null,
 				},
-				visibility: [backendPin.visibility || 'public'], // Ensure array with default
+				visibility: [backendPin.visibility || 'public'],
 			},
 			name: backendPin.name,
 			location: {
-				address: backendPin.location_query || 'Unknown location', // Default value
+				address: backendPin.location_query || 'Unknown location',
 				latitude: backendPin.latitude,
 				longitude: backendPin.longitude,
 			},
@@ -207,9 +200,7 @@ const transformBackendPinToMapPin = (backendPin: BackendPin): MapPin => {
 	};
 };
 
-/**
- * Filters pins by map viewport bounds
- */
+// Filters pins by map viewport bounds
 const filterPinsByViewport = (
 	pins: MapPin[],
 	viewport?: MapViewport
@@ -236,14 +227,12 @@ const filterPinsByViewport = (
 // API FUNCTIONS
 // ==================
 
-/**
- * Fetches public pins from backend
- */
+// Fetches public pins from backend
 export const fetchPublicPins = async (
 	viewport?: MapViewport
 ): Promise<ApiResponse> => {
 	try {
-		console.log('📡 [PINS-SERVICE] Fetching public pins');
+		console.log('[PINS-SERVICE] Fetching public pins');
 
 		const response = await fetch(
 			`${API_BASE_URL}${API_ENDPOINTS.PUBLIC_PINS}`,
@@ -257,7 +246,7 @@ export const fetchPublicPins = async (
 
 		if (!response.ok) {
 			const errorText = await response.text();
-			console.error('❌ [PINS-SERVICE] Failed to fetch public pins:', {
+			console.error('[PINS-SERVICE] Failed to fetch public pins:', {
 				status: response.status,
 				error: errorText,
 			});
@@ -270,6 +259,7 @@ export const fetchPublicPins = async (
 		const result = await response.json();
 		console.log('✅ [PINS-SERVICE] Public pins response:', result);
 
+		// We can change these steps if needed:
 		// Extract pins from response (your backend returns { "List pins": [...] })
 		const backendPins: BackendPin[] = result['List pins'] || [];
 
@@ -300,21 +290,19 @@ export const fetchPublicPins = async (
 	}
 };
 
-/**
- * Fetches user's private pins (requires authentication)
- */
+// Fetches user's private pins (requires authentication)
 export const fetchUserPins = async (
 	viewport?: MapViewport
 ): Promise<ApiResponse> => {
 	try {
-		console.log('📡 [PINS-SERVICE] Fetching user pins');
+		console.log('[PINS-SERVICE] Fetching user pins');
 
 		const authToken = await getAuthToken();
 		if (!authToken) {
-			console.log('🔒 [PINS-SERVICE] No auth token, skipping user pins');
+			console.log('[PINS-SERVICE] No auth token, skipping user pins');
 			return {
 				success: true,
-				data: [], // Return empty array if not authenticated
+				data: [],
 			};
 		}
 
@@ -355,16 +343,12 @@ export const fetchUserPins = async (
 		// Filter by viewport if provided
 		const filteredPins = filterPinsByViewport(mapPins, viewport);
 
-		console.log(
-			`👤 [PINS-SERVICE] Transformed ${backendPins.length} user pins, ${filteredPins.length} in viewport`
-		);
-
 		return {
 			success: true,
 			data: filteredPins,
 		};
 	} catch (error) {
-		console.error('💥 [PINS-SERVICE] Error fetching user pins:', error);
+		console.error('[PINS-SERVICE] Error fetching user pins:', error);
 
 		// Don't fail the entire operation if user pins fail
 		return {
@@ -374,10 +358,8 @@ export const fetchUserPins = async (
 	}
 };
 
-/**
- * Fetches all visible pins (public + user's private)
- * TODO: Add social circle pins when backend supports it
- */
+// Fetches all visible pins (public + user's private)
+// TODO: Add social circle pins when backend supports it
 export const fetchAllVisiblePins = async (
 	viewport?: MapViewport
 ): Promise<ApiResponse> => {
@@ -402,16 +384,12 @@ export const fetchAllVisiblePins = async (
 				array.findIndex((p) => p.id === pin.id) === index
 		);
 
-		console.log(
-			`🗺️ [PINS-SERVICE] Combined ${uniquePins.length} unique pins`
-		);
-
 		return {
 			success: true,
 			data: uniquePins,
 		};
 	} catch (error) {
-		console.error('💥 [PINS-SERVICE] Error fetching all pins:', error);
+		console.error('[PINS-SERVICE] Error fetching all pins:', error);
 
 		return {
 			success: false,
@@ -425,9 +403,7 @@ export const fetchAllVisiblePins = async (
 // UTILITY FUNCTIONS
 // ==================
 
-/**
- * Creates a map viewport from current map region
- */
+// Creates a map viewport from current map region
 export const createViewportFromMapRegion = (region: {
 	latitude: number;
 	longitude: number;

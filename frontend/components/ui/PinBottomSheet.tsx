@@ -38,14 +38,6 @@ import type { DummyPin } from '@/assets/dummyPinData';
 // TYPE DEFINITIONS
 // ==================
 
-/**
- * Props interface for PinBottomSheet component
- *
- * LAYMAN TERMS: "Everything this BottomSheet needs from worldmap.tsx to work.
- * Simple pattern like AuthModal - just visibility, close function, and pin data."
- *
- * TECHNICAL: Clean props interface following AuthModal pattern for consistent integration
- */
 interface PinBottomSheetProps {
 	isVisible: boolean;
 	onClose: () => void;
@@ -56,20 +48,6 @@ interface PinBottomSheetProps {
 // COMPONENT IMPLEMENTATION
 // ==========================
 
-/**
- * PinBottomSheet - Memory pin details in draggable bottom sheet
- *
- * LAYMAN TERMS: "When user taps a pin on the map, this component slides up from
- * the bottom showing the memory details. User can drag it up to see more content
- * or drag down to close it. Shows all the same info that was entered in createPin."
- *
- * TECHNICAL: BottomSheet component using @gorhom/bottom-sheet with DummyPin data
- * integration, following established component patterns and design system
- *
- * @component PinBottomSheet
- * @param {PinBottomSheetProps} props - Component configuration
- * @returns {JSX.Element | null} BottomSheet interface or null when not visible
- */
 export function PinBottomSheet({
 	isVisible,
 	onClose,
@@ -88,9 +66,6 @@ export function PinBottomSheet({
 	// EVENT HANDLERS
 	// ========================
 
-	/**
-	 * Handle BottomSheet changes (snap index changes)
-	 */
 	const handleSheetChanges = useCallback(
 		(index: number) => {
 			console.log('BottomSheet snap index:', index);
@@ -107,9 +82,6 @@ export function PinBottomSheet({
 	// DATA HELPERS
 	// ========================
 
-	/**
-	 * Get formatted date from memory timestamp
-	 */
 	const getFormattedDate = useCallback((timestamp: string) => {
 		try {
 			return new Date(timestamp).toLocaleDateString('en-AU', {
@@ -122,9 +94,6 @@ export function PinBottomSheet({
 		}
 	}, []);
 
-	/**
-	 * Get media summary text
-	 */
 	const getMediaSummary = useCallback((pinData: DummyPin) => {
 		const { photos, videos, audio } = pinData.memory.media;
 		const parts = [];
@@ -150,7 +119,7 @@ export function PinBottomSheet({
 	return (
 		<BottomSheet
 			ref={bottomSheetRef}
-			index={0} // Start at first snap point (20%)
+			index={0}
 			snapPoints={snapPoints}
 			onChange={handleSheetChanges}
 			enablePanDownToClose={true}
@@ -270,40 +239,22 @@ export function PinBottomSheet({
 				{/* ==================== */}
 				{/*   MEDIA PREVIEW      */}
 				{/* ==================== */}
-				{pinData.memory.media.photos.length > 0 && (
-					<View style={styles.section}>
-						<LabelText style={styles.sectionLabel}>
-							Photos ({pinData.memory.media.photos.length})
-						</LabelText>
-						<View style={styles.mediaGrid}>
-							{pinData.memory.media.photos
-								.slice(0, 3)
-								.map((photo, index) => (
-									<View
-										key={index}
-										style={styles.mediaThumbnail}
-									>
-										<CaptionText
-											style={styles.mediaPlaceholder}
-										>
-											📷 {photo.name}
-										</CaptionText>
-									</View>
-								))}
-							{pinData.memory.media.photos.length > 3 && (
-								<View style={styles.mediaThumbnail}>
-									<CaptionText
-										style={styles.mediaPlaceholder}
-									>
-										+
-										{pinData.memory.media.photos.length - 3}{' '}
-										more
-									</CaptionText>
-								</View>
-							)}
-						</View>
-					</View>
-				)}
+				{pinData.memory.media.photos.slice(0, 3).map((photo, index) => (
+					<TouchableOpacity
+						key={index}
+						style={styles.mediaThumbnail}
+						onPress={() => {
+							// TODO: Open full image view
+							console.log('Opening image:', photo.uri);
+						}}
+					>
+						<Image
+							source={{ uri: photo.uri }}
+							style={styles.thumbnailImage}
+							resizeMode="cover"
+						/>
+					</TouchableOpacity>
+				))}
 
 				{/* ==================== */}
 				{/*   AUDIO INDICATOR    */}
@@ -511,6 +462,11 @@ const styles = StyleSheet.create({
 		fontSize: 9,
 		color: ReMapColors.ui.textSecondary,
 		textAlign: 'center',
+	},
+	thumbnailImage: {
+		width: '100%',
+		height: '100%',
+		borderRadius: 6,
 	},
 
 	// Audio Section

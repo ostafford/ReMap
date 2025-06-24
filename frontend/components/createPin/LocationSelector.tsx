@@ -155,7 +155,7 @@ export function LocationSelector({
 			) {
 				convertAddressToCoordinates(locationData.searchQuery);
 			}
-		}, 3000); // API policy compliance
+		}, 3000);
 
 		return () => clearTimeout(timeoutId);
 	}, [

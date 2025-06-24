@@ -111,7 +111,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
 	const showError = useCallback(
 		(title: string, message?: string) => {
-			showNotification(title, message, 'error', 5000); // Longer duration for errors
+			showNotification(title, message, 'error', 5000);
 		},
 		[showNotification]
 	);

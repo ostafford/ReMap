@@ -3,6 +3,7 @@
 // ===================
 import { getCurrentUser } from '@/services/auth';
 import { supabase } from '@/lib/supabase';
+import { Platform } from 'react-native';
 
 // ==================
 // TYPE DEFINITIONS
@@ -67,7 +68,7 @@ const getAuthToken = async (): Promise<string> => {
 
 		return session.access_token;
 	} catch (error) {
-		console.error('❌ [SERVICE] Failed to get auth token:', error);
+		console.error('[M.SERVICE] Failed to get auth token:', error);
 		throw new Error('Authentication failed');
 	}
 };
@@ -109,7 +110,7 @@ const buildFormDataForBackend = async (
 			formData.append('image', blob, photo.name);
 		} catch (error) {
 			console.error(
-				`❌ [SERVICE] Failed to process photo ${photo.name}:`,
+				`[M.SERVICE] Failed to process photo ${photo.name}:`,
 				error
 			);
 			throw new Error(`Could not process photo: ${photo.name}`);
@@ -125,7 +126,7 @@ const buildFormDataForBackend = async (
 			formData.append('video', blob, video.name);
 		} catch (error) {
 			console.error(
-				`❌ [SERVICE] Failed to process video ${video.name}:`,
+				`[M.SERVICE] Failed to process video ${video.name}:`,
 				error
 			);
 			throw new Error(`Could not process video: ${video.name}`);
@@ -135,12 +136,37 @@ const buildFormDataForBackend = async (
 	// Add audio file
 	if (memoryData.media.audio) {
 		try {
-			const response = await fetch(memoryData.media.audio.uri);
-			const blob = await response.blob();
+			console.log(
+				'[M.SERVICE] Processing audio file:',
+				memoryData.media.audio.uri
+			);
 
-			formData.append('audio', blob, 'audio_recording.m4a');
+			const response = await fetch(memoryData.media.audio.uri);
+			const originalBlob = await response.blob();
+
+			// Determine correct MIME type based on platform/file extension
+			let mimeType = 'audio/m4a'; // Default for iOS
+
+			if (Platform.OS === 'android') {
+				mimeType = 'audio/mpeg4'; // Android HIGH_QUALITY format
+			} else if (Platform.OS === 'web') {
+				mimeType = 'audio/webm'; // Web format
+			}
+
+			// Create blob with correct MIME type
+			const audioBlob = new Blob([originalBlob], { type: mimeType });
+
+			console.log('[M.SERVICE] Audio blob details:', {
+				originalType: originalBlob.type,
+				correctedType: audioBlob.type,
+				size: audioBlob.size,
+				platform: Platform.OS,
+				filename: 'audio_recording.m4a',
+			});
+
+			formData.append('audio', audioBlob, 'audio_recording.m4a');
 		} catch (error) {
-			console.error('❌ [SERVICE] Failed to process audio:', error);
+			console.error('[M.SERVICE] Failed to process audio:', error);
 			throw new Error('Could not process audio recording');
 		}
 	}
@@ -197,7 +223,7 @@ export const createMemoryPin = async (
 	memoryData: CreateMemoryRequest
 ): Promise<ApiResponse> => {
 	try {
-		console.log('📡 [SERVICE] Starting memory pin creation');
+		console.log('[M.SERVICE] Starting memory pin creation');
 
 		// Validate data before sending
 		const validationErrors = validateMemoryData(memoryData);
@@ -215,7 +241,7 @@ export const createMemoryPin = async (
 
 		// Make API call to backend
 		console.log(
-			'📡 [SERVICE] Making API call to:',
+			'[M.SERVICE] Making API call to:',
 			`${API_BASE_URL}${API_ENDPOINTS.CREATE_PIN}`
 		);
 
@@ -233,7 +259,7 @@ export const createMemoryPin = async (
 		// Handle response
 		if (!response.ok) {
 			const errorText = await response.text();
-			console.error('❌ [SERVICE] Backend API error:', {
+			console.error('[M.SERVICE] Backend API error:', {
 				status: response.status,
 				statusText: response.statusText,
 				body: errorText,
@@ -244,14 +270,14 @@ export const createMemoryPin = async (
 
 		// Parse successful response
 		const result = await response.json();
-		console.log('✅ [SERVICE] Memory created successfully:', result);
+		console.log('[M.SERVICE] Memory created successfully:', result);
 
 		return {
 			success: true,
 			data: result,
 		};
 	} catch (error) {
-		console.error('💥 [SERVICE] Memory creation failed:', error);
+		console.error('[M.SERVICE] Memory creation failed:', error);
 
 		return {
 			success: false,

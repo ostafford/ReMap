@@ -26,6 +26,11 @@ interface MediaItem {
 	uri: string;
 	type: 'photo' | 'video';
 	name: string;
+	mimeType?: string;
+	fileSize?: number;
+	fileName?: string | null;
+	width?: number;
+	height?: number;
 }
 
 interface UseMediaCaptureReturn {
@@ -164,15 +169,23 @@ export function useMediaCapture({
 			});
 
 			if (!result.canceled && result.assets[0]) {
+				const asset = result.assets[0];
 				const newMedia: MediaItem = {
-					uri: result.assets[0].uri,
+					uri: asset.uri,
 					type: 'photo',
-					name: `Captured Memory ${selectedMedia.length + 1}`,
+					name:
+						asset.fileName ||
+						`Captured Memory ${selectedMedia.length + 1}`,
+					mimeType: asset.mimeType,
+					fileSize: asset.fileSize,
+					fileName: asset.fileName,
+					width: asset.width,
+					height: asset.height,
 				};
 				if (mode === 'single-photo') {
-					setSelectedMedia([newMedia]); // Replace existing photo
+					setSelectedMedia([newMedia]);
 				} else {
-					setSelectedMedia((prev) => [...prev, newMedia]); // Add to collection
+					setSelectedMedia((prev) => [...prev, newMedia]);
 				}
 				showModal(
 					'success',
@@ -182,7 +195,6 @@ export function useMediaCapture({
 				);
 			}
 		} catch (error) {
-			// console.error('Error opening camera:', error);
 			Alert.alert(
 				'Camera Error',
 				'Could not open camera. Please try again.'
@@ -198,10 +210,18 @@ export function useMediaCapture({
 			});
 
 			if (!result.canceled && result.assets[0]) {
+				const asset = result.assets[0];
 				const newMedia: MediaItem = {
-					uri: result.assets[0].uri,
+					uri: asset.uri,
 					type: 'photo',
-					name: `Library Photo ${selectedMedia.length + 1}`,
+					name:
+						asset.fileName ||
+						`Captured Memory ${selectedMedia.length + 1}`,
+					mimeType: asset.mimeType,
+					fileSize: asset.fileSize,
+					fileName: asset.fileName,
+					width: asset.width,
+					height: asset.height,
 				};
 				if (mode === 'single-photo') {
 					setSelectedMedia([newMedia]); // Replace existing photo (THIS IS USED FOR PROFILE PHOTO)
@@ -313,10 +333,7 @@ export function useMediaCapture({
 			// Use new player hook
 			audioPlayer.replace({ uri: audioUri });
 			audioPlayer.play();
-
-			// console.log('Playing recording from:', audioUri);
 		} catch (error) {
-			console.error('Error playing recording:', error);
 			setIsPlayingAudio(false);
 			Alert.alert(
 				'Playback Error',
@@ -330,9 +347,7 @@ export function useMediaCapture({
 		try {
 			audioPlayer.pause();
 			setIsPlayingAudio(false);
-		} catch (error) {
-			// console.error('Error stopping playback:', error);
-		}
+		} catch (error) {}
 	}, [audioPlayer]);
 
 	const removeAudio = useCallback(() => {

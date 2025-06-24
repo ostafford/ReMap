@@ -168,7 +168,9 @@ export const CreatePinModals: React.FC<CreatePinModalsProps> = ({
 							/>
 						)}
 
-						{/* ERROR DISPLAY SECTION */}
+						{/* ==================== */}
+						{/*    ERROR DISPLAY     */}
+						{/* ==================== */}
 						{saveError && (
 							<View style={styles.errorContainer}>
 								<View style={styles.errorHeader}>
@@ -189,6 +191,7 @@ export const CreatePinModals: React.FC<CreatePinModalsProps> = ({
 							</View>
 						)}
 					</Modal.Body>
+
 					<Modal.Footer>
 						<Button onPress={onClosePreview} variant="secondary">
 							{saveError ? 'Edit & Try Again' : 'Edit'}
@@ -196,66 +199,13 @@ export const CreatePinModals: React.FC<CreatePinModalsProps> = ({
 						<Button
 							onPress={handleConfirmAndPost}
 							variant="primary"
-							disabled={!!saveError} // Disable if there's an error
+							disabled={!!saveError}
 						>
 							{saveError ? 'Fix Error First' : 'Confirm & Post'}
 						</Button>
 					</Modal.Footer>
 				</Modal.Container>
 			</Modal>
-
-			{/* ============ */}
-			{/* UPLOAD MODAL */}
-			{/* ============ */}
-			{/* <Modal
-				isVisible={false}
-				onBackdropPress={() => {}} // Prevent closing during upload
-			>
-				<Modal.Container>
-					<Modal.Header title="Creating Your Memory" />
-					<Modal.Body>
-						<View style={styles.uploadProgressContent}>
-							<BodyText style={styles.uploadIcon}>📤</BodyText>
-
-							{uploadProgress && (
-								<>
-									<BodyText style={styles.uploadStatus}>
-										{uploadProgress.currentFile}
-									</BodyText>
-
-									<View style={styles.progressBarContainer}>
-										<View
-											style={[
-												styles.progressBar,
-												{
-													width: `${uploadProgress.percentage}%`,
-												},
-											]}
-										/>
-									</View>
-
-									<CaptionText
-										style={styles.uploadPercentage}
-									>
-										{uploadProgress.percentage}% Complete
-									</CaptionText>
-
-									<CaptionText style={styles.uploadDetails}>
-										{uploadProgress.completed} of{' '}
-										{uploadProgress.total} steps
-									</CaptionText>
-								</>
-							)}
-
-							{uploadProgress?.percentage === 100 && (
-								<CaptionText style={styles.completionMessage}>
-									✅ Upload complete! Navigating to map...
-								</CaptionText>
-							)}
-						</View>
-					</Modal.Body>
-				</Modal.Container>
-			</Modal> */}
 
 			{/* REMOVED: Success modal - now handled by TopNotificationSheet on worldmap */}
 
@@ -294,42 +244,6 @@ export const CreatePinModals: React.FC<CreatePinModalsProps> = ({
 //   STYLE SHEET
 // ===============
 const styles = StyleSheet.create({
-	// UPLOAD MODAL STYLES
-	// uploadProgressContent: {
-	// 	alignItems: 'center',
-	// 	padding: 20,
-	// },
-	// uploadIcon: {
-	// 	fontSize: 48,
-	// 	marginBottom: 16,
-	// },
-	// uploadStatus: {
-	// 	textAlign: 'center',
-	// 	marginBottom: 16,
-	// 	fontWeight: '500',
-	// },
-	// progressBarContainer: {
-	// 	width: '100%',
-	// 	height: 8,
-	// 	backgroundColor: '#E5E7EB',
-	// 	borderRadius: 4,
-	// 	marginBottom: 12,
-	// 	overflow: 'hidden',
-	// },
-	// progressBar: {
-	// 	height: '100%',
-	// 	backgroundColor: ReMapColors.primary.violet,
-	// 	borderRadius: 4,
-	// },
-	// uploadPercentage: {
-	// 	fontWeight: '600',
-	// 	marginBottom: 4,
-	// },
-	// uploadDetails: {
-	// 	opacity: 0.7,
-	// 	marginBottom: 8,
-	// },
-	// Completion message styling
 	completionMessage: {
 		color: ReMapColors.semantic?.success || '#10B981',
 		fontStyle: 'italic',

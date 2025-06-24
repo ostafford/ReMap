@@ -165,7 +165,7 @@ export function NominatimSearch({
 	const focusSearchInput = useCallback(() => {
 		setTimeout(() => {
 			searchInputRef.current?.focus();
-		}, 100); // Small delay to ensure animation completes
+		}, 100);
 	}, []);
 
 	const handleClearSearch = useCallback(() => {

@@ -228,6 +228,10 @@ export default function CreatePinScreen() {
 		resetAllPrivacySettings,
 	]);
 
+	// ===================
+	//   PRE-FILL EVENTS
+	// ===================
+
 	// Get prefilled location from navigation params
 	const { prefilledLocation } = useLocalSearchParams();
 
