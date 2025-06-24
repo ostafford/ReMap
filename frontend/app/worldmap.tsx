@@ -100,6 +100,7 @@ import { ReMapColors } from '@/constants/Colors';
 //   SERVICES IMPORTS
 // ===================
 import { getCurrentUser, signOut } from '@/services/auth';
+import { remap } from 'three/tsl';
 
 // =========================================================================
 //   						COMPONENT DEFINITION
@@ -162,6 +163,26 @@ export default function WorldMapScreen() {
 
     const [circle, setCircle] = useState(null);
 
+
+	// ==================================
+    //   STARTER PACK SELECT SETUP
+    // ==================================
+	const starterPacks = [
+		{ label: "sp1", value: "sp1" },
+		{ label: "sp2", value: "sp2" },
+		{ label: "sp3", value: "sp3" },
+		{ label: "sp4", value: "sp4" },
+		{ label: "sp5", value: "sp5" },
+	];
+
+	const [selectedPack, setSelectedPack] = useState<string | null>(null);
+
+
+	// const handleStarterPackSelect = (pack) => {
+		// ... code to filter pins to starter packs here
+		//...
+		//...
+	//};
 
 	// =============================
 	//   MODAL MANAGEMENT SECTION
@@ -632,6 +653,43 @@ export default function WorldMapScreen() {
 							/>
 
 						</View>
+
+						<View style={styles.starterPackOverlay}>
+							<ScrollView
+								horizontal
+								showsHorizontalScrollIndicator={false}
+								contentContainerStyle={styles.starterPackScrollContainer}
+							>
+								{starterPacks.map((pack, index) => {
+									const isSelected = selectedPack === pack.value;
+
+									return (
+										<TouchableOpacity
+											key={index}
+											style={[
+												styles.starterPackButton,
+												isSelected && styles.selectedStarterPackButton,
+											]}
+												onPress={() => {
+													if (selectedPack === pack.value) {
+														setSelectedPack(null);
+													} else {
+														setSelectedPack(pack.value);
+													}
+												}}
+										>
+											<Text
+												style={styles.starterPackText}
+											>
+												{pack.label}
+											</Text>
+										</TouchableOpacity>
+									);
+								})}
+							</ScrollView>
+						</View>
+
+
 						{/**********************************************/}
 						{/************ UNDER MAP CONTENT ***************/}
 						{/**********************************************/}
@@ -678,7 +736,7 @@ export default function WorldMapScreen() {
 								style={styles.addPinButton}
 								textStyle={{
 									fontSize: 17,
-									fontWeight: '400'
+									fontWeight: '500'
 								}}
 							>
 								Add Pin
@@ -890,6 +948,7 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		textAlign: 'center',
 		paddingLeft: 16,
+		fontWeight: '500',
 	},
 	dropdownItemText: {
 		color: ReMapColors.primary.black,
@@ -903,9 +962,42 @@ const styles = StyleSheet.create({
  		borderRadius: 30,
 
 	},
+
+	starterPackOverlay: {
+		position: 'absolute',
+		bottom: 105,
+		marginRight: 75,
+		zIndex: 3,
+	},
+	starterPackScrollContainer: {
+		paddingHorizontal: 10,
+	},
+	starterPackButton: {
+		backgroundColor: ReMapColors.primary.black,
+		opacity: 0.4,
+		borderRadius: 16,
+		marginRight: 10,
+		paddingVertical: 10,
+		paddingHorizontal: 16,
+
+	},
+	selectedStarterPackButton: {
+		backgroundColor: ReMapColors.primary.black,
+		opacity: 1,
+	},
+	starterPackText: {
+		fontSize: 14,
+		fontWeight: '400',
+		color: ReMapColors.ui.cardBackground,
+	},
+
+
 	profileIcon: {
 		 zIndex: 2,
 	},
+
+
+
 
 	// =================
 	//   SEARCH STYLES

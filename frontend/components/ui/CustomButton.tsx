@@ -27,6 +27,7 @@ const styles = StyleSheet.create ({
 	},
 	buttonText: {
 		color: "white",
-		fontSize: 20
+		fontSize: 20,
+		fontWeight: '500',
 	}
 });
