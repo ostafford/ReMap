@@ -128,31 +128,6 @@ export default function WorldMapScreen() {
 
 	const mapRef = useRef<MapView>(null);
 
-	// ==================
-	//   MOCK CIRCLE DATA
-	// ==================
-	const mockCircles = [
-		{
-			name: 'Circle 1',
-			avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-		},
-		{
-			name: 'Circle 2',
-			avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-		},
-		{
-			name: 'Circle 3',
-			avatar: 'https://randomuser.me/api/portraits/men/56.jpg',
-		},
-		{
-			name: 'Circle 4',
-			avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
-		},
-		{
-			name: 'Circle 5',
-			avatar: 'https://randomuser.me/api/portraits/men/72.jpg',
-		},
-	];
 
 	// =============================
 	//   AUTHENTICATION SECTION
@@ -278,17 +253,6 @@ export default function WorldMapScreen() {
 		});
 	};
 
-	// =============================
-	//   SOCIAL CIRCLES SECTION
-	// =============================
-	const socialsAnimation = useSlideAnimation({
-		animationType: 'spring',
-		springConfig: {
-			damping: 15,
-			stiffness: 120,
-			mass: 1,
-		},
-	});
 
 	// =============================
 	//   NAVIGATION SECTION
@@ -905,38 +869,6 @@ const styles = StyleSheet.create({
 	},
 	profileIcon: {
 		 zIndex: 2,
-	},
-
-	// ==========================
-	//   SOCIAL CIRCLES STYLES
-	// ==========================
-	socialSelection: {
-		width: 54,
-		height: 54,
-		borderRadius: 35,
-		zIndex: 5,
-	},
-	socialsBacking: {
-		marginTop: 8,
-		backgroundColor: ReMapColors.ui.grey,
-		opacity: 0.1,
-		borderRadius: 20,
-		maxHeight: 200,
-		width: 54,
-		overflow: 'hidden',
-	},
-	socialsList: {
-		alignItems: 'center',
-	},
-	socialCircleWrapper: {
-		marginBottom: 12,
-	},
-	socialCircleImage: {
-		width: 44,
-		height: 44,
-		borderRadius: 22,
-		borderWidth: 2,
-		borderColor: ReMapColors.primary.accent,
 	},
 
 	// =================
