@@ -4,13 +4,14 @@ import { StyleProp, ButtonProps } from "react-native";
 interface CustomButtonProps {
 	children: React.ReactNode;
 	onPress: () => void;
-	style?: StyleProp<ButtonProps>;
+	style?: StyleProp<ViewStyle>;
+	textStyle?: StyleProp<any>;
 }
 
-export const Button = ({ children, onPress, style }: CustomButtonProps) => {
+export const CustomButton = ({ children, onPress, style, textStyle }: CustomButtonProps) => {
 	return (
-		<Pressable onPress={onPress} style={[styles.button, style]}> {/* ignore this error - sthen 2nd styles gives us the ability to override the default style here */}
-			<Text style={styles.buttonText}>{children}</Text>
+		<Pressable onPress={onPress} style={[styles.button, style]}>
+			<Text style={[styles.buttonText, textStyle]}>{children}</Text>
 		</Pressable>
 	);
 };

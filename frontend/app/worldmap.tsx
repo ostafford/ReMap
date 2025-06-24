@@ -38,6 +38,7 @@ import axios from 'axios';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+import { Dropdown } from 'react-native-element-dropdown';
 
 // =========================================================================
 //   						INTERNAL IMPORTS
@@ -75,6 +76,7 @@ import { Footer } from '@/components/layout/Footer';
 // =================
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
+import { CustomButton } from '@/components/ui/CustomButton'
 import { Input } from '@/components/ui/TextInput';
 import { Modal } from '@/components/ui/Modal';
 import { TopNotificationSheet } from '@/components/ui/TopNotificationSheet';
@@ -128,7 +130,6 @@ export default function WorldMapScreen() {
 
 	const mapRef = useRef<MapView>(null);
 
-
 	// =============================
 	//   AUTHENTICATION SECTION
 	// =============================
@@ -148,6 +149,19 @@ export default function WorldMapScreen() {
 			router.replace('/');
 		}
 	};
+
+	// ==================================
+    //   CIRCLE SELECTION DROPDOWN SETUP 
+    // ==================================
+    const circleData = [
+		{ label: 'Global', value: '1' },
+		{ label: 'Private', value: '2' },
+		{ label: 'Team Remap', value: '3' }, // default social circle for all users?
+		// ... (if user logged in) - code that fetches  user's social circles
+    ];
+
+    const [circle, setCircle] = useState(null);
+
 
 	// =============================
 	//   MODAL MANAGEMENT SECTION
@@ -601,6 +615,18 @@ export default function WorldMapScreen() {
                                 />
                             </View>
 
+							<IconButton
+								icon='user'
+								onPress={
+									user
+										? navigateToProfile
+										: isAuthenticated
+										? profileModal.open
+										: goBack
+								}
+								style={styles.profileIcon}
+							/>
+
 						</View>
 						{/**********************************************/}
 						{/************ UNDER MAP CONTENT ***************/}
@@ -639,32 +665,20 @@ export default function WorldMapScreen() {
 					{/* *********************************************/}
 					<Footer>
 						<View style={styles.footerContainer}>
-							<IconButton
-								icon={
-									isAuthenticated ? 'address-card' : 'reply'
-								}
-								onPress={
-									user
-										? navigateToProfile
-										: isAuthenticated
-										? profileModal.open
-										: goBack
-								}
-							/>
-							<IconButton
-								icon={isAuthenticated ? 'map-pin' : 'user'}
+							<CustomButton
 								onPress={
 									isAuthenticated
 										? navigateToCreatePin
-										: signInModal.open
+										: signInModal.open //fix this to the proper create user/login prompt
 								}
-								size={36}
-								style={styles.bigCenterButton}
-							/>
-							<IconButton
-								icon="sliders"
-								onPress={navigateToCreatePin}
-							/>
+								style={styles.addPinButton}
+								textStyle={{
+									fontSize: 17,
+									fontWeight: '400'
+								}}
+							>
+								Add Pin
+							</CustomButton>
 						</View>
 					</Footer>
 
@@ -989,16 +1003,15 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		justifyContent: 'space-evenly',
 		alignItems: 'center',
-		width: '55%',
+		width: '100%',
 	},
-	backButton: {
+	addPinButton: {
 		backgroundColor: ReMapColors.primary.black,
+		width: '85%',
+		borderRadius: 24,
+		height: 64,
 	},
-	bigCenterButton: {
-		width: 72,
-		height: 72,
-		borderRadius: 36,
-	},
+
 
 	// ================
 	//   MODAL STYLES
