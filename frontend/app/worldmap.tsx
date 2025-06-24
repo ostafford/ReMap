@@ -603,6 +603,10 @@ export default function WorldMapScreen() {
 							<View style={styles.circleDropdownContainer}>
                                 <Dropdown
                                     style={styles.circleDropdown}
+									selectedTextStyle={styles.dropdownText}
+									placeholderStyle={styles.dropdownText}
+									itemTextStyle={styles.dropdownItemText}
+  									containerStyle={styles.dropdownListContainer}
                                     data={circleData}
                                     labelField="label"
                                     valueField="value"
@@ -880,6 +884,24 @@ const styles = StyleSheet.create({
 		minWidth: 160,
 		backgroundColor: ReMapColors.primary.black,
 		opacity: 0.5,
+	},
+	dropdownText: {
+		color: 'white',
+		fontSize: 14,
+		textAlign: 'center',
+		paddingLeft: 16,
+	},
+	dropdownItemText: {
+		color: ReMapColors.primary.black,
+		fontSize: 14,
+		paddingVertical: 2,
+		paddingHorizontal: 5,
+		textAlign: 'center',
+	},
+	dropdownListContainer: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+ 		borderRadius: 30,
+
 	},
 	profileIcon: {
 		 zIndex: 2,
