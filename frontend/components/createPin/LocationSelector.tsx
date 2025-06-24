@@ -47,6 +47,13 @@ interface LocationSelectorProps {
 	required?: boolean;
 	style?: any;
 	disabled?: boolean;
+
+	// Prefilled props
+	prefilledCoordinates?: {
+		latitude: number;
+		longitude: number;
+		address: string;
+	};
 }
 
 // ================================
@@ -98,6 +105,7 @@ export function LocationSelector({
 	required = true,
 	style,
 	disabled = false,
+	prefilledCoordinates,
 }: LocationSelectorProps) {
 	// ========================
 	// LOCATION LOGIC HOOK
@@ -110,6 +118,7 @@ export function LocationSelector({
 		convertAddressToCoordinates,
 		updateLocationFromUserInput,
 		updateLocationFromMapDrag,
+		setCoordinatesDirectly,
 	} = useLocationManager();
 
 	// ================
@@ -177,6 +186,17 @@ export function LocationSelector({
 			onChange(locationData.displayAddress);
 		}
 	}, [locationData.isFromGPS, locationData.displayAddress, onChange]);
+
+	// Handle prefilled coordinates from parent
+	useEffect(() => {
+		if (prefilledCoordinates) {
+			console.log(
+				'📍 [LOCATION-SELECTOR] Received prefilled coordinates:',
+				prefilledCoordinates
+			);
+			setCoordinatesDirectly(prefilledCoordinates);
+		}
+	}, [prefilledCoordinates?.latitude, prefilledCoordinates?.longitude]);
 
 	// ==================
 	// COMPUTED VALUES

@@ -7,7 +7,7 @@ import { View, StyleSheet, Alert } from 'react-native';
 // =======================
 //   THIRD-PARTY IMPORTS
 // =======================
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 // =====================
 //   LAYOUT COMPONENTS
@@ -228,6 +228,34 @@ export default function CreatePinScreen() {
 		resetAllPrivacySettings,
 	]);
 
+	// Get prefilled location from navigation params
+	const { prefilledLocation } = useLocalSearchParams();
+
+	// Effect to set prefilled location data
+	useEffect(() => {
+		if (prefilledLocation && typeof prefilledLocation === 'string') {
+			try {
+				const locationData = JSON.parse(prefilledLocation);
+				setLocationQuery(locationData.address);
+				updateCoordinatesFromLocationSelector({
+					latitude: locationData.latitude,
+					longitude: locationData.longitude,
+					address: locationData.address,
+				});
+				console.log(
+					'🎯 [CREATEPIN] Prefilled location set:',
+					locationData
+				);
+			} catch (error) {
+				console.error('Failed to parse prefilled location:', error);
+			}
+		}
+	}, [
+		prefilledLocation,
+		setLocationQuery,
+		updateCoordinatesFromLocationSelector,
+	]);
+
 	// ============================
 	//   MAIN COMPONENT RENDER
 	// ============================
@@ -255,6 +283,7 @@ export default function CreatePinScreen() {
 					inputRef={locationInputRef}
 					onCoordinateChange={updateCoordinatesFromLocationSelector}
 					required={true}
+					prefilledCoordinates={coordinates || undefined}
 				/>
 
 				{/* ======================== */}

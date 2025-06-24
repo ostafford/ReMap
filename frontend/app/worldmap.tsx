@@ -37,18 +37,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { instancedMesh } from 'three/tsl';
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
-
-// ===========================
-//   FOURSQUARE API IMPORTS
-// ===========================
-import { FoursquareSearch } from '@/components/ui/FourSquareSearch';
-import type { Suggestion } from '@/components/ui/FourSquareSearch';
 
 // =========================================================================
 //   						INTERNAL IMPORTS
 // =========================================================================
+
+// =========================
+//   NOMINATIM IMPORT
+// =========================
+import { NominatimSearch } from '@/components/ui/NominatimSearch';
 
 // =========================
 //   CUSTOM HOOKS IMPORTS
@@ -58,7 +56,6 @@ import { PinBottomSheet } from '@/components/ui/PinBottomSheet';
 import { useAuth } from '@/hooks/shared/useAuth';
 import { useModal } from '@/hooks/shared/useModal';
 import { useSlideAnimation } from '@/hooks/useSlideAnimation';
-import { useNotificationSheet } from '@/hooks/shared/useNotificationSheet';
 import { useNotification } from '@/contexts/NotificationContext';
 import {
 	fetchAllVisiblePins,
@@ -116,6 +113,7 @@ export default function WorldMapScreen() {
 		notification,
 		isVisible: isNotificationVisible,
 		hideNotification,
+		showNotification,
 	} = useNotification();
 
 	// ================
@@ -237,6 +235,12 @@ export default function WorldMapScreen() {
 	const [searchVisible, setSearchVisible] = useState(false);
 	const slideAnim = useRef(new Animated.Value(-100)).current;
 
+	const [searchResultLocation, setSearchResultLocation] = useState<{
+		latitude: number;
+		longitude: number;
+		address: string;
+	} | null>(null);
+
 	// Search handlers
 	const openSearch = () => {
 		setSearchVisible(true);
@@ -244,7 +248,10 @@ export default function WorldMapScreen() {
 			toValue: 0,
 			duration: 300,
 			useNativeDriver: true,
-		}).start();
+		}).start(() => {
+			// Focus the search input after animation completes
+			// The NominatimSearch component will auto-focus via useEffect
+		});
 	};
 
 	const closeSearch = () => {
@@ -257,23 +264,23 @@ export default function WorldMapScreen() {
 		});
 	};
 
-	const onSelectSuggestion = (item: Suggestion) => {
+	const onLocationSelect = (result: {
+		latitude: number;
+		longitude: number;
+		address: string;
+	}) => {
 		closeSearch();
-		if (
-			'geocodes' in item &&
-			item.geocodes?.main?.latitude !== undefined &&
-			item.geocodes?.main?.longitude !== undefined
-		) {
-			const { latitude, longitude } = item.geocodes.main;
-			mapRef.current?.animateToRegion({
-				latitude,
-				longitude,
-				latitudeDelta: 0.01,
-				longitudeDelta: 0.01,
-			});
-		} else {
-			Alert.alert('Location data is not available');
-		}
+
+		// Set the search result location for marker
+		setSearchResultLocation(result);
+
+		// Animate to location
+		mapRef.current?.animateToRegion({
+			latitude: result.latitude,
+			longitude: result.longitude,
+			latitudeDelta: 0.01,
+			longitudeDelta: 0.01,
+		});
 	};
 
 	// =============================
@@ -442,6 +449,7 @@ export default function WorldMapScreen() {
 				message={notification?.message || ''}
 				onClose={hideNotification}
 				autoCloseDelay={notification?.autoCloseDelay || 3000}
+				onPress={notification?.onPress}
 			/>
 
 			{/**********************************************/}
@@ -454,8 +462,8 @@ export default function WorldMapScreen() {
 						{ transform: [{ translateY: slideAnim }] },
 					]}
 				>
-					<FoursquareSearch
-						onSelect={onSelectSuggestion}
+					<NominatimSearch
+						onSelect={onLocationSelect}
 						placeholder="Search location..."
 					/>
 				</Animated.View>
@@ -480,7 +488,6 @@ export default function WorldMapScreen() {
 							initialRegion={INITIAL_REGION}
 							showsUserLocation
 							showsMyLocationButton
-							// onRegionChangeComplete={debouncedOnMapRegionChange}
 						>
 							<Marker
 								title="Holberton School"
@@ -528,6 +535,46 @@ export default function WorldMapScreen() {
 									</View>
 								</Marker>
 							))}
+							{/* Search result marker */}
+							{searchResultLocation && (
+								<Marker
+									coordinate={{
+										latitude: searchResultLocation.latitude,
+										longitude:
+											searchResultLocation.longitude,
+									}}
+									title="Search Result"
+									description={searchResultLocation.address}
+									pinColor="blue"
+									onPress={() => {
+										showNotification(
+											'Create Memory Pin?',
+											'Tap here to create a memory at this location',
+											'info',
+											5000, // Longer delay for user decision
+											() => {
+												console.log(
+													'🎯 Navigation function triggered!'
+												);
+												router.navigate({
+													pathname: '/createPin',
+													params: {
+														prefilledLocation:
+															JSON.stringify({
+																latitude:
+																	searchResultLocation.latitude,
+																longitude:
+																	searchResultLocation.longitude,
+																address:
+																	searchResultLocation.address,
+															}),
+													},
+												});
+											}
+										);
+									}}
+								/>
+							)}
 
 							{/* Loading indicator for pins */}
 							{isLoadingPins && (
@@ -538,6 +585,12 @@ export default function WorldMapScreen() {
 								</View>
 							)}
 						</MapView>
+						{/* ATTRIBUTION - Policy requirement */}
+						<View style={styles.attributionContainer}>
+							<Text style={styles.attributionText}>
+								© OpenStreetMap contributors
+							</Text>
+						</View>
 						{/* PIN ERROR */}
 						{pinError && (
 							<View style={styles.errorContainer}>
@@ -1081,5 +1134,19 @@ const styles = StyleSheet.create({
 		color: 'white',
 		fontSize: 12,
 		fontWeight: '600',
+	},
+	// Nomminatim Policy
+	attributionContainer: {
+		position: 'absolute',
+		bottom: 80,
+		left: 10,
+		backgroundColor: 'rgba(255,255,255,0.8)',
+		paddingHorizontal: 6,
+		paddingVertical: 2,
+		borderRadius: 4,
+	},
+	attributionText: {
+		fontSize: 10,
+		color: ReMapColors.ui.textSecondary,
 	},
 });

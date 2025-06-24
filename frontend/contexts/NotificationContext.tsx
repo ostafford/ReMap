@@ -26,6 +26,7 @@ interface NotificationData {
 	message?: string;
 	type?: 'success' | 'error' | 'info' | 'warning';
 	autoCloseDelay?: number;
+	onPress?: () => void;
 }
 
 interface NotificationContextType {
@@ -38,7 +39,8 @@ interface NotificationContextType {
 		title: string,
 		message?: string,
 		type?: NotificationData['type'],
-		autoCloseDelay?: number
+		autoCloseDelay?: number,
+		onPress?: () => void
 	) => void;
 	showSuccess: (title: string, message?: string) => void;
 	showError: (title: string, message?: string) => void;
@@ -79,7 +81,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 			title: string,
 			message?: string,
 			type: NotificationData['type'] = 'info',
-			autoCloseDelay: number = 3000
+			autoCloseDelay: number = 3000,
+			onPress?: () => void
 		) => {
 			console.log('🔔 [CONTEXT] Showing notification:', {
 				title,
@@ -92,6 +95,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 				message,
 				type,
 				autoCloseDelay,
+				onPress,
 			});
 			setIsVisible(true);
 		},

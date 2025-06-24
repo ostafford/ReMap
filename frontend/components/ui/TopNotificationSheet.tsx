@@ -31,6 +31,7 @@ interface TopNotificationSheetProps {
 	message?: string;
 	onClose: () => void;
 	autoCloseDelay?: number; // in milliseconds
+	onPress?: () => void;
 }
 
 // ========================
@@ -42,6 +43,7 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 	message,
 	onClose,
 	autoCloseDelay = 3000, // Default 3 seconds
+	onPress,
 }) => {
 	// ==================
 	//   CONSTANTS & REFS
@@ -126,7 +128,9 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 
 		if (isVisible) {
 			// Show immediately without delay
-			slideDown();
+			setTimeout(() => {
+				slideDown();
+			}, 0);
 
 			// Set up auto-close timer
 			autoCloseTimer.current = setTimeout(() => {
@@ -167,7 +171,10 @@ export const TopNotificationSheet: React.FC<TopNotificationSheetProps> = ({
 	 * Handles direct tap on close button or notification content
 	 */
 	const handleNotificationPress = () => {
-		slideUp();
+		if (onPress) {
+			onPress(); // Execute the action first
+		}
+		slideUp(); // Then dismiss the notification
 	};
 
 	// ==================

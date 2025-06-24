@@ -33,6 +33,11 @@ interface LocationManagerHook {
 		address?: string;
 	}) => void;
 	resetLocationData: () => void;
+	setCoordinatesDirectly: (coords: {
+		latitude: number;
+		longitude: number;
+		address: string;
+	}) => void;
 }
 
 // ======================
@@ -259,6 +264,19 @@ export const useLocationManager = (): LocationManagerHook => {
 		[updateLocationField]
 	);
 
+	const setCoordinatesDirectly = useCallback(
+		(coords: { latitude: number; longitude: number; address: string }) => {
+			updateLocationField('currentCoordinates', {
+				latitude: coords.latitude,
+				longitude: coords.longitude,
+			});
+			updateLocationField('displayAddress', coords.address);
+			updateLocationField('searchQuery', coords.address);
+			updateLocationField('isFromGPS', false);
+		},
+		[updateLocationField]
+	);
+
 	// =========================
 	// RETURN INTERFACE:
 	// =========================
@@ -279,5 +297,6 @@ export const useLocationManager = (): LocationManagerHook => {
 
 		// Utility functions
 		resetLocationData,
+		setCoordinatesDirectly,
 	};
 };
