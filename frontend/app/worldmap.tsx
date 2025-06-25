@@ -318,7 +318,6 @@ export default function WorldMapScreen() {
 	const [pinError, setPinError] = useState<string | null>(null);
 
 	const fetchPins = useCallback(async () => {
-		console.log('🔄 [WORLDMAP] Fetching pins from backend (static)');
 		setIsLoadingPins(true);
 		setPinError(null);
 
@@ -362,11 +361,8 @@ export default function WorldMapScreen() {
 
 	const onMapRegionChange = useCallback(
 		async (region: any) => {
-			console.log('🗺️ [WORLDMAP] Map region changed (debounced)');
-
 			// Don't reload if already loading
 			if (isLoadingPins) {
-				console.log('⏳ [WORLDMAP] Already loading pins, skipping');
 				return;
 			}
 
@@ -417,14 +413,6 @@ export default function WorldMapScreen() {
 	// =========================
 	//   WORLDMAP PAGE RENDER
 	// =========================
-	console.log('🎯 [WORLDMAP] About to render', realPins.length, 'pins');
-	console.log(
-		'🎯 [WORLDMAP] Pin coordinates:',
-		realPins.map(
-			(p) =>
-				`${p.title}: ${p.coordinate.latitude}, ${p.coordinate.longitude}`
-		)
-	);
 	return (
 		<GestureHandlerRootView style={styles.container}>
 			{/* ==================== */}
