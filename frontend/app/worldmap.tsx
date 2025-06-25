@@ -38,6 +38,7 @@ import axios from 'axios';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+import { Dropdown } from 'react-native-element-dropdown';
 
 // =========================================================================
 //   						INTERNAL IMPORTS
@@ -75,6 +76,7 @@ import { Footer } from '@/components/layout/Footer';
 // =================
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
+import { CustomButton } from '@/components/ui/CustomButton'
 import { Input } from '@/components/ui/TextInput';
 import { Modal } from '@/components/ui/Modal';
 import { TopNotificationSheet } from '@/components/ui/TopNotificationSheet';
@@ -98,6 +100,7 @@ import { ReMapColors } from '@/constants/Colors';
 //   SERVICES IMPORTS
 // ===================
 import { getCurrentUser, signOut } from '@/services/auth';
+import { remap } from 'three/tsl';
 
 // =========================================================================
 //   						COMPONENT DEFINITION
@@ -128,32 +131,6 @@ export default function WorldMapScreen() {
 
 	const mapRef = useRef<MapView>(null);
 
-	// ==================
-	//   MOCK CIRCLE DATA
-	// ==================
-	const mockCircles = [
-		{
-			name: 'Circle 1',
-			avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-		},
-		{
-			name: 'Circle 2',
-			avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-		},
-		{
-			name: 'Circle 3',
-			avatar: 'https://randomuser.me/api/portraits/men/56.jpg',
-		},
-		{
-			name: 'Circle 4',
-			avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
-		},
-		{
-			name: 'Circle 5',
-			avatar: 'https://randomuser.me/api/portraits/men/72.jpg',
-		},
-	];
-
 	// =============================
 	//   AUTHENTICATION SECTION
 	// =============================
@@ -173,6 +150,39 @@ export default function WorldMapScreen() {
 			router.replace('/');
 		}
 	};
+
+	// ==================================
+    //   CIRCLE SELECTION DROPDOWN SETUP 
+    // ==================================
+    const circleData = [
+		{ label: 'Global', value: '1' },
+		{ label: 'Private', value: '2' },
+		{ label: 'Team Remap', value: '3' }, // default social circle for all users?
+		// ... (if user logged in) - code that fetches  user's social circles
+    ];
+
+    const [circle, setCircle] = useState(null);
+
+
+	// ==================================
+    //   STARTER PACK SELECT SETUP
+    // ==================================
+	const starterPacks = [
+		{ label: "sp1", value: "sp1" },
+		{ label: "sp2", value: "sp2" },
+		{ label: "sp3", value: "sp3" },
+		{ label: "sp4", value: "sp4" },
+		{ label: "sp5", value: "sp5" },
+	];
+
+	const [selectedPack, setSelectedPack] = useState<string | null>(null);
+
+
+	// const handleStarterPackSelect = (pack) => {
+		// ... code to filter pins to starter packs here
+		//...
+		//...
+	//};
 
 	// =============================
 	//   MODAL MANAGEMENT SECTION
@@ -278,17 +288,6 @@ export default function WorldMapScreen() {
 		});
 	};
 
-	// =============================
-	//   SOCIAL CIRCLES SECTION
-	// =============================
-	const socialsAnimation = useSlideAnimation({
-		animationType: 'spring',
-		springConfig: {
-			damping: 15,
-			stiffness: 120,
-			mass: 1,
-		},
-	});
 
 	// =============================
 	//   NAVIGATION SECTION
@@ -616,33 +615,81 @@ export default function WorldMapScreen() {
 						{/* ************************ */}
 						{/*   OVERLAY UI CONTROLS    */}
 						{/* ************************ */}
-						<View
-							style={[
-								styles.circlesContainer,
-								{ top: insets.top + 100 },
-							]}
-						>
-							{/* Social Circles with Animation (Drop-Down) */}
-							<View style={{ alignItems: 'flex-end' }}>
-								<ScrollView
-									contentContainerStyle={styles.socialsList}
-								>
-									{mockCircles.map((circle, index) => (
+                        <View
+                            style={[
+                                styles.topOverlayContainer,
+                                { top: insets.top },
+                            ]}
+                        >
+							<View style={styles.circleDropdownContainer}>
+                                <Dropdown
+                                    style={styles.circleDropdown}
+									selectedTextStyle={styles.dropdownText}
+									placeholderStyle={styles.dropdownText}
+									itemTextStyle={styles.dropdownItemText}
+  									containerStyle={styles.dropdownListContainer}
+                                    data={circleData}
+                                    labelField="label"
+                                    valueField="value"
+                                    placeholder="Select circle"
+                                    value={circle}
+                                    onChange={item => {
+                                        setCircle(item.value);
+                                        console.log('selected', item);
+                                    }}
+                                />
+                            </View>
+
+							<IconButton
+								icon='user'
+								onPress={
+									user
+										? navigateToProfile
+										: isAuthenticated
+										? profileModal.open
+										: goBack
+								}
+								style={styles.profileIcon}
+							/>
+
+						</View>
+
+						<View style={styles.starterPackOverlay}>
+							<ScrollView
+								horizontal
+								showsHorizontalScrollIndicator={false}
+								contentContainerStyle={styles.starterPackScrollContainer}
+							>
+								{starterPacks.map((pack, index) => {
+									const isSelected = selectedPack === pack.value;
+
+									return (
 										<TouchableOpacity
 											key={index}
-											style={styles.socialCircleWrapper}
-										>
-											<Image
-												source={{
-													uri: circle.avatar,
+											style={[
+												styles.starterPackButton,
+												isSelected && styles.selectedStarterPackButton,
+											]}
+												onPress={() => {
+													if (selectedPack === pack.value) {
+														setSelectedPack(null);
+													} else {
+														setSelectedPack(pack.value);
+													}
 												}}
-												style={styles.socialCircleImage}
-											/>
+										>
+											<Text
+												style={styles.starterPackText}
+											>
+												{pack.label}
+											</Text>
 										</TouchableOpacity>
-									))}
-								</ScrollView>
-							</View>
+									);
+								})}
+							</ScrollView>
 						</View>
+
+
 						{/**********************************************/}
 						{/************ UNDER MAP CONTENT ***************/}
 						{/**********************************************/}
@@ -680,32 +727,20 @@ export default function WorldMapScreen() {
 					{/* *********************************************/}
 					<Footer>
 						<View style={styles.footerContainer}>
-							<IconButton
-								icon={
-									isAuthenticated ? 'address-card' : 'reply'
-								}
-								onPress={
-									user
-										? navigateToProfile
-										: isAuthenticated
-										? profileModal.open
-										: goBack
-								}
-							/>
-							<IconButton
-								icon={isAuthenticated ? 'map-pin' : 'user'}
+							<CustomButton
 								onPress={
 									isAuthenticated
 										? navigateToCreatePin
-										: signInModal.open
+										: signInModal.open //fix this to the proper create user/login prompt
 								}
-								size={36}
-								style={styles.bigCenterButton}
-							/>
-							<IconButton
-								icon="sliders"
-								onPress={navigateToCreatePin}
-							/>
+								style={styles.addPinButton}
+								textStyle={{
+									fontSize: 17,
+									fontWeight: '500'
+								}}
+							>
+								Add Pin
+							</CustomButton>
 						</View>
 					</Footer>
 
@@ -882,53 +917,87 @@ const styles = StyleSheet.create({
 	// ==========================
 	//   OVERLAY UI CONTROLS
 	// ==========================
-	circlesContainer: {
-		paddingRight: 12,
-		alignItems: 'flex-end',
-		justifyContent: 'center',
-		height: 'auto',
+	topOverlayContainer: {
 		position: 'absolute',
 		width: '100%',
-		top: 50,
+		flexDirection:'row',
+		alignItems:'center',
+		justifyContent: 'flex-end',
+		paddingRight: 12,
+		height: 'auto',
+		top: 0,
 	},
-	circleSelections: {
-		width: 54,
-		height: 54,
-		borderRadius: 27,
-		zIndex: 5,
+	circleDropdownContainer: {
+		position: 'absolute',
+		left: 0,
+		right: 0,
+		alignItems: 'center',
+		zIndex: 1,
+	},
+	circleDropdown: {
+		height: 35,
+		borderWidth: 1,
+		borderRadius: 20,
+		paddingHorizontal: 8,
+		minWidth: 160,
+		backgroundColor: ReMapColors.primary.black,
+		opacity: 0.5,
+	},
+	dropdownText: {
+		color: 'white',
+		fontSize: 14,
+		textAlign: 'center',
+		paddingLeft: 16,
+		fontWeight: '500',
+	},
+	dropdownItemText: {
+		color: ReMapColors.primary.black,
+		fontSize: 14,
+		paddingVertical: 2,
+		paddingHorizontal: 5,
+		textAlign: 'center',
+	},
+	dropdownListContainer: {
+		backgroundColor: ReMapColors.ui.cardBackground,
+ 		borderRadius: 30,
+
 	},
 
-	// ==========================
-	//   SOCIAL CIRCLES STYLES
-	// ==========================
-	socialSelection: {
-		width: 54,
-		height: 54,
-		borderRadius: 35,
-		zIndex: 5,
+	starterPackOverlay: {
+		position: 'absolute',
+		bottom: 105,
+		marginRight: 75,
+		zIndex: 3,
 	},
-	socialsBacking: {
-		marginTop: 8,
-		backgroundColor: ReMapColors.ui.grey,
-		opacity: 0.1,
-		borderRadius: 20,
-		maxHeight: 200,
-		width: 54,
-		overflow: 'hidden',
+	starterPackScrollContainer: {
+		paddingHorizontal: 10,
 	},
-	socialsList: {
-		alignItems: 'center',
+	starterPackButton: {
+		backgroundColor: ReMapColors.primary.black,
+		opacity: 0.4,
+		borderRadius: 16,
+		marginRight: 10,
+		paddingVertical: 10,
+		paddingHorizontal: 16,
+
 	},
-	socialCircleWrapper: {
-		marginBottom: 12,
+	selectedStarterPackButton: {
+		backgroundColor: ReMapColors.primary.black,
+		opacity: 1,
 	},
-	socialCircleImage: {
-		width: 44,
-		height: 44,
-		borderRadius: 22,
-		borderWidth: 2,
-		borderColor: ReMapColors.primary.accent,
+	starterPackText: {
+		fontSize: 14,
+		fontWeight: '400',
+		color: ReMapColors.ui.cardBackground,
 	},
+
+
+	profileIcon: {
+		 zIndex: 2,
+	},
+
+
+
 
 	// =================
 	//   SEARCH STYLES
@@ -1048,16 +1117,15 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		justifyContent: 'space-evenly',
 		alignItems: 'center',
-		width: '55%',
+		width: '100%',
 	},
-	backButton: {
+	addPinButton: {
 		backgroundColor: ReMapColors.primary.black,
+		width: '85%',
+		borderRadius: 24,
+		height: 64,
 	},
-	bigCenterButton: {
-		width: 72,
-		height: 72,
-		borderRadius: 36,
-	},
+
 
 	// ================
 	//   MODAL STYLES
