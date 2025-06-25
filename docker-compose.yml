@@ -21,14 +21,7 @@ services:
       - "19002:19002"  # Expo Dev Server (additional ports)
     
     # Environment variables for backend configuration
-    # This is how the backend connects to the database (postgres is the service name)
     environment:
-      # Database connection settings - these match our PostgreSQL service (Supabase is something we will use later and figure out how to connect to it)
-      DB_HOST: postgres           # Service name becomes hostname in Docker network
-      DB_PORT: 5432              # PostgreSQL default port
-      DB_NAME: remap_dev         
-      DB_USER: remap_user         
-      DB_PASSWORD: dev_password  
       # Node.js environment settings (This is how we run the backend in development mode)
       NODE_ENV: development
       PORT: 3000
@@ -47,12 +40,6 @@ services:
       - /workspace/node_modules      # Preserve container's node_modules 
       - backend_cache:/workspace/backend/node_modules  # Backend-specific node_modules cache
     
-    # Service dependencies ensure database starts before backend
-    # This is how we ensure the database is running before the backend starts (order matters)
-    depends_on:
-      postgres:
-        condition: service_healthy  # Wait for database health check to pass
-    
     # Working directory will be the complete project workspace
     working_dir: /workspace
     
@@ -68,43 +55,9 @@ services:
       retries: 5                 # Try 5 times before marking as unhealthy
       start_period: 60s          # Wait 60 seconds before starting health checks
 
-  # PostgreSQL Database Service
-  postgres:
-    image: postgres:17-bookworm    # Using PostgreSQL 17 with Ubuntu-based image (bookworm is the version latest and stable)
-    container_name: remap-postgres
-    restart: unless-stopped        # Automatically restart if container crashes
-    
-    # Environment variables configure the database
-    environment:
-      # These create the initial database and user credentials
-      POSTGRES_DB: remap_dev          
-      POSTGRES_USER: remap_user       
-      POSTGRES_PASSWORD: dev_password 
-      POSTGRES_HOST_AUTH_METHOD: md5  # Authentication method for connections
-    
-    # Port mapping allows access from host machine and other containers
-    # This is how the backend connects to the backend container
-    ports:
-      - "5432:5432"
-    
-    # Volume ensures database data persists when container restarts
-    volumes:
-      - postgres_data:/var/lib/postgresql/data    # Named volume for data persistence
-      # **Note: We'll add initialization scripts later when we need them (if we need to that is)
-    
-    # Just another health check to ensure the database is running correctly
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U remap_user -d remap_dev"]
-      interval: 30s      # Check every 30 seconds
-      timeout: 10s       # Wait up to 10 seconds for response
-      retries: 5         # Try 5 times before marking as unhealthy
-      start_period: 30s  # Wait 30 seconds before starting health checks
-
 # Named volumes for data persistence
 # This ensures your database data survives container restarts
 volumes:
-  postgres_data:
-    driver: local
   backend_cache:
     driver: local    # Cache for backend node_modules to improve build performance
 

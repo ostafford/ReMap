@@ -41,6 +41,8 @@ function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
 		async function loadData() {
 			const _data = await new RemapClient().getProfile();
 
+
+			console.log(_data);
 			setData(_data);
 		}
 	}, []);
@@ -50,6 +52,7 @@ function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
 			<Text>Profile picture here</Text>
 			<Text style={styles.username}>username</Text>
 			<Text>Full name</Text>
+			<Text>{data?.full_name}</Text>
 			<Text>Total Pins</Text>
 			<Text>{data?.pins}</Text>
 			<Button
