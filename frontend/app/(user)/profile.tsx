@@ -1,7 +1,7 @@
 // =========================================================================
 //   						EXTERNAL IMPORTS
 // =========================================================================
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // ==============================
@@ -24,15 +24,34 @@ import { useAuth } from '@/hooks/shared/useAuth';
 import { ReMapColors } from '@/constants/Colors';
 import { Button } from '@/components/ui/Button';
 
+import RemapClient from '../services/remap';
+
+
+import type { Tables } from '@/types/database';
+
 const Tab = createMaterialTopTabNavigator();
 
+
 function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
+	const [data, setData] = useState<Awaited<ReturnType<RemapClient["getProfile"]>> | null>(null);
+
+	useEffect(() => {
+		loadData();
+
+		async function loadData() {
+			const _data = await new RemapClient().getProfile();
+
+			setData(_data);
+		}
+	}, []);
+
 	return (
 		<View style={styles.tabContent}>
 			<Text>Profile picture here</Text>
 			<Text style={styles.username}>username</Text>
 			<Text>Full name</Text>
 			<Text>Total Pins</Text>
+			<Text>{data?.pins}</Text>
 			<Button
 				onPress={onSignOut} // Connect the function here
 				style={styles.circleButton}
