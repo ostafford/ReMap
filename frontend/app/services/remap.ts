@@ -76,4 +76,8 @@ export default class RemapClient {
 
         return response;
     }
+
+    async getCircles(): Promise<{ id: string; name: string }[]> {
+        return await this.makeAuthRequest("circles", "GET");
+    }
 }
