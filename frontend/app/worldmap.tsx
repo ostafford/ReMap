@@ -102,6 +102,11 @@ import { ReMapColors } from '@/constants/Colors';
 import { getCurrentUser, signOut } from '@/services/auth';
 import { remap } from 'three/tsl';
 
+// =========================
+//   STATIC DATA IMPORTS
+// =========================
+import { STARTER_PACKS } from '@/constants/onboardingStaticData';
+
 // =========================================================================
 //   						COMPONENT DEFINITION
 // =========================================================================
@@ -660,28 +665,26 @@ export default function WorldMapScreen() {
 								showsHorizontalScrollIndicator={false}
 								contentContainerStyle={styles.starterPackScrollContainer}
 							>
-								{starterPacks.map((pack, index) => {
-									const isSelected = selectedPack === pack.value;
+								{STARTER_PACKS.map((pack) => {
+									const isSelected = selectedPack === pack.id;
 
 									return (
 										<TouchableOpacity
-											key={index}
+											key={pack.id}
 											style={[
 												styles.starterPackButton,
 												isSelected && styles.selectedStarterPackButton,
 											]}
 												onPress={() => {
-													if (selectedPack === pack.value) {
+													if (selectedPack === pack.id) {
 														setSelectedPack(null);
 													} else {
-														setSelectedPack(pack.value);
+														setSelectedPack(pack.id);
 													}
 												}}
 										>
-											<Text
-												style={styles.starterPackText}
-											>
-												{pack.label}
+											<Text style={styles.starterPackText}>
+												{pack.icon} {pack.name}
 											</Text>
 										</TouchableOpacity>
 									);
