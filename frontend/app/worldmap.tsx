@@ -44,6 +44,11 @@ import { Dropdown } from 'react-native-element-dropdown';
 //   						INTERNAL IMPORTS
 // =========================================================================
 
+// ======================
+//   CLIENT IMPORTS
+// =======================
+import RemapClient from '@/app/services/remap';
+
 // =========================
 //   NOMINATIM IMPORT
 // =========================
@@ -103,7 +108,7 @@ import { getCurrentUser, signOut } from '@/services/auth';
 import { remap } from 'three/tsl';
 
 // =========================
-//   STATIC DATA IMPORTS
+//   DATA IMPORTS
 // =========================
 import { STARTER_PACKS } from '@/constants/onboardingStaticData';
 
@@ -159,14 +164,29 @@ export default function WorldMapScreen() {
 	// ==================================
     //   CIRCLE SELECTION DROPDOWN SETUP 
     // ==================================
-    const circleData = [
-		{ label: 'Global', value: '1' },
-		{ label: 'Private', value: '2' },
-		{ label: 'Team Remap', value: '3' }, // default social circle for all users?
-		// ... (if user logged in) - code that fetches  user's social circles
-    ];
 
     const [circle, setCircle] = useState(null);
+	const [circleData, setCircleData] = useState<{ label: string; value: string }[]>([]);
+
+	useEffect(() => {
+		const fetchCircles = async () => {
+			try {
+				const remap = new RemapClient();
+				const circles = await remap.getCircles();
+
+				const formattedCircles = circles.map(circle => ({
+					label: circle.name,
+					value: circle.id
+				}));
+
+				setCircleData(formattedCircles);
+
+			} catch (err) {
+				console.error("Error fetching circles:", err);
+			}
+		};
+		fetchCircles();
+	}, []);
 
 
 	// ==================================
