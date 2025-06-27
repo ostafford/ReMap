@@ -85,19 +85,21 @@ export const listCircles = async (req: Request, res: Response) => {
     }
 
     try {
-        // Many-to-many joins
         const { data, error } = await supabase
-        .from("circles")
-        .select()
-        .eq("owner_id", user.id);
+        .from("members")
+        .select("circle_id, circles(id, name)")
+        .eq("user_id", user.id);
 
         if (error) {
             console.log("List circles error:", error.message);
             res.status(400).json({ "List circles error": error.message });
             return;
         }
-        console.log("List of circles:", data);
-        res.status(200).json({ "List of circles": data });
+
+        const circles = data.map(entry => entry.circles);
+        
+        console.log("User's Circles:", data);
+        res.status(200).json( circles );
 
     } catch (err: any) {
         console.log("List circles server error:", err.message);
