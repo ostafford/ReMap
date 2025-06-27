@@ -50,11 +50,10 @@ function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
 	return (
 		<View style={styles.tabContent}>
 			<Text>Profile picture here</Text>
-			<Text style={styles.username}>username</Text>
-			<Text>Full name</Text>
-			<Text>{data?.full_name}</Text>
+			<Text style={styles.username}>Username: {data?.username}</Text>
+			<Text>Full name: {data?.full_name}</Text>
 			<Text>Total Pins</Text>
-			<Text>{data?.pins}</Text>
+				<Text>{data?.pins}</Text>
 			<Button
 				onPress={onSignOut} // Connect the function here
 				style={styles.circleButton}
