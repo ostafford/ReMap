@@ -174,12 +174,17 @@ export default function WorldMapScreen() {
 				const remap = new RemapClient();
 				const circles = await remap.getCircles();
 
-				const formattedCircles = circles.map(circle => ({
+				const defaultCircles = [
+					{ label: 'Global', value: 'global' },
+					{ label: 'Private', value: 'private' }
+				];
+
+				const socialCircles = circles.map(circle => ({
 					label: circle.name,
 					value: circle.id
 				}));
 
-				setCircleData(formattedCircles);
+				setCircleData([...defaultCircles, ...socialCircles]);
 
 			} catch (err) {
 				console.error("Error fetching circles:", err);
