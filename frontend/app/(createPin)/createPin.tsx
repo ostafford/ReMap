@@ -2,12 +2,20 @@
 //   REACT NATIVE IMPORTS
 // ========================
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import {
+	View,
+	StyleSheet,
+	Alert,
+	Modal,
+	Image,
+	TouchableOpacity,
+} from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
 // =======================
 import { router, useLocalSearchParams } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // =====================
 //   LAYOUT COMPONENTS
@@ -25,7 +33,7 @@ import { Input } from '@/components/ui/TextInput';
 // ======================
 //   TYPOGRAPHY IMPORTS
 // ======================
-import { LabelText } from '@/components/ui/Typography';
+import { LabelText, CaptionText } from '@/components/ui/Typography';
 
 // ======================
 //   CONSTANTS IMPORTS
@@ -35,9 +43,8 @@ import { ReMapColors } from '@/constants/Colors';
 // =================
 //   CUSTOM HOOKS
 // =================
-import { useMemoryContent } from '@/hooks/createPin/useMemoryContent';
+import { usePinForm } from '@/hooks/createPin/usePinForm';
 import { useMediaCapture } from '@/hooks/createPin/useMediaCapture';
-import { usePrivacySettings } from '@/hooks/createPin/usePrivacySettings';
 import { useCreatePin } from '@/hooks/createPin/useCreatePin';
 
 // =======================
@@ -47,7 +54,7 @@ import { LocationSelector } from '@/components/createPin/LocationSelector';
 import { MediaCapture } from '@/components/createPin/MediaCapture';
 import { VisibilitySelector } from '@/components/createPin/VisibilitySelector';
 import { SocialCircleSelector } from '@/components/createPin/SocialCircleSelector';
-import { CreatePinModals } from '@/components/createPin/CreatePinModals';
+import { PreviewBottomSheet } from '@/components/createPin/PreviewBottomSheet';
 
 // ========================
 //   COMPONENT DEFINITION
@@ -83,7 +90,7 @@ export default function CreatePinScreen() {
 	//   CUSTOM HOOKS
 	// ================
 
-	const memoryContent = useMemoryContent({
+	const pinForm = usePinForm({
 		showModal: showMediaModal,
 	});
 
@@ -97,8 +104,6 @@ export default function CreatePinScreen() {
 			audioComplete: 'Your audio memory has been saved.',
 		},
 	});
-
-	const privacySettings = usePrivacySettings();
 
 	// ===============================================
 	//   DESTRUCTURING [Clean Variable Extraction]
@@ -117,9 +122,20 @@ export default function CreatePinScreen() {
 		titleInputRef,
 		descriptionInputRef,
 		validateMemoryContent,
-		resetMemoryContent,
+		resetForm,
 		hasValidMemoryContent,
-	} = memoryContent;
+		// Privacy Settings
+		selectedVisibility,
+		selectedSocialCircles,
+		showSocialDropdown,
+		userSocialCircles,
+		toggleVisibilityOption,
+		toggleSocialCircleSelection,
+		isVisibilitySelected,
+		getSelectedSocialCirclesData,
+		getVisibilityDescription,
+		resetPrivacySettings,
+	} = pinForm;
 
 	const {
 		selectedMedia,
@@ -135,19 +151,6 @@ export default function CreatePinScreen() {
 		resetMedia,
 		getMediaSummary,
 	} = mediaCapture;
-
-	const {
-		selectedVisibility,
-		selectedSocialCircles,
-		showSocialDropdown,
-		userSocialCircles,
-		toggleVisibilityOption,
-		toggleSocialCircleSelection,
-		isVisibilitySelected,
-		getSelectedSocialCirclesData,
-		getVisibilityDescription,
-		resetAllPrivacySettings,
-	} = privacySettings;
 
 	// =============================
 	//   CREATE PIN ORCHESTRATION
@@ -184,9 +187,9 @@ export default function CreatePinScreen() {
 		selectedSocialCircles,
 		selectedMedia,
 		audioUri,
-		resetAllPrivacySettings,
+		resetAllPrivacySettings: resetPrivacySettings,
 		validateMemoryContent,
-		resetMemoryContent,
+		resetMemoryContent: resetForm,
 		resetMedia,
 		setMemoryTitle,
 		setMemoryDescription,
@@ -217,16 +220,9 @@ export default function CreatePinScreen() {
 	const handleResetForm = useCallback(() => {
 		setMemoryTitle('');
 		setMemoryDescription('');
-		resetMemoryContent();
+		resetForm();
 		resetMedia();
-		resetAllPrivacySettings();
-	}, [
-		setMemoryTitle,
-		setMemoryDescription,
-		resetMemoryContent,
-		resetMedia,
-		resetAllPrivacySettings,
-	]);
+	}, [setMemoryTitle, setMemoryDescription, resetForm, resetMedia]);
 
 	// ===================
 	//   PRE-FILL EVENTS
@@ -265,7 +261,7 @@ export default function CreatePinScreen() {
 	// ============================
 
 	return (
-		<View style={styles.container}>
+		<GestureHandlerRootView style={styles.container}>
 			{/* ==================== */}
 			{/*   HEADER SECTION     */}
 			{/* ==================== */}
@@ -390,29 +386,65 @@ export default function CreatePinScreen() {
 			</Footer>
 
 			{/* ==================== */}
-			{/*   CONSOLIDATED MODALS */}
+			{/*   PREVIEW BOTTOMSHEET */}
 			{/* ==================== */}
-			<CreatePinModals
-				// Data from hooks
+			<PreviewBottomSheet
+				isVisible={!!previewData}
+				onClose={hidePreviewModal}
 				previewData={previewData}
-				isUploading={isSaving}
-				saveError={saveError}
-				// Callbacks to hook
-				onConfirmSave={handleConfirmSave}
-				onNavigateToMap={handleNavigateToMap}
-				onResetForm={handleResetForm}
-				onClosePreview={hidePreviewModal}
 				onImagePreview={handleImagePreview}
-				// Helper functions from other hooks
 				getVisibilityDescription={getVisibilityDescription}
 				getSelectedSocialCirclesData={getSelectedSocialCirclesData}
 				getMediaSummary={getMediaSummary}
 				selectedSocialCircles={selectedSocialCircles}
-				// ADDED: Image preview state management
-				imagePreviewState={imagePreviewState}
-				onCloseImagePreview={handleCloseImagePreview}
+				onConfirmSave={handleConfirmSave}
+				onResetForm={hidePreviewModal}
+				isUploading={isSaving}
+				onPlayAudio={playRecording}
+				onStopAudio={stopPlayback}
+				isPlayingAudio={isPlayingAudio}
 			/>
-		</View>
+
+			{/* ==================== */}
+			{/*   IMAGE PREVIEW MODAL */}
+			{/* ==================== */}
+			<Modal
+				visible={imagePreviewState.visible}
+				transparent={true}
+				animationType="fade"
+				onRequestClose={handleCloseImagePreview}
+			>
+				<View style={styles.fullImageModalOverlay}>
+					<TouchableOpacity
+						style={styles.fullImageModalContent}
+						onPress={handleCloseImagePreview}
+						activeOpacity={1}
+					>
+						<TouchableOpacity
+							style={styles.fullImageContainer}
+							onPress={() => {}} // Prevent closing when tapping image
+							activeOpacity={1}
+						>
+							{imagePreviewState.imageUri && (
+								<Image
+									source={{ uri: imagePreviewState.imageUri }}
+									style={styles.fullImage}
+									resizeMode="contain"
+								/>
+							)}
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={styles.closeFullImageButton}
+							onPress={handleCloseImagePreview}
+						>
+							<CaptionText style={styles.closeFullImageText}>
+								✕
+							</CaptionText>
+						</TouchableOpacity>
+					</TouchableOpacity>
+				</View>
+			</Modal>
+		</GestureHandlerRootView>
 	);
 }
 
@@ -449,5 +481,44 @@ const styles = StyleSheet.create({
 	previewButton: {
 		backgroundColor: ReMapColors.primary.violet,
 		flex: 3,
+	},
+	// Full Image Modal Styles
+	fullImageModalOverlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0, 0, 0, 0.9)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	fullImageModalContent: {
+		flex: 1,
+		width: '100%',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	fullImageContainer: {
+		flex: 1,
+		width: '100%',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	fullImage: {
+		width: '100%',
+		height: '100%',
+	},
+	closeFullImageButton: {
+		position: 'absolute',
+		top: 50,
+		right: 20,
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		backgroundColor: 'rgba(0, 0, 0, 0.7)',
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	closeFullImageText: {
+		color: 'white',
+		fontSize: 20,
+		lineHeight: 22,
 	},
 });

@@ -58,11 +58,7 @@ import { useAuth } from '@/hooks/shared/useAuth';
 import { useModal } from '@/hooks/shared/useModal';
 import { useSlideAnimation } from '@/hooks/useSlideAnimation';
 import { useNotification } from '@/contexts/NotificationContext';
-import {
-	fetchAllVisiblePins,
-	createViewportFromMapRegion,
-	type MapPin,
-} from '@/services/pinsService';
+import RemapClient, { type MapPin } from '@/app/services/remap';
 
 // ======================
 //  LAYOUT COMPONENTS
@@ -76,7 +72,7 @@ import { Footer } from '@/components/layout/Footer';
 // =================
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
-import { CustomButton } from '@/components/ui/CustomButton'
+import { CustomButton } from '@/components/ui/CustomButton';
 import { Input } from '@/components/ui/TextInput';
 import { Modal } from '@/components/ui/Modal';
 import { TopNotificationSheet } from '@/components/ui/TopNotificationSheet';
@@ -119,6 +115,11 @@ export default function WorldMapScreen() {
 		showNotification,
 	} = useNotification();
 
+	// ==================
+	//   REMAP CLIENT
+	// ==================
+	const remapClient = new RemapClient();
+
 	// ================
 	//   MAP SETTINGS
 	// ================
@@ -152,36 +153,34 @@ export default function WorldMapScreen() {
 	};
 
 	// ==================================
-    //   CIRCLE SELECTION DROPDOWN SETUP 
-    // ==================================
-    const circleData = [
+	//   CIRCLE SELECTION DROPDOWN SETUP
+	// ==================================
+	const circleData = [
 		{ label: 'Global', value: '1' },
 		{ label: 'Private', value: '2' },
 		{ label: 'Team Remap', value: '3' }, // default social circle for all users?
 		// ... (if user logged in) - code that fetches  user's social circles
-    ];
+	];
 
-    const [circle, setCircle] = useState(null);
-
+	const [circle, setCircle] = useState(null);
 
 	// ==================================
-    //   STARTER PACK SELECT SETUP
-    // ==================================
+	//   STARTER PACK SELECT SETUP
+	// ==================================
 	const starterPacks = [
-		{ label: "sp1", value: "sp1" },
-		{ label: "sp2", value: "sp2" },
-		{ label: "sp3", value: "sp3" },
-		{ label: "sp4", value: "sp4" },
-		{ label: "sp5", value: "sp5" },
+		{ label: 'sp1', value: 'sp1' },
+		{ label: 'sp2', value: 'sp2' },
+		{ label: 'sp3', value: 'sp3' },
+		{ label: 'sp4', value: 'sp4' },
+		{ label: 'sp5', value: 'sp5' },
 	];
 
 	const [selectedPack, setSelectedPack] = useState<string | null>(null);
 
-
 	// const handleStarterPackSelect = (pack) => {
-		// ... code to filter pins to starter packs here
-		//...
-		//...
+	// ... code to filter pins to starter packs here
+	//...
+	//...
 	//};
 
 	// =============================
@@ -288,7 +287,6 @@ export default function WorldMapScreen() {
 		});
 	};
 
-
 	// =============================
 	//   NAVIGATION SECTION
 	// =============================
@@ -316,36 +314,59 @@ export default function WorldMapScreen() {
 	const [isLoadingPins, setIsLoadingPins] = useState(false);
 	const [pinError, setPinError] = useState<string | null>(null);
 
-	const fetchPins = useCallback(async () => {
-		console.log('🔄 [WORLDMAP] Fetching pins from backend (static)');
-		setIsLoadingPins(true);
-		setPinError(null);
+	// Cache for pins to avoid redundant API calls
+	const [pinCache, setPinCache] = useState<Map<string, MapPin[]>>(new Map());
+	const [lastViewport, setLastViewport] = useState<string | null>(null);
 
-		try {
-			// Use a large viewport to get all nearby pins
-			const wideRegion = {
-				latitude: -37.817979,
-				longitude: 144.960408,
-				latitudeDelta: 1.0,
-				longitudeDelta: 1.0,
-			};
+	// Load pins when component mounts
+	useEffect(() => {
+		// Only fetch pins once on mount, not on every remapClient change
+		const initialFetch = async () => {
+			console.log('🔄 [WORLDMAP] Initial pin fetch on mount');
+			setIsLoadingPins(true);
+			setPinError(null);
 
-			const viewport = createViewportFromMapRegion(wideRegion);
-			const result = await fetchAllVisiblePins(viewport);
+			try {
+				// Use a smaller initial viewport to reduce data transfer
+				const initialRegion = {
+					latitude: -37.817979,
+					longitude: 144.960408,
+					latitudeDelta: 0.1, // Smaller initial area
+					longitudeDelta: 0.1,
+				};
 
-			if (result.success) {
-				setRealPins(result.data);
-			} else {
-				setPinError(result.error || 'Failed to load pins');
+				const viewport =
+					remapClient.createViewportFromMapRegion(initialRegion);
+				const result = await remapClient.fetchAllVisiblePins(viewport);
+
+				if (result.success) {
+					setRealPins(result.data);
+					// Cache the initial results
+					const cacheKey = `${viewport.northEast.latitude.toFixed(
+						3
+					)},${viewport.northEast.longitude.toFixed(
+						3
+					)},${viewport.southWest.latitude.toFixed(
+						3
+					)},${viewport.southWest.longitude.toFixed(3)}`;
+					setPinCache(
+						(prev) => new Map(prev.set(cacheKey, result.data))
+					);
+					setLastViewport(cacheKey);
+				} else {
+					setPinError(result.error || 'Failed to load pins');
+					setRealPins([]);
+				}
+			} catch (error) {
+				setPinError('Unexpected error loading pins');
 				setRealPins([]);
+			} finally {
+				setIsLoadingPins(false);
 			}
-		} catch (error) {
-			setPinError('Unexpected error loading pins');
-			setRealPins([]);
-		} finally {
-			setIsLoadingPins(false);
-		}
-	}, []);
+		};
+
+		initialFetch();
+	}, []); // Empty dependency array - only run once on mount
 
 	function debounce(func: Function, wait: number) {
 		let timeout: ReturnType<typeof setTimeout>;
@@ -369,17 +390,41 @@ export default function WorldMapScreen() {
 				return;
 			}
 
+			// Create viewport from region
+			const viewport = remapClient.createViewportFromMapRegion(region);
+
+			// Create cache key for this viewport
+			const cacheKey = `${viewport.northEast.latitude.toFixed(
+				3
+			)},${viewport.northEast.longitude.toFixed(
+				3
+			)},${viewport.southWest.latitude.toFixed(
+				3
+			)},${viewport.southWest.longitude.toFixed(3)}`;
+
+			// Check if we already have this data cached
+			if (pinCache.has(cacheKey) && lastViewport === cacheKey) {
+				console.log('📦 [WORLDMAP] Using cached pins for viewport');
+				setRealPins(pinCache.get(cacheKey)!);
+				return;
+			}
+
 			setIsLoadingPins(true);
 			setPinError(null);
 
 			try {
-				const viewport = createViewportFromMapRegion(region);
-				const result = await fetchAllVisiblePins(viewport);
+				const result = await remapClient.fetchAllVisiblePins(viewport);
 
 				if (result.success) {
 					console.log(
 						`✅ [WORLDMAP] Loaded ${result.data.length} pins for new region`
 					);
+
+					// Cache the results
+					setPinCache(
+						(prev) => new Map(prev.set(cacheKey, result.data))
+					);
+					setLastViewport(cacheKey);
 					setRealPins(result.data);
 				} else {
 					console.error(
@@ -398,20 +443,14 @@ export default function WorldMapScreen() {
 				setIsLoadingPins(false);
 			}
 		},
-		[isLoadingPins]
+		[isLoadingPins, remapClient, pinCache, lastViewport]
 	);
 
-	// Add debounced version
-	// This doesn't seem to be working so i'm in the process of fixing this.
+	// Add debounced version with longer delay
 	const debouncedOnMapRegionChange = useCallback(
-		debounce(onMapRegionChange, 500), // Wait 500ms after user stops panning
+		debounce(onMapRegionChange, 1000), // Increased to 1 second
 		[onMapRegionChange]
 	);
-
-	// Load pins when component mounts
-	useEffect(() => {
-		fetchPins();
-	}, [fetchPins]);
 
 	// =========================
 	//   WORLDMAP PAGE RENDER
@@ -474,6 +513,7 @@ export default function WorldMapScreen() {
 							initialRegion={INITIAL_REGION}
 							showsUserLocation
 							showsMyLocationButton
+							onRegionChangeComplete={debouncedOnMapRegionChange}
 						>
 							<Marker
 								title="Holberton School"
@@ -605,7 +645,49 @@ export default function WorldMapScreen() {
 									⚠️ {pinError}
 								</Text>
 								<TouchableOpacity
-									onPress={fetchPins}
+									onPress={() => {
+										setPinError(null);
+										// Trigger a fresh fetch with current map region
+										if (mapRef.current) {
+											mapRef.current
+												.getMapBoundaries()
+												.then((bounds) => {
+													if (bounds) {
+														const region = {
+															latitude:
+																(bounds
+																	.northEast
+																	.latitude +
+																	bounds
+																		.southWest
+																		.latitude) /
+																2,
+															longitude:
+																(bounds
+																	.northEast
+																	.longitude +
+																	bounds
+																		.southWest
+																		.longitude) /
+																2,
+															latitudeDelta:
+																bounds.northEast
+																	.latitude -
+																bounds.southWest
+																	.latitude,
+															longitudeDelta:
+																bounds.northEast
+																	.longitude -
+																bounds.southWest
+																	.longitude,
+														};
+														onMapRegionChange(
+															region
+														);
+													}
+												});
+										}
+									}}
 									style={styles.retryButton}
 								>
 									<Text style={styles.retryText}>Retry</Text>
@@ -615,33 +697,35 @@ export default function WorldMapScreen() {
 						{/* ************************ */}
 						{/*   OVERLAY UI CONTROLS    */}
 						{/* ************************ */}
-                        <View
-                            style={[
-                                styles.topOverlayContainer,
-                                { top: insets.top },
-                            ]}
-                        >
+						<View
+							style={[
+								styles.topOverlayContainer,
+								{ top: insets.top },
+							]}
+						>
 							<View style={styles.circleDropdownContainer}>
-                                <Dropdown
-                                    style={styles.circleDropdown}
+								<Dropdown
+									style={styles.circleDropdown}
 									selectedTextStyle={styles.dropdownText}
 									placeholderStyle={styles.dropdownText}
 									itemTextStyle={styles.dropdownItemText}
-  									containerStyle={styles.dropdownListContainer}
-                                    data={circleData}
-                                    labelField="label"
-                                    valueField="value"
-                                    placeholder="Select circle"
-                                    value={circle}
-                                    onChange={item => {
-                                        setCircle(item.value);
-                                        console.log('selected', item);
-                                    }}
-                                />
-                            </View>
+									containerStyle={
+										styles.dropdownListContainer
+									}
+									data={circleData}
+									labelField="label"
+									valueField="value"
+									placeholder="Select circle"
+									value={circle}
+									onChange={(item) => {
+										setCircle(item.value);
+										console.log('selected', item);
+									}}
+								/>
+							</View>
 
 							<IconButton
-								icon='user'
+								icon="user"
 								onPress={
 									user
 										? navigateToProfile
@@ -651,32 +735,37 @@ export default function WorldMapScreen() {
 								}
 								style={styles.profileIcon}
 							/>
-
 						</View>
 
 						<View style={styles.starterPackOverlay}>
 							<ScrollView
 								horizontal
 								showsHorizontalScrollIndicator={false}
-								contentContainerStyle={styles.starterPackScrollContainer}
+								contentContainerStyle={
+									styles.starterPackScrollContainer
+								}
 							>
 								{starterPacks.map((pack, index) => {
-									const isSelected = selectedPack === pack.value;
+									const isSelected =
+										selectedPack === pack.value;
 
 									return (
 										<TouchableOpacity
 											key={index}
 											style={[
 												styles.starterPackButton,
-												isSelected && styles.selectedStarterPackButton,
+												isSelected &&
+													styles.selectedStarterPackButton,
 											]}
-												onPress={() => {
-													if (selectedPack === pack.value) {
-														setSelectedPack(null);
-													} else {
-														setSelectedPack(pack.value);
-													}
-												}}
+											onPress={() => {
+												if (
+													selectedPack === pack.value
+												) {
+													setSelectedPack(null);
+												} else {
+													setSelectedPack(pack.value);
+												}
+											}}
 										>
 											<Text
 												style={styles.starterPackText}
@@ -688,7 +777,6 @@ export default function WorldMapScreen() {
 								})}
 							</ScrollView>
 						</View>
-
 
 						{/**********************************************/}
 						{/************ UNDER MAP CONTENT ***************/}
@@ -736,7 +824,7 @@ export default function WorldMapScreen() {
 								style={styles.addPinButton}
 								textStyle={{
 									fontSize: 17,
-									fontWeight: '500'
+									fontWeight: '500',
 								}}
 							>
 								Add Pin
@@ -920,8 +1008,8 @@ const styles = StyleSheet.create({
 	topOverlayContainer: {
 		position: 'absolute',
 		width: '100%',
-		flexDirection:'row',
-		alignItems:'center',
+		flexDirection: 'row',
+		alignItems: 'center',
 		justifyContent: 'flex-end',
 		paddingRight: 12,
 		height: 'auto',
@@ -959,8 +1047,7 @@ const styles = StyleSheet.create({
 	},
 	dropdownListContainer: {
 		backgroundColor: ReMapColors.ui.cardBackground,
- 		borderRadius: 30,
-
+		borderRadius: 30,
 	},
 
 	starterPackOverlay: {
@@ -979,7 +1066,6 @@ const styles = StyleSheet.create({
 		marginRight: 10,
 		paddingVertical: 10,
 		paddingHorizontal: 16,
-
 	},
 	selectedStarterPackButton: {
 		backgroundColor: ReMapColors.primary.black,
@@ -991,13 +1077,9 @@ const styles = StyleSheet.create({
 		color: ReMapColors.ui.cardBackground,
 	},
 
-
 	profileIcon: {
-		 zIndex: 2,
+		zIndex: 2,
 	},
-
-
-
 
 	// =================
 	//   SEARCH STYLES
@@ -1125,7 +1207,6 @@ const styles = StyleSheet.create({
 		borderRadius: 24,
 		height: 64,
 	},
-
 
 	// ================
 	//   MODAL STYLES

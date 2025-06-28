@@ -1,12 +1,15 @@
-// hooks/createPin/useCreatePin.ts
+// ========================
+//   CORE IMPORTS
+// ========================
 import { useState, useCallback } from 'react';
 import { router } from 'expo-router';
-import {
-	createMemoryPin,
-	type CreateMemoryRequest,
-} from '@/services/memoryService';
-import { MediaItem } from './useMediaCapture';
+
+// ========================
+//   INTERNAL IMPORTS
+// ========================
 import { useNotification } from '@/contexts/NotificationContext';
+import { MediaItem } from './useMediaCapture';
+import RemapClient, { type CreateMemoryRequest } from '@/app/services/remap';
 
 // ========================
 //   TYPE DEFINITIONS
@@ -94,6 +97,11 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	//   CONTEXT HOOKS
 	// ==================
 	const { showSuccess, showError } = useNotification();
+
+	// ==================
+	//   REMAP CLIENT
+	// ==================
+	const remapClient = new RemapClient();
 
 	// ==================
 	//   STATE MANAGEMENT
@@ -243,9 +251,9 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 			const memoryData = createPreviewData();
 			const backendData = createSubmissionData();
 
-			console.log('📡 [HOOK] Calling backend API');
+			console.log('📡 [HOOK] Calling backend API via RemapClient');
 
-			const result = await createMemoryPin(backendData);
+			const result = await remapClient.createMemoryPin(backendData);
 
 			console.log('🎯 [HOOK] Backend response:', result);
 
@@ -262,7 +270,12 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 			console.error('💥 [HOOK] Save error:', error);
 			handleSaveError('Unexpected error occurred');
 		}
-	}, [createPreviewData, createSubmissionData, hidePreviewModal]);
+	}, [
+		createPreviewData,
+		createSubmissionData,
+		hidePreviewModal,
+		remapClient,
+	]);
 
 	// Success handler - uses Context notification
 	const handleSaveSuccess = useCallback(
