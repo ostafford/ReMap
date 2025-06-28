@@ -26,34 +26,27 @@ export interface CreateMemoryRequest {
 // Frontend pin structure for map display
 export interface MapPin {
 	id: string;
-	coordinate: {
-		latitude: number;
-		longitude: number;
-	};
-	title: string;
+	name: string;
 	description: string;
-	pinData: {
-		memory: {
-			title: string;
-			description: string;
-			author: string;
-			createdAt: string;
-			media: {
-				photos: Array<{ name: string; uri: string }>;
-				videos: any[];
-				audio: {
-					recorded: string;
-				} | null;
-			};
-			visibility: string[];
-		};
+	latitude: number;
+	longitude: number;
+	address: string;
+	author: string;
+	createdAt: string;
+	visibility: string;
+	imageUrls: string[] | null;
+	audioUrl: string | null;
+	videoUrls: string[] | null;
+	ownerId: string;
+	locationQuery: string;
+	socialCircleIds: string[];
+	categories: {
+		id: string;
 		name: string;
-		location: {
-			address: string;
-			latitude: number;
-			longitude: number;
-		};
-	};
+		icon: string;
+		primary: boolean;
+	}[];
+	starterPackCategory: string;
 }
 
 // ==================
@@ -68,6 +61,14 @@ const getApiBaseUrl = (): string => {
 	}
 
 	return url;
+};
+
+/**
+ * Utility function to derive privatePin from visibility
+ * Use this if you need the boolean privatePin value
+ */
+export const isPrivatePin = (visibility: string): boolean => {
+	return visibility === 'private';
 };
 
 // Put ip address here
@@ -184,26 +185,18 @@ export default class RemapClient {
 	// PIN CREATION METHODS
 	// ==================
 	/**
-    1. User fills form in createPin.tsx
-    ↓
-    2. useCreatePin.ts validates and prepares data
-    ↓
-    3. createMemoryPin() called with CreateMemoryRequest
-    ↓
-    4. buildFormDataForBackend() converts to FormData
-    ↓
-    5. makeFormDataRequest() sends HTTP POST
-    ↓
-    6. makeRequest() adds authentication headers
-    ↓
-    7. Backend receives at POST /api/pins/user
-    ↓
-    8. pinsController.ts processes and saves to database
-    ↓
-    9. Backend returns success response
-    ↓
-    10. Frontend shows success notification
-    */
+	 * Complete flow for creating a memory pin:
+	 * 1. User fills form in createPin.tsx
+	 * 2. useCreatePin.ts validates and prepares data
+	 * 3. createMemoryPin() called with CreateMemoryRequest
+	 * 4. buildFormDataForBackend() converts to FormData
+	 * 5. makeFormDataRequest() sends HTTP POST
+	 * 6. makeRequest() adds authentication headers
+	 * 7. Backend receives at POST /api/pins/user
+	 * 8. pinsController.ts processes and saves to database
+	 * 9. Backend returns success response
+	 * 10. Frontend shows success notification
+	 */
 
 	/**
 	 * Purpose: Converts frontend data structure to FormData for file uploads
@@ -304,14 +297,14 @@ export default class RemapClient {
 			);
 
 			console.log('[REMAP] Memory created successfully:', response);
-			// Return Sucess response
+			// Return success response
 			return {
 				success: true,
 				data: response,
 			};
 		} catch (error) {
 			console.error('[REMAP] Memory creation failed:', error);
-			// Return Error response
+			// Return error response
 			return {
 				success: false,
 				error:
@@ -327,11 +320,84 @@ export default class RemapClient {
 	// ==================
 
 	/**
-	 * Purpose: Get all circles
+	 * Purpose: Get all social circles for the current user
 	 * Flow: useCreatePin.ts → getCircles() → makeAuthRequest() → backend
-	 * Example: Called when user clicks "Save Memory" in createPin.tsx
+	 * Example: Called when loading social circle selector in createPin.tsx
 	 */
 	async getCircles(): Promise<{ id: string; name: string }[]> {
-		return await this.makeAuthRequest('circles', 'GET');
+		try {
+			const response = await this.makeAuthRequest('circles', 'GET');
+			return response.map((circle: any) => ({
+				id: circle.id,
+				name: circle.name,
+			}));
+		} catch (error) {
+			console.error('[REMAP] Failed to fetch circles:', error);
+			return [];
+		}
+	}
+
+	// ==================
+	// PIN FETCHING METHODS
+	// ==================
+
+	/**
+	 * Purpose: Creates a viewport object from map region for pin fetching
+	 * Used by: Map components to define the visible area for pin queries
+	 */
+	createViewportFromMapRegion(region: {
+		latitude: number;
+		longitude: number;
+		latitudeDelta: number;
+		longitudeDelta: number;
+	}) {
+		const halfLatDelta = region.latitudeDelta / 2;
+		const halfLngDelta = region.longitudeDelta / 2;
+
+		return {
+			northEast: {
+				latitude: region.latitude + halfLatDelta,
+				longitude: region.longitude + halfLngDelta,
+			},
+			southWest: {
+				latitude: region.latitude - halfLatDelta,
+				longitude: region.longitude - halfLngDelta,
+			},
+		};
+	}
+
+	/**
+	 * Purpose: Fetches all visible pins within a viewport
+	 * Flow: Map component → fetchAllVisiblePins() → makeAuthRequest() → backend
+	 * Example: Called when map region changes to load pins in view
+	 */
+	async fetchAllVisiblePins(viewport: {
+		northEast: { latitude: number; longitude: number };
+		southWest: { latitude: number; longitude: number };
+	}): Promise<{ success: boolean; data?: MapPin[]; error?: string }> {
+		try {
+			const response = await this.makeAuthRequest('pins/user', 'GET');
+
+			// Filter pins within viewport
+			const pinsInViewport = response.filter((pin: any) => {
+				return (
+					pin.latitude >= viewport.southWest.latitude &&
+					pin.latitude <= viewport.northEast.latitude &&
+					pin.longitude >= viewport.southWest.longitude &&
+					pin.longitude <= viewport.northEast.longitude
+				);
+			});
+
+			return {
+				success: true,
+				data: pinsInViewport,
+			};
+		} catch (error) {
+			console.error('[REMAP] Failed to fetch pins:', error);
+			return {
+				success: false,
+				error: 'Failed to fetch pins',
+			};
+		}
 	}
 }

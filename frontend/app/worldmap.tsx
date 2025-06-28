@@ -131,6 +131,7 @@ export default function WorldMapScreen() {
 	};
 
 	const mapRef = useRef<MapView>(null);
+	const bottomSheetRef = useRef<any>(null);
 
 	// =============================
 	//   AUTHENTICATION SECTION
@@ -202,25 +203,27 @@ export default function WorldMapScreen() {
 	) => {
 		if (pinData) {
 			setSelectedPinData(pinData);
-			setIsBottomSheetVisible(true);
 		}
+		setSelectedCoordinate(coordinate);
+		bottomSheetRef.current?.present();
 	};
 
 	// Map helper functions (CALLOUT ETC)
 	const getMarkerColor = (visibility?: string | string[]): string => {
-		// Handle both single string and array formats
-		const visibilityValue = Array.isArray(visibility)
-			? visibility[0]
-			: visibility;
+		if (!visibility) return '#666666'; // Default gray
 
-		const colorMap: { [key: string]: string } = {
-			public: '#4CAF50', // Green for public
-			private: '#2196F3', // Blue for private
-			social: '#9C27B0', // Purple for social circles
-			// We can change these colours later as well ^^^^^^^^^
-		};
+		// Handle both string and array formats for backward compatibility
+		const visArray = Array.isArray(visibility) ? visibility : [visibility];
 
-		return colorMap[visibilityValue || 'public'] || '#666666';
+		if (visArray.includes('private')) {
+			return '#FF6B6B'; // Red for private
+		} else if (visArray.includes('social')) {
+			return '#4ECDC4'; // Teal for social
+		} else if (visArray.includes('public')) {
+			return '#45B7D1'; // Blue for public
+		}
+
+		return '#666666'; // Default gray
 	};
 
 	// =============================
@@ -228,10 +231,15 @@ export default function WorldMapScreen() {
 	// =============================
 	const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
 	const [selectedPinData, setSelectedPinData] = useState<any>(null);
+	const [selectedCoordinate, setSelectedCoordinate] = useState<{
+		latitude: number;
+		longitude: number;
+	} | null>(null);
 
 	const handleBottomSheetClose = () => {
 		setIsBottomSheetVisible(false);
 		setSelectedPinData(null);
+		setSelectedCoordinate(null);
 	};
 
 	// =============================
@@ -339,7 +347,7 @@ export default function WorldMapScreen() {
 					remapClient.createViewportFromMapRegion(initialRegion);
 				const result = await remapClient.fetchAllVisiblePins(viewport);
 
-				if (result.success) {
+				if (result.success && result.data) {
 					setRealPins(result.data);
 					// Cache the initial results
 					const cacheKey = `${viewport.northEast.latitude.toFixed(
@@ -350,7 +358,7 @@ export default function WorldMapScreen() {
 						3
 					)},${viewport.southWest.longitude.toFixed(3)}`;
 					setPinCache(
-						(prev) => new Map(prev.set(cacheKey, result.data))
+						(prev) => new Map(prev.set(cacheKey, result.data!))
 					);
 					setLastViewport(cacheKey);
 				} else {
@@ -415,14 +423,14 @@ export default function WorldMapScreen() {
 			try {
 				const result = await remapClient.fetchAllVisiblePins(viewport);
 
-				if (result.success) {
+				if (result.success && result.data) {
 					console.log(
 						`✅ [WORLDMAP] Loaded ${result.data.length} pins for new region`
 					);
 
 					// Cache the results
 					setPinCache(
-						(prev) => new Map(prev.set(cacheKey, result.data))
+						(prev) => new Map(prev.set(cacheKey, result.data!))
 					);
 					setLastViewport(cacheKey);
 					setRealPins(result.data);
@@ -458,10 +466,7 @@ export default function WorldMapScreen() {
 	console.log('🎯 [WORLDMAP] About to render', realPins.length, 'pins');
 	console.log(
 		'🎯 [WORLDMAP] Pin coordinates:',
-		realPins.map(
-			(p) =>
-				`${p.title}: ${p.coordinate.latitude}, ${p.coordinate.longitude}`
-		)
+		realPins.map((p) => `${p.name}: ${p.latitude}, ${p.longitude}`)
 	);
 	return (
 		<GestureHandlerRootView style={styles.container}>
@@ -530,20 +535,26 @@ export default function WorldMapScreen() {
 								/>
 							</Marker>
 
-							{/* ************************ */}
-							{/*      PIN FROM BACKEND    */}
-							{/* ************************ */}
+							{/* **************************************** */}
+							{/*   REAL PINS FROM BACKEND               */}
+							{/* **************************************** */}
 							{realPins.map((pin) => (
 								<Marker
 									key={pin.id}
-									coordinate={pin.coordinate}
+									coordinate={{
+										latitude: pin.latitude,
+										longitude: pin.longitude,
+									}}
 									onPress={() => {
 										handleMarkerPress(
-											pin.coordinate,
-											pin.pinData
+											{
+												latitude: pin.latitude,
+												longitude: pin.longitude,
+											},
+											pin
 										);
 									}}
-									title={pin.title}
+									title={pin.name}
 									description={pin.description}
 								>
 									<View
@@ -551,8 +562,7 @@ export default function WorldMapScreen() {
 											styles.customMarker,
 											{
 												backgroundColor: getMarkerColor(
-													pin.pinData.memory
-														.visibility
+													pin.visibility
 												),
 											},
 										]}

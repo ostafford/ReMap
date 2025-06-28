@@ -60,6 +60,19 @@ import { PreviewBottomSheet } from '@/components/createPin/PreviewBottomSheet';
 //   COMPONENT DEFINITION
 // ========================
 
+/**
+ * Main screen for creating new memory pins
+ *
+ * Flow: User fills form → Preview → Save → Backend → Success
+ *
+ * Key responsibilities:
+ * - Form state management via custom hooks
+ * - Media capture (photos, videos, audio)
+ * - Location selection with GPS support
+ * - Privacy settings (visibility + social circles)
+ * - Preview before saving
+ * - Navigation back to map
+ */
 export default function CreatePinScreen() {
 	// ====================
 	//   IMAGE PREVIEW STATE

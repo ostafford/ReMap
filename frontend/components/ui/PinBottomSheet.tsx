@@ -95,14 +95,15 @@ export function PinBottomSheet({
 	}, []);
 
 	const getMediaSummary = useCallback((pinData: DummyPin) => {
-		const { photos, videos, audio } = pinData.memory.media;
 		const parts = [];
 
-		if (photos.length > 0)
-			parts.push(`${photos.length} photo${photos.length > 1 ? 's' : ''}`);
-		if (videos.length > 0)
-			parts.push(`${videos.length} video${videos.length > 1 ? 's' : ''}`);
-		if (audio) parts.push('1 audio note');
+		if (pinData.imageUrls && pinData.imageUrls.length > 0)
+			parts.push(
+				`${pinData.imageUrls.length} photo${
+					pinData.imageUrls.length > 1 ? 's' : ''
+				}`
+			);
+		if (pinData.audioUrl) parts.push('1 audio note');
 
 		return parts.length > 0 ? parts.join(', ') : 'No media';
 	}, []);
@@ -133,7 +134,7 @@ export function PinBottomSheet({
 				<View style={styles.header}>
 					<View style={styles.headerMain}>
 						<HeaderText style={styles.memoryTitle}>
-							{pinData.memory.title}
+							{pinData.name}
 						</HeaderText>
 
 						<View style={styles.locationRow}>
@@ -141,7 +142,7 @@ export function PinBottomSheet({
 								📍
 							</CaptionText>
 							<BodyText style={styles.locationName}>
-								{pinData.name}
+								{pinData.address}
 							</BodyText>
 						</View>
 					</View>
@@ -165,7 +166,7 @@ export function PinBottomSheet({
 							By
 						</CaptionText>
 						<CaptionText style={styles.metadataValue}>
-							{pinData.memory.author}
+							{pinData.author}
 						</CaptionText>
 					</View>
 
@@ -174,7 +175,7 @@ export function PinBottomSheet({
 							Date
 						</CaptionText>
 						<CaptionText style={styles.metadataValue}>
-							{getFormattedDate(pinData.memory.createdAt)}
+							{getFormattedDate(pinData.createdAt)}
 						</CaptionText>
 					</View>
 
@@ -191,13 +192,13 @@ export function PinBottomSheet({
 				{/* ==================== */}
 				{/*   DESCRIPTION        */}
 				{/* ==================== */}
-				{pinData.memory.description && (
+				{pinData.description && (
 					<View style={styles.section}>
 						<LabelText style={styles.sectionLabel}>
 							Memory Description
 						</LabelText>
 						<BodyText style={styles.description}>
-							{pinData.memory.description}
+							{pinData.description}
 						</BodyText>
 					</View>
 				)}
@@ -210,11 +211,11 @@ export function PinBottomSheet({
 						Location Details
 					</LabelText>
 					<BodyText style={styles.locationDetails}>
-						{pinData.location.address}
+						{pinData.address}
 					</BodyText>
 					<CaptionText style={styles.coordinates}>
-						{pinData.location.latitude.toFixed(6)},{' '}
-						{pinData.location.longitude.toFixed(6)}
+						{pinData.latitude.toFixed(6)},{' '}
+						{pinData.longitude.toFixed(6)}
 					</CaptionText>
 				</View>
 
@@ -226,50 +227,46 @@ export function PinBottomSheet({
 						Visibility
 					</LabelText>
 					<View style={styles.visibilityContainer}>
-						{pinData.memory.visibility.map((vis, index) => (
-							<View key={index} style={styles.visibilityTag}>
-								<CaptionText style={styles.visibilityText}>
-									{vis}
-								</CaptionText>
-							</View>
-						))}
+						<View style={styles.visibilityTag}>
+							<CaptionText style={styles.visibilityText}>
+								{pinData.visibility}
+							</CaptionText>
+						</View>
 					</View>
 				</View>
 
 				{/* ==================== */}
 				{/*   MEDIA PREVIEW      */}
 				{/* ==================== */}
-				{pinData.memory.media.photos.slice(0, 3).map((photo, index) => (
-					<TouchableOpacity
-						key={index}
-						style={styles.mediaThumbnail}
-						onPress={() => {
-							// TODO: Open full image view
-							console.log('Opening image:', photo.uri);
-						}}
-					>
-						<Image
-							source={{ uri: photo.uri }}
-							style={styles.thumbnailImage}
-							resizeMode="cover"
-						/>
-					</TouchableOpacity>
-				))}
+				{pinData.imageUrls &&
+					pinData.imageUrls.slice(0, 3).map((imageUrl, index) => (
+						<TouchableOpacity
+							key={index}
+							style={styles.mediaThumbnail}
+							onPress={() => {
+								// TODO: Open full image view
+								console.log('Opening image:', imageUrl);
+							}}
+						>
+							<Image
+								source={{ uri: imageUrl }}
+								style={styles.thumbnailImage}
+								resizeMode="cover"
+							/>
+						</TouchableOpacity>
+					))}
 
 				{/* ==================== */}
 				{/*   AUDIO INDICATOR    */}
 				{/* ==================== */}
-				{pinData.memory.media.audio && (
+				{pinData.audioUrl && (
 					<View style={styles.section}>
 						<LabelText style={styles.sectionLabel}>
 							Audio Recording
 						</LabelText>
 						<View style={styles.audioContainer}>
 							<CaptionText style={styles.audioText}>
-								🎵 Voice note recorded{' '}
-								{getFormattedDate(
-									pinData.memory.media.audio.recorded
-								)}
+								🎵 Voice note available
 							</CaptionText>
 						</View>
 					</View>
