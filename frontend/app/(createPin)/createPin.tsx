@@ -54,7 +54,7 @@ import { LocationSelector } from '@/components/createPin/LocationSelector';
 import { MediaCapture } from '@/components/createPin/MediaCapture';
 import { VisibilitySelector } from '@/components/createPin/VisibilitySelector';
 import { SocialCircleSelector } from '@/components/createPin/SocialCircleSelector';
-import { PreviewBottomSheet } from '@/components/createPin/PreviewBottomSheet';
+import { CreatePinPreviewBottomSheet } from '@/components/createPin/CreatePinPreviewBottomSheet';
 
 // ========================
 //   COMPONENT DEFINITION
@@ -400,7 +400,7 @@ export default function CreatePinScreen() {
 			{/* ==================== */}
 			{/*   PREVIEW BOTTOMSHEET */}
 			{/* ==================== */}
-			<PreviewBottomSheet
+			<CreatePinPreviewBottomSheet
 				isVisible={!!previewData}
 				onClose={hidePreviewModal}
 				previewData={previewData}

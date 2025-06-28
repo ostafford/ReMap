@@ -68,7 +68,7 @@ interface MemoryData {
 	};
 }
 
-interface PreviewBottomSheetProps {
+interface CreatePinPreviewBottomSheetProps {
 	isVisible: boolean;
 	onClose: () => void;
 	previewData: MemoryData | null;
@@ -99,7 +99,7 @@ interface PreviewBottomSheetProps {
 // COMPONENT IMPLEMENTATION
 // ==========================
 
-export function PreviewBottomSheet({
+export function CreatePinPreviewBottomSheet({
 	isVisible,
 	onClose,
 	previewData,
@@ -114,7 +114,7 @@ export function PreviewBottomSheet({
 	onPlayAudio,
 	onStopAudio,
 	isPlayingAudio = false,
-}: PreviewBottomSheetProps) {
+}: CreatePinPreviewBottomSheetProps) {
 	// ========================
 	// BOTTOMSHEET SETUP
 	// ========================
@@ -466,6 +466,8 @@ export function PreviewBottomSheet({
 	);
 }
 
+export default CreatePinPreviewBottomSheet;
+
 // ===================
 // COMPONENT STYLES
 // ===================
@@ -724,5 +726,3 @@ const styles = StyleSheet.create({
 		lineHeight: 22,
 	},
 });
-
-export default PreviewBottomSheet;

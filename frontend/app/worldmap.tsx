@@ -53,7 +53,7 @@ import { NominatimSearch } from '@/components/ui/NominatimSearch';
 //   CUSTOM HOOKS IMPORTS
 // =========================
 import { AuthModal } from '@/components/ui/AuthModal';
-import { PinBottomSheet } from '@/components/ui/PinBottomSheet';
+import { ViewPinBottomSheet } from '@/components/createPin/ViewPinBottomSheet';
 import { useAuth } from '@/hooks/shared/useAuth';
 import { useModal } from '@/hooks/shared/useModal';
 import { useSlideAnimation } from '@/hooks/useSlideAnimation';
@@ -61,7 +61,7 @@ import { useNotification } from '@/contexts/NotificationContext';
 import RemapClient, { type MapPin } from '@/app/services/remap';
 
 // ======================
-//  LAYOUT COMPONENTS
+//  LAYOUT COMPONENTSr
 // ======================
 import { Header } from '@/components/layout/Header';
 import { MainContent } from '@/components/layout/MainContent';
@@ -131,7 +131,6 @@ export default function WorldMapScreen() {
 	};
 
 	const mapRef = useRef<MapView>(null);
-	const bottomSheetRef = useRef<any>(null);
 
 	// =============================
 	//   AUTHENTICATION SECTION
@@ -193,6 +192,20 @@ export default function WorldMapScreen() {
 	// =============================
 	//   MAP INTERACTION SECTION
 	// =============================
+
+	// Helper function to group pins by location (with tolerance)
+	const findPinsAtLocation = useCallback(
+		(targetLat: number, targetLng: number, allPins: MapPin[]) => {
+			const tolerance = 0.0001; // About 10 meters tolerance
+			return allPins.filter(
+				(pin) =>
+					Math.abs(pin.latitude - targetLat) < tolerance &&
+					Math.abs(pin.longitude - targetLng) < tolerance
+			);
+		},
+		[]
+	);
+
 	// Map handlers
 	const handleMarkerPress = (
 		coordinate: {
@@ -201,11 +214,29 @@ export default function WorldMapScreen() {
 		},
 		pinData?: any
 	) => {
-		if (pinData) {
-			setSelectedPinData(pinData);
+		// Find all pins at this location
+		const pinsAtLocation = findPinsAtLocation(
+			coordinate.latitude,
+			coordinate.longitude,
+			realPins
+		);
+
+		if (pinsAtLocation.length > 0) {
+			setSelectedPins(pinsAtLocation);
+			setCurrentPinIndex(0); // Start with first pin
+		} else if (pinData) {
+			// Fallback to single pin if no grouping found
+			setSelectedPins([pinData]);
+			setCurrentPinIndex(0);
 		}
+
 		setSelectedCoordinate(coordinate);
-		bottomSheetRef.current?.present();
+		setIsBottomSheetVisible(true);
+	};
+
+	// Handle pin index change
+	const handlePinIndexChange = (newIndex: number) => {
+		setCurrentPinIndex(newIndex);
 	};
 
 	// Map helper functions (CALLOUT ETC)
@@ -230,7 +261,8 @@ export default function WorldMapScreen() {
 	//   BOTTOMSHEET STATE
 	// =============================
 	const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
-	const [selectedPinData, setSelectedPinData] = useState<any>(null);
+	const [selectedPins, setSelectedPins] = useState<MapPin[]>([]);
+	const [currentPinIndex, setCurrentPinIndex] = useState(0);
 	const [selectedCoordinate, setSelectedCoordinate] = useState<{
 		latitude: number;
 		longitude: number;
@@ -238,7 +270,8 @@ export default function WorldMapScreen() {
 
 	const handleBottomSheetClose = () => {
 		setIsBottomSheetVisible(false);
-		setSelectedPinData(null);
+		setSelectedPins([]);
+		setCurrentPinIndex(0);
 		setSelectedCoordinate(null);
 	};
 
@@ -912,10 +945,12 @@ export default function WorldMapScreen() {
 			{/* ==================== */}
 			{/*   PIN BOTTOMSHEET    */}
 			{/* ==================== */}
-			<PinBottomSheet
+			<ViewPinBottomSheet
 				isVisible={isBottomSheetVisible}
 				onClose={handleBottomSheetClose}
-				pinData={selectedPinData}
+				pins={selectedPins}
+				currentIndex={currentPinIndex}
+				onChangeIndex={handlePinIndexChange}
 			/>
 		</GestureHandlerRootView>
 	);

@@ -376,10 +376,14 @@ export default class RemapClient {
 		southWest: { latitude: number; longitude: number };
 	}): Promise<{ success: boolean; data?: MapPin[]; error?: string }> {
 		try {
-			const response = await this.makeAuthRequest('pins/user', 'GET');
+			// Use public endpoint to get all visible pins (not just user's pins)
+			const response = await this.makeAuthRequest('pins', 'GET');
+
+			// Backend returns { 'List pins': pins }, so extract the pins array
+			const pins = response['List pins'] || [];
 
 			// Filter pins within viewport
-			const pinsInViewport = response.filter((pin: any) => {
+			const pinsInViewport = pins.filter((pin: any) => {
 				return (
 					pin.latitude >= viewport.southWest.latitude &&
 					pin.latitude <= viewport.northEast.latitude &&
