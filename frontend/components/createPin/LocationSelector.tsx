@@ -26,7 +26,7 @@ import { useLocationManager } from '@/hooks/createPin/useLocationManager';
 // ===================
 
 interface LocationSelectorProps {
-	// Props for connecting to parent form (useMemoryContent)
+	// Props for connecting to parent form
 	value: string;
 	onChange: (value: string) => void;
 	onCoordinateChange?: (coords: {

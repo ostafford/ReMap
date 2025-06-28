@@ -93,7 +93,6 @@ export default function CreatePinScreen() {
 	const showMediaModal = useCallback(
 		(type: string, title: string, message: string) => {
 			// Keep this for media capture hook - it uses Alert.alert()
-			const { Alert } = require('react-native');
 			Alert.alert(title, message);
 		},
 		[]
