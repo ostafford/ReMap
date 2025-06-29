@@ -2,14 +2,16 @@
 export function formatLocalTime() {
   const now = new Date();
 
-  const melTime = new Date(now.toLocaleString("en-AU", {timeZone: "Australia/Melbourne"}));
+  const date = now.getDate(); // Day of the month (1-31)
+  const month = String(now.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed (0-11)
+  const year = now.getFullYear(); // Full year (e.g., 2025)
+  
+  const hours = String(now.getHours()).padStart(2, '0'); // Current hour (0-23)
+  const minutes = String(now.getMinutes()).padStart(2, '0'); // Current minute (0-59)
+  const seconds = String(now.getSeconds()).padStart(2, '0'); // Current second (0-59)
 
-  const year = melTime.getFullYear();
-  const month = String(melTime.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
-  const day = String(melTime.getDate()).padStart(2, '0');
-  const hours = String(melTime.getHours()).padStart(2, '0');
-  const minutes = String(melTime.getMinutes()).padStart(2, '0');
-  const seconds = String(melTime.getSeconds()).padStart(2, '0');
+  const fullDate = `${date}-${month}-${year}-${hours}:${minutes}:${seconds}`;
 
-  return `${month}-${day}-${year} ${hours}:${minutes}:${seconds}`;
+  console.log(fullDate);
+  return fullDate;
 }
