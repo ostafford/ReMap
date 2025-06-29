@@ -49,6 +49,11 @@ import { VisibilitySelector } from '@/components/createPin/VisibilitySelector';
 import { SocialCircleSelector } from '@/components/createPin/SocialCircleSelector';
 import { CreatePinModals } from '@/components/createPin/CreatePinModals';
 
+// =================
+//   SERVICES
+// =================
+import RemapClient from '@/app/services/remap';
+
 // ========================
 //   COMPONENT DEFINITION
 // ========================
@@ -105,8 +110,8 @@ export default function CreatePinScreen() {
 	// ===============================================
 
 	const {
-		memoryTitle,
-		setMemoryTitle,
+		memoryName,
+		setMemoryName,
 		memoryDescription,
 		setMemoryDescription,
 		locationQuery,
@@ -114,7 +119,7 @@ export default function CreatePinScreen() {
 		coordinates,
 		updateCoordinatesFromLocationSelector,
 		locationInputRef,
-		titleInputRef,
+		nameInputRef,
 		descriptionInputRef,
 		validateMemoryContent,
 		resetMemoryContent,
@@ -176,7 +181,7 @@ export default function CreatePinScreen() {
 	}, []);
 
 	const createPinLogic = useCreatePin({
-		memoryTitle,
+		memoryName,
 		memoryDescription,
 		locationQuery,
 		coordinates,
@@ -188,7 +193,7 @@ export default function CreatePinScreen() {
 		validateMemoryContent,
 		resetMemoryContent,
 		resetMedia,
-		setMemoryTitle,
+		setMemoryName,
 		setMemoryDescription,
 		onSuccess: handleSuccess,
 	});
@@ -215,13 +220,13 @@ export default function CreatePinScreen() {
 	}, []);
 
 	const handleResetForm = useCallback(() => {
-		setMemoryTitle('');
+		setMemoryName('');
 		setMemoryDescription('');
 		resetMemoryContent();
 		resetMedia();
 		resetAllPrivacySettings();
 	}, [
-		setMemoryTitle,
+		setMemoryName,
 		setMemoryDescription,
 		resetMemoryContent,
 		resetMedia,
@@ -317,11 +322,11 @@ export default function CreatePinScreen() {
 					</LabelText>
 
 					<Input
-						ref={titleInputRef}
-						label="Memory Title"
-						placeholder="Give this memory a title..."
-						value={memoryTitle}
-						onChangeText={setMemoryTitle}
+						ref={nameInputRef}
+						label="Memory Name"
+						placeholder="Give this memory a name..."
+						value={memoryName}
+						onChangeText={setMemoryName}
 						style={styles.fullWidth}
 						required={true}
 					/>

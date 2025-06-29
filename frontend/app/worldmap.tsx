@@ -81,7 +81,7 @@ import { Footer } from '@/components/layout/Footer';
 // =================
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
-import { CustomButton } from '@/components/ui/CustomButton'
+import { CustomButton } from '@/components/ui/CustomButton';
 import { Input } from '@/components/ui/TextInput';
 import { Modal } from '@/components/ui/Modal';
 import { TopNotificationSheet } from '@/components/ui/TopNotificationSheet';
@@ -162,11 +162,13 @@ export default function WorldMapScreen() {
 	};
 
 	// ==================================
-    //   CIRCLE SELECTION DROPDOWN SETUP 
-    // ==================================
+	//   CIRCLE SELECTION DROPDOWN SETUP
+	// ==================================
 
-    const [circle, setCircle] = useState(null);
-	const [circleData, setCircleData] = useState<{ label: string; value: string }[]>([]);
+	const [circle, setCircle] = useState(null);
+	const [circleData, setCircleData] = useState<
+		{ label: string; value: string }[]
+	>([]);
 
 	useEffect(() => {
 		const fetchCircles = async () => {
@@ -176,42 +178,39 @@ export default function WorldMapScreen() {
 
 				const defaultCircles = [
 					{ label: 'Global', value: 'global' },
-					{ label: 'Private', value: 'private' }
+					{ label: 'Private', value: 'private' },
 				];
 
-				const socialCircles = circles.map(circle => ({
+				const socialCircles = circles.map((circle) => ({
 					label: circle.name,
-					value: circle.id
+					value: circle.id,
 				}));
 
 				setCircleData([...defaultCircles, ...socialCircles]);
-
 			} catch (err) {
-				console.error("Error fetching circles:", err);
+				console.error('Error fetching circles:', err);
 			}
 		};
 		fetchCircles();
 	}, []);
 
-
 	// ==================================
-    //   STARTER PACK SELECT SETUP
-    // ==================================
+	//   STARTER PACK SELECT SETUP
+	// ==================================
 	const starterPacks = [
-		{ label: "sp1", value: "sp1" },
-		{ label: "sp2", value: "sp2" },
-		{ label: "sp3", value: "sp3" },
-		{ label: "sp4", value: "sp4" },
-		{ label: "sp5", value: "sp5" },
+		{ label: 'sp1', value: 'sp1' },
+		{ label: 'sp2', value: 'sp2' },
+		{ label: 'sp3', value: 'sp3' },
+		{ label: 'sp4', value: 'sp4' },
+		{ label: 'sp5', value: 'sp5' },
 	];
 
 	const [selectedPack, setSelectedPack] = useState<string | null>(null);
 
-
 	// const handleStarterPackSelect = (pack) => {
-		// ... code to filter pins to starter packs here
-		//...
-		//...
+	// ... code to filter pins to starter packs here
+	//...
+	//...
 	//};
 
 	// =============================
@@ -317,7 +316,6 @@ export default function WorldMapScreen() {
 			longitudeDelta: 0.01,
 		});
 	};
-
 
 	// =============================
 	//   NAVIGATION SECTION
@@ -451,7 +449,7 @@ export default function WorldMapScreen() {
 		'🎯 [WORLDMAP] Pin coordinates:',
 		realPins.map(
 			(p) =>
-				`${p.title}: ${p.coordinate.latitude}, ${p.coordinate.longitude}`
+				`${p.name}: ${p.coordinate.latitude}, ${p.coordinate.longitude}`
 		)
 	);
 	return (
@@ -533,7 +531,7 @@ export default function WorldMapScreen() {
 											pin.pinData
 										);
 									}}
-									title={pin.title}
+									title={pin.name}
 									description={pin.description}
 								>
 									<View
@@ -645,33 +643,35 @@ export default function WorldMapScreen() {
 						{/* ************************ */}
 						{/*   OVERLAY UI CONTROLS    */}
 						{/* ************************ */}
-                        <View
-                            style={[
-                                styles.topOverlayContainer,
-                                { top: insets.top },
-                            ]}
-                        >
+						<View
+							style={[
+								styles.topOverlayContainer,
+								{ top: insets.top },
+							]}
+						>
 							<View style={styles.circleDropdownContainer}>
-                                <Dropdown
-                                    style={styles.circleDropdown}
+								<Dropdown
+									style={styles.circleDropdown}
 									selectedTextStyle={styles.dropdownText}
 									placeholderStyle={styles.dropdownText}
 									itemTextStyle={styles.dropdownItemText}
-  									containerStyle={styles.dropdownListContainer}
-                                    data={circleData}
-                                    labelField="label"
-                                    valueField="value"
-                                    placeholder="Select circle"
-                                    value={circle}
-                                    onChange={item => {
-                                        setCircle(item.value);
-                                        console.log('selected', item);
-                                    }}
-                                />
-                            </View>
+									containerStyle={
+										styles.dropdownListContainer
+									}
+									data={circleData}
+									labelField="label"
+									valueField="value"
+									placeholder="Select circle"
+									value={circle}
+									onChange={(item) => {
+										setCircle(item.value);
+										console.log('selected', item);
+									}}
+								/>
+							</View>
 
 							<IconButton
-								icon='user'
+								icon="user"
 								onPress={
 									user
 										? navigateToProfile
@@ -681,14 +681,15 @@ export default function WorldMapScreen() {
 								}
 								style={styles.profileIcon}
 							/>
-
 						</View>
 
 						<View style={styles.starterPackOverlay}>
 							<ScrollView
 								horizontal
 								showsHorizontalScrollIndicator={false}
-								contentContainerStyle={styles.starterPackScrollContainer}
+								contentContainerStyle={
+									styles.starterPackScrollContainer
+								}
 							>
 								{STARTER_PACKS.map((pack) => {
 									const isSelected = selectedPack === pack.id;
@@ -698,17 +699,20 @@ export default function WorldMapScreen() {
 											key={pack.id}
 											style={[
 												styles.starterPackButton,
-												isSelected && styles.selectedStarterPackButton,
+												isSelected &&
+													styles.selectedStarterPackButton,
 											]}
-												onPress={() => {
-													if (selectedPack === pack.id) {
-														setSelectedPack(null);
-													} else {
-														setSelectedPack(pack.id);
-													}
-												}}
+											onPress={() => {
+												if (selectedPack === pack.id) {
+													setSelectedPack(null);
+												} else {
+													setSelectedPack(pack.id);
+												}
+											}}
 										>
-											<Text style={styles.starterPackText}>
+											<Text
+												style={styles.starterPackText}
+											>
 												{pack.icon} {pack.name}
 											</Text>
 										</TouchableOpacity>
@@ -716,7 +720,6 @@ export default function WorldMapScreen() {
 								})}
 							</ScrollView>
 						</View>
-
 
 						{/**********************************************/}
 						{/************ UNDER MAP CONTENT ***************/}
@@ -764,7 +767,7 @@ export default function WorldMapScreen() {
 								style={styles.addPinButton}
 								textStyle={{
 									fontSize: 17,
-									fontWeight: '500'
+									fontWeight: '500',
 								}}
 							>
 								Add Pin
@@ -948,8 +951,8 @@ const styles = StyleSheet.create({
 	topOverlayContainer: {
 		position: 'absolute',
 		width: '100%',
-		flexDirection:'row',
-		alignItems:'center',
+		flexDirection: 'row',
+		alignItems: 'center',
 		justifyContent: 'flex-end',
 		paddingRight: 12,
 		height: 'auto',
@@ -987,8 +990,7 @@ const styles = StyleSheet.create({
 	},
 	dropdownListContainer: {
 		backgroundColor: ReMapColors.ui.cardBackground,
- 		borderRadius: 30,
-
+		borderRadius: 30,
 	},
 
 	starterPackOverlay: {
@@ -1007,7 +1009,6 @@ const styles = StyleSheet.create({
 		marginRight: 10,
 		paddingVertical: 10,
 		paddingHorizontal: 16,
-
 	},
 	selectedStarterPackButton: {
 		backgroundColor: ReMapColors.primary.black,
@@ -1019,13 +1020,9 @@ const styles = StyleSheet.create({
 		color: ReMapColors.ui.cardBackground,
 	},
 
-
 	profileIcon: {
-		 zIndex: 2,
+		zIndex: 2,
 	},
-
-
-
 
 	// =================
 	//   SEARCH STYLES
@@ -1153,7 +1150,6 @@ const styles = StyleSheet.create({
 		borderRadius: 24,
 		height: 64,
 	},
-
 
 	// ================
 	//   MODAL STYLES

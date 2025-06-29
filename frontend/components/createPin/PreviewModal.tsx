@@ -26,7 +26,7 @@ interface MemoryData {
 		query: string;
 	};
 	content: {
-		title: string;
+		name: string;
 		description: string;
 	};
 	visibility: string[];
@@ -80,7 +80,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
 				{/* Header */}
 				<View style={styles.previewHeader}>
 					<HeaderText align="center" style={styles.previewTitle}>
-						{previewData?.content?.title || 'Untitled Memory'}
+						{previewData?.content?.name || 'Untitled Memory'}
 					</HeaderText>
 					<CaptionText align="center" style={styles.previewLocation}>
 						📍 {previewData?.location?.query || 'Unknown Location'}

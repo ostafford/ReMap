@@ -1,10 +1,7 @@
 // hooks/createPin/useCreatePin.ts
 import { useState, useCallback } from 'react';
 import { router } from 'expo-router';
-import {
-	createMemoryPin,
-	type CreateMemoryRequest,
-} from '@/services/memoryService';
+import RemapClient from '@/app/services/remap';
 import { MediaItem } from './useMediaCapture';
 import { useNotification } from '@/contexts/NotificationContext';
 
@@ -18,7 +15,7 @@ interface MemoryData {
 		query: string;
 	};
 	content: {
-		title: string;
+		name: string;
 		description: string;
 	};
 	visibility: string[];
@@ -38,9 +35,25 @@ interface MemoryData {
 	};
 }
 
+// FormData interface for remap.ts
+interface CreatePinFormData {
+	name: string;
+	description: string;
+	latitude: number;
+	longitude: number;
+	location_query: string;
+	visibility: string[];
+	social_circles: string[];
+	media: {
+		photos: Array<{ uri: string; name: string }>;
+		videos: Array<{ uri: string; name: string }>;
+		audio: { uri: string } | null;
+	};
+}
+
 interface UseCreatePinProps {
 	// Content data
-	memoryTitle: string;
+	memoryName: string;
 	memoryDescription: string;
 	locationQuery: string;
 	coordinates: {
@@ -64,7 +77,7 @@ interface UseCreatePinProps {
 	resetMemoryContent: () => void;
 	resetMedia: () => void;
 	resetAllPrivacySettings: () => void;
-	setMemoryTitle: (title: string) => void;
+	setMemoryName: (name: string) => void;
 	setMemoryDescription: (description: string) => void;
 
 	// Success callback (kept for compatibility, but Context handles notifications)
@@ -74,7 +87,7 @@ interface UseCreatePinProps {
 
 export const useCreatePin = (props: UseCreatePinProps) => {
 	const {
-		memoryTitle,
+		memoryName,
 		memoryDescription,
 		locationQuery,
 		coordinates,
@@ -86,7 +99,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		resetMemoryContent,
 		resetMedia,
 		resetAllPrivacySettings,
-		setMemoryTitle,
+		setMemoryName,
 		setMemoryDescription,
 	} = props;
 
@@ -115,7 +128,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 
 		return {
 			// Core content
-			title: memoryTitle.trim(),
+			name: memoryName.trim(),
 			description: memoryDescription.trim(),
 			coordinates,
 			locationQuery: locationQuery.trim(),
@@ -135,7 +148,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 			timestamp: new Date().toISOString(),
 		};
 	}, [
-		memoryTitle,
+		memoryName,
 		memoryDescription,
 		coordinates,
 		locationQuery,
@@ -156,7 +169,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 				query: coreData.coordinates?.address || coreData.locationQuery,
 			},
 			content: {
-				title: coreData.title,
+				name: coreData.name,
 				description: coreData.description,
 			},
 			visibility: coreData.visibility,
@@ -180,24 +193,28 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	}, [createCoreMemoryData]);
 
 	// Backend - creates API submission data
-	const createSubmissionData = useCallback((): CreateMemoryRequest => {
+	const createSubmissionData = useCallback((): CreatePinFormData => {
 		const coreData = createCoreMemoryData();
 
 		return {
-			name: coreData.title,
+			name: coreData.name,
 			description: coreData.description,
 			latitude: coreData.coordinates.latitude,
 			longitude: coreData.coordinates.longitude,
 			location_query: coreData.locationQuery,
 			visibility: coreData.visibility,
-			social_circle_ids: coreData.socialCircles,
+			social_circles: coreData.socialCircles,
 			media: {
-				photos: coreData.processedMedia.photos,
-				videos: coreData.processedMedia.videos,
+				photos: coreData.processedMedia.photos.map((item) => ({
+					uri: item.uri,
+					name: item.name,
+				})),
+				videos: coreData.processedMedia.videos.map((item) => ({
+					uri: item.uri,
+					name: item.name,
+				})),
 				audio: coreData.processedMedia.audio
-					? {
-							uri: coreData.processedMedia.audio,
-					  }
+					? { uri: coreData.processedMedia.audio }
 					: null,
 			},
 		};
@@ -230,79 +247,115 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 	//   SAVE FUNCTIONALITY
 	// ===========================
 	const handleConfirmSave = useCallback(async () => {
-		console.log('🎯 [HOOK] Starting memory save process');
-
-		// Clear any previous errors
-		setSaveError(null);
-
-		hidePreviewModal();
-
-		setIsSaving(true);
-
 		try {
-			const memoryData = createPreviewData();
+			setIsSaving(true);
+			setSaveError(null);
+
+			console.log('📡 [HOOK] Starting pin creation process');
+
+			// Validate data
+			if (!validateMemoryContent()) {
+				throw new Error('Please fill in all required fields');
+			}
+
+			// Prepare data for backend
 			const backendData = createSubmissionData();
+			console.log('📡 [HOOK] Prepared backend data:', backendData);
+
+			// Convert to FormData for remap.ts
+			const formData = new FormData();
+			formData.append('name', backendData.name);
+			formData.append('description', backendData.description);
+			formData.append('latitude', backendData.latitude.toString());
+			formData.append('longitude', backendData.longitude.toString());
+			formData.append('location_query', backendData.location_query);
+			formData.append(
+				'visibility',
+				JSON.stringify(backendData.visibility)
+			);
+			formData.append(
+				'social_circles',
+				JSON.stringify(backendData.social_circles)
+			);
+
+			// Add media files
+			backendData.media.photos.forEach((photo, index) => {
+				formData.append(`media_${index}`, {
+					uri: photo.uri,
+					type: 'photo',
+					name: photo.name,
+				} as any);
+			});
+
+			backendData.media.videos.forEach((video, index) => {
+				formData.append(
+					`media_${index + backendData.media.photos.length}`,
+					{
+						uri: video.uri,
+						type: 'video',
+						name: video.name,
+					} as any
+				);
+			});
+
+			if (backendData.media.audio) {
+				formData.append('audio', {
+					uri: backendData.media.audio.uri,
+					type: 'audio/m4a',
+					name: 'audio.m4a',
+				} as any);
+			}
 
 			console.log('📡 [HOOK] Calling backend API');
 
-			const result = await createMemoryPin(backendData);
+			const remapClient = new RemapClient();
+			const result = await remapClient.createPin(formData);
 
 			console.log('🎯 [HOOK] Backend response:', result);
 
 			if (result.success) {
-				console.log(
-					'✅ [HOOK] Memory saved successfully:',
-					result.data
+				// Success handling
+				showSuccess(
+					'Memory Created!',
+					'Your memory has been saved successfully.'
 				);
-				handleSaveSuccess(memoryData, result);
+
+				// Reset form
+				resetMemoryContent();
+				resetMedia();
+				resetAllPrivacySettings();
+
+				// Navigate back to map
+				router.replace('/worldmap');
 			} else {
-				handleSaveError(result.error || 'Unknown error occurred');
+				throw new Error(result.error || 'Failed to create memory');
 			}
 		} catch (error) {
-			console.error('💥 [HOOK] Save error:', error);
-			handleSaveError('Unexpected error occurred');
+			console.error('🎯 [HOOK] Pin creation failed:', error);
+
+			const errorMessage =
+				error instanceof Error
+					? error.message
+					: 'Unknown error occurred';
+			setSaveError(errorMessage);
+			showError('Creation Failed', errorMessage);
+		} finally {
+			setIsSaving(false);
 		}
-	}, [createPreviewData, createSubmissionData, hidePreviewModal]);
-
-	// Success handler - uses Context notification
-	const handleSaveSuccess = useCallback(
-		(memoryData: MemoryData, result: any) => {
-			console.log(
-				'🎉 [HOOK] Save successful, showing notification and navigating'
-			);
-
-			// Reset all form state
-			setIsSaving(false);
-			setSaveError(null);
-
-			// Show success notification via Context (TOP SHEET)
-			showSuccess(
-				'Pin created successfully! 🎉',
-				`"${memoryData.content.title}" added to ${memoryData.location.query}`
-			);
-
-			router.replace('/worldmap');
-		},
-		[showSuccess]
-	);
-
-	// Error handler
-	const handleSaveError = useCallback(
-		(error: string) => {
-			console.error('❌ [HOOK] Save failed:', error);
-			setIsSaving(false);
-			setSaveError(error);
-
-			// Show error notification via Context
-			showError('Failed to create pin', error);
-		},
-		[showError]
-	);
+	}, [
+		validateMemoryContent,
+		createSubmissionData,
+		resetMemoryContent,
+		resetMedia,
+		resetAllPrivacySettings,
+		showSuccess,
+		showError,
+	]);
 
 	// Form reset utility
 	const resetForm = useCallback(() => {
 		hidePreviewModal();
-		setMemoryTitle('');
+		setMemoryName('');
 		setMemoryDescription('');
 		resetMemoryContent();
 		resetMedia();
@@ -312,7 +365,7 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 		setSaveError(null);
 	}, [
 		hidePreviewModal,
-		setMemoryTitle,
+		setMemoryName,
 		setMemoryDescription,
 		resetMemoryContent,
 		resetMedia,

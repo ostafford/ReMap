@@ -35,15 +35,15 @@ export interface MapPin {
 		latitude: number;
 		longitude: number;
 	};
-	title: string;
+	name: string;
 	description: string;
 
 	pinData: {
 		memory: {
-			title: string;
+			name: string;
 			description: string;
-			author: string;
-			createdAt: string;
+			owner_id: string;
+			created_at: string;
 			media: {
 				photos: Array<{ name: string; uri: string }>;
 				videos: any[];
@@ -55,7 +55,7 @@ export interface MapPin {
 		};
 		name: string;
 		location: {
-			address: string;
+			location_query: string;
 			latitude: number;
 			longitude: number;
 		};
@@ -166,14 +166,14 @@ const transformBackendPinToMapPin = (backendPin: BackendPin): MapPin => {
 			latitude: backendPin.latitude,
 			longitude: backendPin.longitude,
 		},
-		title: backendPin.name,
+		name: backendPin.name,
 		description: backendPin.description || '',
 		pinData: {
 			memory: {
-				title: backendPin.name,
+				name: backendPin.name,
 				description: backendPin.description || '',
-				author: 'User', // TODO: Get actual username from backend
-				createdAt: backendPin.created_at,
+				owner_id: 'User', // TODO: Get actual username from backend
+				created_at: backendPin.created_at,
 				media: {
 					photos: validImageUrls.map((url, index) => ({
 						name: `photo_${index + 1}`,
@@ -192,7 +192,7 @@ const transformBackendPinToMapPin = (backendPin: BackendPin): MapPin => {
 			},
 			name: backendPin.name,
 			location: {
-				address: backendPin.location_query || 'Unknown location',
+				location_query: backendPin.location_query || 'Unknown location',
 				latitude: backendPin.latitude,
 				longitude: backendPin.longitude,
 			},

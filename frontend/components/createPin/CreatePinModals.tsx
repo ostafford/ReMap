@@ -33,7 +33,7 @@ interface MemoryData {
 	id: string;
 	timestamp: string;
 	location: { query: string };
-	content: { title: string; description: string };
+	content: { name: string; description: string };
 	visibility: string[];
 	socialCircles: string[];
 	media: {

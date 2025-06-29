@@ -9,8 +9,8 @@ import { useState, useCallback, useRef } from 'react';
 
 interface UseMemoryContentReturn {
 	// Memory content fields
-	memoryTitle: string;
-	setMemoryTitle: (title: string) => void;
+	memoryName: string;
+	setMemoryName: (name: string) => void;
 	memoryDescription: string;
 	setMemoryDescription: (description: string) => void;
 
@@ -30,7 +30,7 @@ interface UseMemoryContentReturn {
 
 	// Input management references
 	locationInputRef: React.RefObject<any>;
-	titleInputRef: React.RefObject<any>;
+	nameInputRef: React.RefObject<any>;
 	descriptionInputRef: React.RefObject<any>;
 
 	// Form validation and utilities
@@ -57,7 +57,7 @@ export function useMemoryContent({
 	// ==================
 	// STATE MANAGEMENT:
 	// ==================
-	const [memoryTitle, setMemoryTitle] = useState('');
+	const [memoryName, setMemoryName] = useState('');
 	const [memoryDescription, setMemoryDescription] = useState('');
 
 	// Location state: Only store final results
@@ -71,7 +71,7 @@ export function useMemoryContent({
 	// ===========================
 	// REFS FOR INPUT MANAGEMENT
 	// ===========================
-	const titleInputRef = useRef<any>(null);
+	const nameInputRef = useRef<any>(null);
 	const locationInputRef = useRef<any>(null);
 	const descriptionInputRef = useRef<any>(null);
 
@@ -95,16 +95,16 @@ export function useMemoryContent({
 	// just returns true/false (for button disabled state)
 	const checkValidation = useCallback((): boolean => {
 		return (
-			memoryTitle.trim() !== '' &&
+			memoryName.trim() !== '' &&
 			locationQuery.trim() !== '' &&
 			coordinates !== null &&
 			memoryDescription.trim() !== ''
 		);
-	}, [memoryTitle, locationQuery, coordinates, memoryDescription]);
+	}, [memoryName, locationQuery, coordinates, memoryDescription]);
 
 	// only call when user tries to submit
 	const validateMemoryContent = useCallback((): boolean => {
-		if (!memoryTitle.trim()) {
+		if (!memoryName.trim()) {
 			showModal(
 				'error',
 				'Missing Title',
@@ -142,14 +142,14 @@ export function useMemoryContent({
 		}
 
 		return true;
-	}, [memoryTitle, locationQuery, coordinates, memoryDescription, showModal]);
+	}, [memoryName, locationQuery, coordinates, memoryDescription, showModal]);
 
 	// ====================
 	// UTILITY FUNCTIONS
 	// ====================
 
 	const resetMemoryContent = useCallback(() => {
-		setMemoryTitle('');
+		setMemoryName('');
 		setMemoryDescription('');
 		setLocationQuery('');
 		setCoordinates(null);
@@ -160,13 +160,13 @@ export function useMemoryContent({
 	// ======================
 
 	// const hasValidMemoryContent =
-	// 	memoryTitle.trim() !== '' &&
+	// 	memoryName.trim() !== '' &&
 	// 	locationQuery.trim() !== '' &&
 	// 	coordinates !== null &&
 	// 	memoryDescription.trim() !== '';
 
 	// console.log('Memory validation check:', {
-	// 	title: !!memoryTitle.trim(),
+	// 	title: !!memoryName.trim(),
 	// 	location: !!locationQuery.trim(),
 	// 	coordinates: !!coordinates,
 	// 	description: !!memoryDescription.trim(),
@@ -178,8 +178,8 @@ export function useMemoryContent({
 
 	return {
 		// Memory content state
-		memoryTitle,
-		setMemoryTitle,
+		memoryName,
+		setMemoryName,
 		memoryDescription,
 		setMemoryDescription,
 
@@ -191,7 +191,7 @@ export function useMemoryContent({
 
 		// Input management (refs for focusing)
 		locationInputRef,
-		titleInputRef,
+		nameInputRef,
 		descriptionInputRef,
 
 		// Validation & utility functions
