@@ -63,11 +63,7 @@ import { useAuth } from '@/hooks/shared/useAuth';
 import { useModal } from '@/hooks/shared/useModal';
 import { useSlideAnimation } from '@/hooks/useSlideAnimation';
 import { useNotification } from '@/contexts/NotificationContext';
-import {
-	fetchAllVisiblePins,
-	createViewportFromMapRegion,
-	type MapPin,
-} from '@/services/pinsService';
+import type { MapPin } from '@/services/pinsService';
 
 // ======================
 //  LAYOUT COMPONENTS
@@ -345,29 +341,60 @@ export default function WorldMapScreen() {
 	const [pinError, setPinError] = useState<string | null>(null);
 
 	const fetchPins = useCallback(async () => {
-		console.log('🔄 [WORLDMAP] Fetching pins from backend (static)');
+		console.log('🔄 [WORLDMAP] Fetching pins from backend via remap.ts');
 		setIsLoadingPins(true);
 		setPinError(null);
 
 		try {
-			// Use a large viewport to get all nearby pins
-			const wideRegion = {
-				latitude: -37.817979,
-				longitude: 144.960408,
-				latitudeDelta: 1.0,
-				longitudeDelta: 1.0,
-			};
-
-			const viewport = createViewportFromMapRegion(wideRegion);
-			const result = await fetchAllVisiblePins(viewport);
+			const remapClient = new RemapClient();
+			const result = await remapClient.getPublicPins();
 
 			if (result.success) {
-				setRealPins(result.data);
+				// Transform backend data to MapPin format
+				const transformedPins: MapPin[] = result.data.map(
+					(pin: any) => ({
+						id: pin.id,
+						name: pin.name,
+						description: pin.description,
+						coordinate: {
+							latitude: pin.latitude,
+							longitude: pin.longitude,
+						},
+						pinData: {
+							memory: {
+								name: pin.name,
+								description: pin.description,
+								owner_id: pin.owner_id,
+								created_at: pin.created_at,
+								visibility: pin.visibility,
+								media: {
+									photos: pin.image_urls || [],
+									videos: pin.video_urls || [],
+									audio: pin.audio_url
+										? { recorded: pin.audio_url }
+										: null,
+								},
+							},
+							location: {
+								location_query: pin.location_query,
+							},
+						},
+					})
+				);
+
+				setRealPins(transformedPins);
+				console.log(
+					`✅ [WORLDMAP] Loaded ${transformedPins.length} pins via remap.ts`
+				);
 			} else {
 				setPinError(result.error || 'Failed to load pins');
 				setRealPins([]);
 			}
 		} catch (error) {
+			console.error(
+				'💥 [WORLDMAP] Error fetching pins via remap.ts:',
+				error
+			);
 			setPinError('Unexpected error loading pins');
 			setRealPins([]);
 		} finally {
@@ -401,24 +428,56 @@ export default function WorldMapScreen() {
 			setPinError(null);
 
 			try {
-				const viewport = createViewportFromMapRegion(region);
-				const result = await fetchAllVisiblePins(viewport);
+				const remapClient = new RemapClient();
+				const result = await remapClient.getPublicPins();
 
 				if (result.success) {
-					console.log(
-						`✅ [WORLDMAP] Loaded ${result.data.length} pins for new region`
+					// Transform backend data to MapPin format
+					const transformedPins: MapPin[] = result.data.map(
+						(pin: any) => ({
+							id: pin.id,
+							name: pin.name,
+							description: pin.description,
+							coordinate: {
+								latitude: pin.latitude,
+								longitude: pin.longitude,
+							},
+							pinData: {
+								memory: {
+									name: pin.name,
+									description: pin.description,
+									owner_id: pin.owner_id,
+									created_at: pin.created_at,
+									visibility: pin.visibility,
+									media: {
+										photos: pin.image_urls || [],
+										videos: pin.video_urls || [],
+										audio: pin.audio_url
+											? { recorded: pin.audio_url }
+											: null,
+									},
+								},
+								location: {
+									location_query: pin.location_query,
+								},
+							},
+						})
 					);
-					setRealPins(result.data);
+
+					console.log(
+						`✅ [WORLDMAP] Loaded ${transformedPins.length} pins for new region via remap.ts`
+					);
+					setRealPins(transformedPins);
 				} else {
 					console.error(
-						'❌ [WORLDMAP] Failed to load pins for new region:',
+						'❌ [WORLDMAP] Failed to load pins for new region via remap.ts:',
 						result.error
 					);
 					setPinError(result.error || 'Failed to load pins');
 				}
 			} catch (error) {
 				console.error(
-					'💥 [WORLDMAP] Error fetching pins for new region:',
+					'💥 [WORLDMAP] Error fetching pins for new region via remap.ts:',
 					error
 				);
 				setPinError('Unexpected error loading pins');

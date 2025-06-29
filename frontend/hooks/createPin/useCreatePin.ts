@@ -126,6 +126,15 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 			throw new Error('Location coordinates are required');
 		}
 
+		// Validate coordinates are within valid geographic ranges
+		const { latitude, longitude } = coordinates;
+		if (latitude < -90 || latitude > 90) {
+			throw new Error('Latitude must be between -90 and 90 degrees');
+		}
+		if (longitude < -180 || longitude > 180) {
+			throw new Error('Longitude must be between -180 and 180 degrees');
+		}
+
 		return {
 			// Core content
 			name: memoryName.trim(),
@@ -280,22 +289,19 @@ export const useCreatePin = (props: UseCreatePinProps) => {
 
 			// Add media files
 			backendData.media.photos.forEach((photo, index) => {
-				formData.append(`media_${index}`, {
+				formData.append('image', {
 					uri: photo.uri,
-					type: 'photo',
+					type: 'image/jpeg',
 					name: photo.name,
 				} as any);
 			});
 
 			backendData.media.videos.forEach((video, index) => {
-				formData.append(
-					`media_${index + backendData.media.photos.length}`,
-					{
-						uri: video.uri,
-						type: 'video',
-						name: video.name,
-					} as any
-				);
+				formData.append('video', {
+					uri: video.uri,
+					type: 'video/mp4',
+					name: video.name,
+				} as any);
 			});
 
 			if (backendData.media.audio) {
