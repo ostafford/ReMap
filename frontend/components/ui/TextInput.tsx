@@ -26,7 +26,7 @@ import { ReMapColors } from '@/constants/Colors';
 // ====================
 //   TYPE DEFINITIONS
 // ====================
-interface InputProps extends TextInputProps {
+export interface InputProps {
 	label?: string;
 	secureToggle?: boolean;
 	style?: StyleProp<ViewStyle>;
@@ -35,12 +35,26 @@ interface InputProps extends TextInputProps {
 	required?: boolean;
 	disabled?: boolean;
 	helperText?: string;
+	// TextInput props
+	value?: string;
+	onChangeText?: (text: string) => void;
+	placeholder?: string;
+	placeholderTextColor?: string;
+	secureTextEntry?: boolean;
+	keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
+	autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+	multiline?: boolean;
+	numberOfLines?: number;
+	onFocus?: (e: any) => void;
+	onBlur?: (e: any) => void;
+	editable?: boolean;
+	ref?: any;
 }
 
 // ====================
 //   REF INTERFACE
 // ====================
-interface InputRef {
+export interface InputRef {
 	focus: () => void;
 	blur: () => void;
 	measureInWindow: (

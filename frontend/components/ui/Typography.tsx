@@ -12,7 +12,7 @@ import { ReMapColors } from '@/constants/Colors';
 // =========================
 //   TYPE DEFINITIONS
 // =========================
-interface BaseTextProps {
+export interface BaseTextProps {
 	children: React.ReactNode;
 	style?: TextStyle | TextStyle[];
 	color?: string;

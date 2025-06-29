@@ -63,7 +63,6 @@ import { useAuth } from '@/hooks/shared/useAuth';
 import { useModal } from '@/hooks/shared/useModal';
 import { useSlideAnimation } from '@/hooks/useSlideAnimation';
 import { useNotification } from '@/contexts/NotificationContext';
-import type { MapPin } from '@/services/pinsService';
 
 // ======================
 //  LAYOUT COMPONENTS
@@ -77,7 +76,6 @@ import { Footer } from '@/components/layout/Footer';
 // =================
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
-import { CustomButton } from '@/components/ui/CustomButton';
 import { Input } from '@/components/ui/TextInput';
 import { Modal } from '@/components/ui/Modal';
 import { TopNotificationSheet } from '@/components/ui/TopNotificationSheet';
@@ -168,6 +166,18 @@ export default function WorldMapScreen() {
 
 	useEffect(() => {
 		const fetchCircles = async () => {
+			// Only fetch circles if user is authenticated
+			if (!isAuthenticated) {
+				console.log(
+					'🔒 [WORLDMAP] User not authenticated, skipping circles fetch'
+				);
+				setCircleData([
+					{ label: 'Global', value: 'global' },
+					{ label: 'Private', value: 'private' },
+				]);
+				return;
+			}
+
 			try {
 				const remap = new RemapClient();
 				const circles = await remap.getCircles();
@@ -185,10 +195,15 @@ export default function WorldMapScreen() {
 				setCircleData([...defaultCircles, ...socialCircles]);
 			} catch (err) {
 				console.error('Error fetching circles:', err);
+				// Fallback to default circles on error
+				setCircleData([
+					{ label: 'Global', value: 'global' },
+					{ label: 'Private', value: 'private' },
+				]);
 			}
 		};
 		fetchCircles();
-	}, []);
+	}, [isAuthenticated]);
 
 	// ==================================
 	//   STARTER PACK SELECT SETUP
@@ -336,7 +351,7 @@ export default function WorldMapScreen() {
 	// =============================
 	//   PIN MARKER DISPLAY SECTION
 	// =============================
-	const [realPins, setRealPins] = useState<MapPin[]>([]);
+	const [realPins, setRealPins] = useState<any[]>([]);
 	const [isLoadingPins, setIsLoadingPins] = useState(false);
 	const [pinError, setPinError] = useState<string | null>(null);
 
@@ -356,7 +371,28 @@ export default function WorldMapScreen() {
 			const validPins = pins.filter((pin: any) => {
 				const lat = pin.latitude;
 				const lng = pin.longitude;
-				return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
+				// Basic range validation
+				const validLat = lat >= -90 && lat <= 90;
+				const validLng = lng >= -180 && lng <= 180;
+
+				// Additional validation for obviously wrong coordinates
+				// Filter out coordinates that are clearly invalid (like 0,0 for most cases)
+				const notZeroZero = !(lat === 0 && lng === 0);
+
+				// Filter out coordinates that are too extreme (like 90, -120)
+				const notExtreme = Math.abs(lat) < 85 && Math.abs(lng) < 175;
+
+				const isValid =
+					validLat && validLng && notZeroZero && notExtreme;
+
+				if (!isValid) {
+					console.log(
+						`🚫 [WORLDMAP] Filtered out invalid pin "${pin.name}" with coordinates (${lat}, ${lng})`
+					);
+				}
+
+				return isValid;
 			});
 
 			console.log(
@@ -364,7 +400,7 @@ export default function WorldMapScreen() {
 			);
 
 			// Transform backend data to MapPin format
-			const transformedPins: MapPin[] = validPins.map((pin: any) => ({
+			const transformedPins: any[] = validPins.map((pin: any) => ({
 				id: pin.id,
 				name: pin.name,
 				description: pin.description,
@@ -380,12 +416,12 @@ export default function WorldMapScreen() {
 						created_at: pin.created_at,
 						visibility: [pin.visibility || 'public'],
 						media: {
-							photos: (pin.image_urls || []).map(
-								(url: string, index: number) => ({
+							photos: (pin.image_urls || [])
+								.filter((url: string) => url && url !== null)
+								.map((url: string, index: number) => ({
 									name: `photo_${index + 1}`,
 									uri: url,
-								})
-							),
+								})),
 							videos: [],
 							audio: pin.audio_url
 								? { recorded: pin.audio_url }
@@ -836,20 +872,17 @@ export default function WorldMapScreen() {
 					{/* *********************************************/}
 					<Footer>
 						<View style={styles.footerContainer}>
-							<CustomButton
+							<Button
+								variant="simple"
 								onPress={
 									isAuthenticated
 										? navigateToCreatePin
 										: signInModal.open //fix this to the proper create user/login prompt
 								}
 								style={styles.addPinButton}
-								textStyle={{
-									fontSize: 17,
-									fontWeight: '500',
-								}}
 							>
 								Add Pin
-							</CustomButton>
+							</Button>
 						</View>
 					</Footer>
 
