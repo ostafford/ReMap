@@ -98,7 +98,7 @@ import { ReMapColors } from '@/constants/Colors';
 // ===================
 //   SERVICES IMPORTS
 // ===================
-import { getCurrentUser, signOut } from '@/services/auth';
+import { getCurrentUser, signOut } from '@/app/services/auth';
 import { remap } from 'three/tsl';
 
 // =========================

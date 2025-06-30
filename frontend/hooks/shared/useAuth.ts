@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getCurrentUser, signOut as authSignOut } from '@/services/auth';
+import { getCurrentUser, signOut as authSignOut } from '@/app/services/auth';
 import type { User } from '@supabase/supabase-js';
 
 export const useAuth = () => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { signIn, getCurrentUser } from '@/services/auth';
+import { signIn, getCurrentUser } from '@/app/services/auth';
 
 interface MessageState {
 	show: boolean;
