@@ -3,7 +3,7 @@
 //	===============
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { signUp } from '@/services/auth';
+import { signUp } from '@/app/services/auth';
 
 //	====================
 // 	  TYPE DEFINITION
@@ -167,30 +167,38 @@ export const useOnboardingForm = () => {
 	const createUserAccountWithProfile = async (
 		starterPackSelections: string[]
 	) => {
-		await signUp({
+		console.log(
+			'🚀 [ONBOARDING] Starting account creation with profile data'
+		);
+
+		// Call the updated signUp function with complete profile data
+		const result = await signUp({
 			email: formData.email,
 			password: formData.password,
+			fullName: formData.fullname,
+			profilePictureUri: formData.profilePictureUri || undefined,
+			// username is auto-generated, so we don't pass it
 		});
 
 		const userProfileData = buildUserProfileData(starterPackSelections);
 		console.log(
-			'@useOnboardingForm - User account data with enhanced state:',
+			'✅ [ONBOARDING] User account created with profile:',
 			userProfileData
 		);
 
-		return userProfileData;
+		return { result, userProfileData };
 	};
 
 	const handleAccountCreationSuccess = () => {
 		showMessage(
-			'Welcome to ReMap! Account created successfully.',
+			'Welcome to ReMap! Your account and profile have been created successfully.',
 			'success'
 		);
 		router.replace('/worldmap');
 	};
 
 	const handleAccountCreationError = (error: any) => {
-		console.error('Signup error:', error);
+		console.error('🚀 [ONBOARDING] Account creation error:', error);
 		const errorMessage =
 			error?.message || 'Could not create account. Please try again.';
 		showMessage(errorMessage, 'error');
@@ -200,7 +208,7 @@ export const useOnboardingForm = () => {
 		const starterPackSelections = getStarterPackSelections();
 
 		console.log(
-			' @useOnboardingForm - handleSignUp automatically extracted selections:',
+			'🚀 [ONBOARDING] handleSignUp with selections:',
 			starterPackSelections
 		);
 

@@ -23,14 +23,14 @@ import { ReMapColors } from '@/constants/Colors';
 // =========================
 //   TYPE DEFINITIONS
 // =========================
-interface CustomButtonProps {
+export interface CustomButtonProps {
 	children: React.ReactNode;
 	onPress?: () => void;
 	style?: StyleProp<ViewStyle>;
 	disabled?: boolean;
 	loading?: boolean;
 	loadingText?: string;
-	variant?: 'primary' | 'secondary' | 'danger' | 'success';
+	variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'simple';
 	size?: 'small' | 'medium' | 'large';
 	textColour?: string;
 }
@@ -81,6 +81,9 @@ export const Button = ({
 				break;
 			case 'success':
 				backgroundColor = ReMapColors.semantic.success;
+				break;
+			case 'simple':
+				backgroundColor = ReMapColors.primary.black;
 				break;
 			default:
 				backgroundColor = ReMapColors.primary.cadet;

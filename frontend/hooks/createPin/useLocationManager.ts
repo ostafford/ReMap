@@ -89,27 +89,24 @@ export const useLocationManager = (): LocationManagerHook => {
 	// GPS LOCATION FUNCTIONS
 	// =========================
 
-	// Fetch device's current GPS coordinates and get real address
+	// Get current device location using GPS
 	const fetchDeviceGPSLocation = useCallback(async () => {
 		setIsLoadingGPS(true);
 
 		try {
-			// Request location permissions
 			const { status } =
 				await Location.requestForegroundPermissionsAsync();
 
 			if (status !== 'granted') {
 				Alert.alert(
 					'Location Permission Required',
-					'Please enable location access to use your current location',
-					[{ text: 'OK' }]
+					'Please enable location access in your device settings to use GPS location.'
 				);
 				return;
 			}
 
-			// Get current GPS coordinates
 			const location = await Location.getCurrentPositionAsync({
-				accuracy: Location.Accuracy.Balanced,
+				accuracy: Location.Accuracy.High,
 			});
 
 			const coordinates = {
@@ -117,23 +114,46 @@ export const useLocationManager = (): LocationManagerHook => {
 				longitude: location.coords.longitude,
 			};
 
-			// Update coordinates immediately
+			// Validate coordinates are within valid geographic ranges
+			if (coordinates.latitude < -90 || coordinates.latitude > 90) {
+				console.error(
+					'Invalid latitude from GPS:',
+					coordinates.latitude
+				);
+				Alert.alert(
+					'Invalid GPS Coordinates',
+					'Received invalid coordinates from GPS. Please try again or use manual location search.'
+				);
+				return;
+			}
+			if (coordinates.longitude < -180 || coordinates.longitude > 180) {
+				console.error(
+					'Invalid longitude from GPS:',
+					coordinates.longitude
+				);
+				Alert.alert(
+					'Invalid GPS Coordinates',
+					'Received invalid coordinates from GPS. Please try again or use manual location search.'
+				);
+				return;
+			}
+
+			// Update location data
 			updateLocationField('currentCoordinates', coordinates);
 			updateLocationField('isFromGPS', true);
 
-			// Get real address from coordinates (reverse geocoding)
+			// Get address from coordinates
 			await convertCoordinatesToAddress(coordinates);
 		} catch (error) {
 			console.error('GPS location error:', error);
 			Alert.alert(
-				'Location Error',
-				'Could not get your current location. Please try again or enter manually.',
-				[{ text: 'OK' }]
+				'GPS Error',
+				'Could not get your current location. Please try again or use manual location search.'
 			);
 		} finally {
 			setIsLoadingGPS(false);
 		}
-	}, [updateLocationField]);
+	}, [updateLocationField, convertCoordinatesToAddress]);
 
 	// =========================
 	// GEOCODING FUNCTIONS
@@ -164,9 +184,28 @@ export const useLocationManager = (): LocationManagerHook => {
 				// Extract coordinates from API response
 				if (data && data.length > 0) {
 					const location = data[0];
+					const latitude = parseFloat(location.lat);
+					const longitude = parseFloat(location.lon);
+
+					// Validate coordinates are within valid geographic ranges
+					if (latitude < -90 || latitude > 90) {
+						console.error(
+							'Invalid latitude from Nominatim:',
+							latitude
+						);
+						return;
+					}
+					if (longitude < -180 || longitude > 180) {
+						console.error(
+							'Invalid longitude from Nominatim:',
+							longitude
+						);
+						return;
+					}
+
 					const coordinates = {
-						latitude: parseFloat(location.lat),
-						longitude: parseFloat(location.lon),
+						latitude,
+						longitude,
 					};
 
 					// Update location data
