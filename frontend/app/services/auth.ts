@@ -6,67 +6,6 @@ import { supabase } from '@/lib/supabase';
 //   HELPER FUNCTIONS
 // ===================
 
-// Upload profile picture to Supabase storage (adapted from profileController.ts)
-async function uploadProfilePicture(
-	uri: string,
-	userId: string
-): Promise<string> {
-	try {
-		console.log(
-			'📤 [AUTH] Starting profile picture upload for user:',
-			userId
-		);
-		console.log('📤 [AUTH] File URI:', uri);
-
-		// Convert URI to blob (frontend adaptation)
-		const response = await fetch(uri);
-		if (!response.ok) {
-			throw new Error(`Failed to fetch image: ${response.statusText}`);
-		}
-
-		const blob = await response.blob();
-
-		if (blob.size === 0) {
-			throw new Error('Image file is empty (0 bytes)');
-		}
-
-		// Generate unique filename
-		const timestamp = Date.now();
-		const fileName = `${userId}_${timestamp}.jpg`;
-
-		console.log('📤 [AUTH] Uploading to Supabase storage:', fileName);
-
-		// Upload to Supabase storage (same pattern as profileController)
-		const { data, error } = await supabase.storage
-			.from('avatars')
-			.upload(fileName, blob, {
-				contentType: 'image/jpeg',
-				upsert: false,
-			});
-
-		if (error) {
-			console.error('📤 [AUTH] Upload error:', error);
-			throw new Error(
-				`Failed to upload profile picture: ${error.message}`
-			);
-		}
-
-		// Get public URL (same pattern as profileController)
-		const {
-			data: { publicUrl },
-		} = supabase.storage.from('avatars').getPublicUrl(fileName);
-
-		console.log(
-			'✅ [AUTH] Profile picture uploaded successfully:',
-			publicUrl
-		);
-		return publicUrl;
-	} catch (error) {
-		console.error('📤 [AUTH] Profile picture upload failed:', error);
-		throw new Error('Failed to upload profile picture. Please try again.');
-	}
-}
-
 // Create user profile record
 async function createUserProfile(
 	userId: string,
@@ -162,7 +101,7 @@ export async function signUp(credentials: {
 	password: string;
 	fullName?: string;
 	username?: string;
-	profilePictureUri?: string;
+	// Remove profilePictureUri parameter since we handle it separately
 }) {
 	try {
 		console.log(
@@ -226,59 +165,37 @@ export async function signUp(credentials: {
 			}
 		}
 
-		// Create profile if user was created and profile data provided
-		if (
-			data.user &&
-			(credentials.fullName ||
-				credentials.username ||
-				credentials.profilePictureUri)
-		) {
+		// Create basic profile if user was created and profile data provided
+		if (data.user && (credentials.fullName || credentials.username)) {
 			try {
-				console.log('👤 [AUTH] Creating user profile...');
+				console.log('👤 [AUTH] Creating basic user profile...');
 				console.log('👤 [AUTH] User ID:', data.user.id);
 				console.log('👤 [AUTH] Profile data:', {
 					fullName: credentials.fullName,
 					username:
 						credentials.username ||
 						generateUsername(credentials.email),
-					hasProfilePicture: !!credentials.profilePictureUri,
 				});
 
 				// Generate username if not provided
 				const username =
 					credentials.username || generateUsername(credentials.email);
 
-				// Upload profile picture if provided
-				let avatarUrl: string | undefined;
-				if (credentials.profilePictureUri) {
-					console.log('👤 [AUTH] Uploading profile picture...');
-					avatarUrl = await uploadProfilePicture(
-						credentials.profilePictureUri,
-						data.user.id
-					);
-					console.log(
-						'👤 [AUTH] Profile picture uploaded:',
-						avatarUrl
-					);
-				}
-
-				// Create profile record
-				console.log('👤 [AUTH] Inserting profile record...');
+				// Create basic profile record (without avatar - handled separately)
+				console.log('👤 [AUTH] Inserting basic profile record...');
 				const profileData = {
 					fullName: credentials.fullName || '',
 					username: username,
-					avatarUrl: avatarUrl,
+					// No avatarUrl - will be handled by backend endpoint later
 				};
 				console.log('👤 [AUTH] Profile data to insert:', profileData);
 
 				await createUserProfile(data.user.id, profileData);
 
-				console.log(
-					'✅ [AUTH] Complete signup successful - auth user and profile created'
-				);
+				console.log('✅ [AUTH] Basic profile created successfully');
 			} catch (profileError) {
 				console.error(
-					'⚠️ [AUTH] Profile creation failed, but auth user was created:',
+					'⚠️ [AUTH] Basic profile creation failed, but auth user was created:',
 					profileError
 				);
 				// Log more details about the error

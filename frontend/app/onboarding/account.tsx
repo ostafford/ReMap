@@ -107,7 +107,7 @@ export default function OnboardingAccountScreen() {
 	//	== MODAL STATE ==
 	const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);
 	const [isSkipModalVisible, setIsSkipModalVisible] = useState(false);
-	const [isLoading, setIsLoading] = useState(false);
+	const isLoading = formData.isCreatingAccount;
 
 	const toggleSignupModal = () => {
 		setIsSignupModalVisible(!isSignupModalVisible);
