@@ -130,4 +130,24 @@ export default class RemapClient {
 	async deletePin(pinId: string): Promise<any> {
 		return await this.makeAuthRequest(`pins/user/${pinId}`, 'DELETE');
 	}
+
+	// ===================
+	//   PROFILE METHODS
+	// ===================
+
+	// UPDATE PROFILE (including avatar upload) (PUT request since it's just appending to the profile)
+	async updateProfile(profileData: FormData): Promise<any> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+
+		return await this.makeAuthRequest(
+			`profiles/${userId}`,
+			'PUT',
+			profileData,
+			true
+		);
+	}
 }
