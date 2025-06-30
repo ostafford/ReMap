@@ -69,22 +69,12 @@ export const SplashUI = ({
 				<Header
 					title="ReMap"
 					subtitle="Your Interactive Memory Atlas"
+					style={styles}
 				/>
-				<MainContent scrollable={false} style={styles.mainContent}>
-					<View style={styles.loadingContainer}>
-						<View style={styles.globeContainer}>
-							<Canvas style={styles.canvas}>
-								<ambientLight intensity={3} />
-								<SpinningGlobe
-									position={[0, 0, 0]}
-									scale={1.8}
-								/>
-							</Canvas>
-						</View>
+				<MainContent scrollable={false} style={styles.mainContent}>	
 						<BodyText align="center" style={styles.loadingText}>
 							Checking your authentication status...
 						</BodyText>
-					</View>
 				</MainContent>
 			</View>
 		);
@@ -93,7 +83,11 @@ export const SplashUI = ({
 	// 4. JSX RETURN: Main UI structure
 	return (
 		<View style={styles.container}>
-			<Header title="ReMap" subtitle="Your Interactive Memory Atlas" />
+			<Header 
+				title="ReMap"
+				style={styles.header}
+				fontSize={60}
+			/>
 
 			{/* ==================== */}
 			{/*     Main content     */}
@@ -109,47 +103,39 @@ export const SplashUI = ({
 						</View>
 					)}
 
-				{/* GLOBE CONTAINER: 3D Canvas element */}
-				<View style={styles.globeContainer}>
-					<Canvas style={styles.canvas}>
-						<ambientLight intensity={3} />
-						<SpinningGlobe position={[0, 0, 0]} scale={1.8} />
-					</Canvas>
+				<View style={styles.exploreContent}>
+					<Button
+						style={styles.exploreButton}
+						onPress={handlers.onNavigateToWorldMap}
+						textColour='black'
+					>
+						Explore
+					</Button>
 				</View>
+				
 
-				{/* DESCRIPTION TEXT */}
-				<BodyText align="center" style={styles.description}>
-					Transform your experiences into an interactive, personal
-					atlas
-				</BodyText>
 			</MainContent>
 
 			{/* ==================== */}
 			{/*   FOOTER content     */}
 			{/* ==================== */}
-			<Footer>
+			<Footer style={styles.footer}>
 				<View style={styles.buttonContainer}>
-					<View style={styles.secondaryActions}>
-						<Button
-							style={styles.secondaryButton}
-							onPress={handlers.onToggleSignInModal}
-						>
-							🔑 Sign In
-						</Button>
-						<Button
-							style={styles.secondaryButton}
-							onPress={handlers.onNavigateToOnboarding}
-						>
-							🚀 Start Onboarding
-						</Button>
-					</View>
-
 					<Button
 						style={styles.primaryButton}
-						onPress={handlers.onNavigateToWorldMap}
+						onPress={handlers.onNavigateToOnboarding}
+						textColour='black'
 					>
-						🗺️ Explore World Map
+						New User
 					</Button>
+					<Button
+						style={[styles.primaryButton, styles.loginButton]}
+						onPress={handlers.onToggleSignInModal}
+						textColour='white'
+					>
+						I already have an account
+					</Button>
+
 				</View>
 			</Footer>
 
@@ -172,11 +158,16 @@ export const SplashUI = ({
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: ReMapColors.ui.background,
+	},
+	header: {
+		backgroundColor: 'black',
+		
 	},
 	mainContent: {
+		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
+		backgroundColor: 'black',
 	},
 	loadingContainer: {
 		flex: 1,
@@ -204,24 +195,36 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: ReMapColors.ui.textSecondary,
 	},
+	exploreContent: {
+		justifyContent: 'center',
+		alignItems: 'center',
+		width: '100%',
+	},
+	exploreButton: {
+		backgroundColor: 'white',
+		opacity: 0.6,
+		paddingVertical: 12,
+		paddingHorizontal: 20,
+		borderRadius: 24,
+		alignSelf: 'center',
+	},
 
 	// Button Styles
 	buttonContainer: {
 		width: '100%',
-		gap: 10,
+		gap: 20,
+		justifyContent: 'center',
+		alignItems: 'center',
+		paddingBottom: 30,
 	},
 	primaryButton: {
-		backgroundColor: ReMapColors.primary.violet,
-		width: '100%',
+		backgroundColor: ReMapColors.ui.cardBackground,
+		width: '85%',
+		borderRadius: 24,
+		height: 64,
 	},
-	secondaryActions: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		gap: 10,
-	},
-	secondaryButton: {
-		backgroundColor: ReMapColors.primary.cadet,
-		flex: 1,
+	loginButton: {
+		backgroundColor: '#262626',
 	},
 	modalButton: {
 		width: 150,
@@ -235,5 +238,10 @@ const styles = StyleSheet.create({
 	continueButton: {
 		backgroundColor: ReMapColors.primary.violet,
 		width: 200,
+	},
+
+	footer: {
+		backgroundColor: 'black',
+		borderTopColor: 'black',
 	},
 });

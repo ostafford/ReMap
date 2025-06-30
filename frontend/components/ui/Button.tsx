@@ -146,7 +146,7 @@ export const Button = ({
 const styles = StyleSheet.create({
 	button: {
 		padding: 12,
-		borderRadius: 25,
+		borderRadius: 24,
 		margin: 0,
 		alignItems: 'center',
 		justifyContent: 'center',
