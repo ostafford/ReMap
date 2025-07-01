@@ -49,7 +49,7 @@ export const Header = ({
 				styles.container,
 				{
 					backgroundColor,
-					paddingTop: Math.max(insets.top, 50), // Respect safe area
+					paddingTop: Math.max(insets.top, 10), // Respect safe area
 				},
 				style,
 			]}

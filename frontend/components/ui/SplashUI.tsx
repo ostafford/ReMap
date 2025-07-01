@@ -158,6 +158,7 @@ export const SplashUI = ({
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
+		
 	},
 	header: {
 		backgroundColor: 'black',
