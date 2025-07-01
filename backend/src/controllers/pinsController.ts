@@ -257,21 +257,122 @@ export const listPins = async (req: Request, res: Response) => {
 	}
 
 	try {
-		const { data: pins, error } = await supabase
+		// First, get all pins owned by the user (including private ones)
+		const { data: userPins, error: userPinsError } = await supabase
 			.from('pins')
-			.select()
-			.eq('owner_id', user.id); // check current user id is owner_id
+			.select(
+				`
+				*,
+				owner:profiles!pins_owner_id_fkey(
+					id,
+					username,
+					full_name,
+					avatar_url
+				)
+			`
+			)
+			.eq('owner_id', user.id);
 
-		if (error) {
-			console.log('List user pins error:', error.message);
-			res.status(400).json({ 'List user pins error': error.message });
+		if (userPinsError) {
+			console.log('List user pins error:', userPinsError.message);
+			res.status(400).json({
+				'List user pins error': userPinsError.message,
+			});
 			return;
 		}
-		console.log('List user pins:', pins);
-		res.status(200).json({ 'List user pins': pins });
-	} catch (err: any) {
-		console.log('List user pins server error', err.message);
-		res.status(500).json({ 'List user pins server error': err.message });
+
+		// Get public pins (visible to everyone)
+		const { data: publicPins, error: publicPinsError } = await supabase
+			.from('pins')
+			.select(
+				`
+				*,
+				owner:profiles!pins_owner_id_fkey(
+					id,
+					username,
+					full_name,
+					avatar_url
+				)
+			`
+			)
+			.eq('visibility', 'public')
+			.neq('owner_id', user.id); // Exclude user's own pins (already included above)
+
+		if (publicPinsError) {
+			console.log('List public pins error:', publicPinsError.message);
+			res.status(400).json({
+				'List public pins error': publicPinsError.message,
+			});
+			return;
+		}
+
+		// Get social pins where user is a member of the circle
+		// First, get user's social circles
+		const { data: userCircles, error: circlesError } = await supabase
+			.from('members')
+			.select('circle_id')
+			.eq('user_id', user.id);
+
+		if (circlesError) {
+			console.log('Get user circles error:', circlesError.message);
+			// Continue without social pins if there's an error
+		}
+
+		let socialPins: any[] = [];
+		if (userCircles && userCircles.length > 0) {
+			const circleIds = userCircles.map((c) => c.circle_id);
+
+			// Get pins that are shared with any of user's circles
+			const { data: socialPinsData, error: socialPinsError } =
+				await supabase
+					.from('pins')
+					.select(
+						`
+					*,
+					owner:profiles!pins_owner_id_fkey(
+						id,
+						username,
+						full_name,
+						avatar_url
+					)
+				`
+					)
+					.eq('visibility', 'social')
+					.neq('owner_id', user.id) // Exclude user's own pins
+					.overlaps('social_circle_ids', circleIds);
+
+			if (socialPinsError) {
+				console.log('List social pins error:', socialPinsError.message);
+				// Continue without social pins if there's an error
+			} else {
+				socialPins = socialPinsData || [];
+			}
+		}
+
+		// Combine all pins and remove duplicates
+		const allPins = [
+			...(userPins || []),
+			...(publicPins || []),
+			...socialPins,
+		];
+
+		// Remove duplicates based on pin ID
+		const uniquePins = allPins.filter(
+			(pin, index, self) =>
+				index === self.findIndex((p) => p.id === pin.id)
+		);
+
+		console.log(
+			`📊 [BACKEND] Returning ${uniquePins.length} pins for user ${user.id}:`
+		);
+		console.log(`   - User's pins: ${userPins?.length || 0}`);
+		console.log(`   - Public pins: ${publicPins?.length || 0}`);
+		console.log(`   - Social pins: ${socialPins.length}`);
+
+		res.status(200).json({ 'List pins': uniquePins });
+	} catch (error) {
+		console.error('List pins error:', error);
+		res.status(500).json({ message: 'Internal server error' });
 	}
 };
 
@@ -288,9 +389,20 @@ export const getPin = async (req: Request, res: Response) => {
 	}
 
 	try {
+		// Updated query to include user profile data via JOIN
 		const { data: pins, error } = await supabase
 			.from('pins')
-			.select()
+			.select(
+				`
+				*,
+				owner:profiles!pins_owner_id_fkey(
+					id,
+					username,
+					full_name,
+					avatar_url
+				)
+			`
+			)
 			.eq('id', pin_Id)
 			.eq('owner_id', user.id) // check current user id is owner_id
 			.single();
@@ -521,5 +633,71 @@ export const deletePin = async (req: Request, res: Response) => {
 	} catch (err: any) {
 		console.log('Delete pin server error', err.message);
 		res.status(500).json({ 'Delete pin server error': err.message });
+	}
+};
+
+// @desc Get pins at specific location (for "Next Memory" feature)
+// @route GET /api/pins/user/location/:latitude/:longitude
+export const getPinsAtLocation = async (req: Request, res: Response) => {
+	const { latitude, longitude } = req.params;
+	const user = req.user;
+
+	if (!user) {
+		res.status(401).json({ message: 'Unauthorized' });
+		return;
+	}
+
+	// Convert to numbers and validate
+	const lat = parseFloat(latitude);
+	const lng = parseFloat(longitude);
+
+	if (isNaN(lat) || isNaN(lng)) {
+		res.status(400).json({ message: 'Invalid coordinates' });
+		return;
+	}
+
+	try {
+		// Get pins at the same location (within small radius)
+		// Using 0.001 degree radius (roughly 100 meters)
+		const radius = 0.001;
+
+		const { data: pins, error } = await supabase
+			.from('pins')
+			.select(
+				`
+				*,
+				owner:profiles!pins_owner_id_fkey(
+					id,
+					username,
+					full_name,
+					avatar_url
+				)
+			`
+			)
+			.gte('latitude', lat - radius)
+			.lte('latitude', lat + radius)
+			.gte('longitude', lng - radius)
+			.lte('longitude', lng + radius)
+			.order('created_at', { ascending: false });
+
+		if (error) {
+			console.log('Get pins at location error:', error.message);
+			res.status(400).json({
+				'Get pins at location error': error.message,
+			});
+			return;
+		}
+
+		console.log(`Found ${pins.length} pins at location (${lat}, ${lng})`);
+		res.status(200).json({
+			'Pins at location': pins,
+			location: { latitude: lat, longitude: lng },
+			count: pins.length,
+		});
+	} catch (err: any) {
+		console.log('Get pins at location server error', err.message);
+		res.status(500).json({
+			'Get pins at location server error': err.message,
+		});
 	}
 };

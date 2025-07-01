@@ -5,6 +5,7 @@ import {
 	createPin,
 	deletePin,
 	getPin,
+	getPinsAtLocation,
 	listPins,
 	updatePin,
 } from '../controllers/pinsController';
@@ -27,6 +28,9 @@ router.get('/user', checkUser, listPins);
 
 // Get single pin
 router.get('/user/:pinId', checkUser, getPin);
+
+// Get pins at location (for "Next Memory" feature)
+router.get('/user/location/:latitude/:longitude', checkUser, getPinsAtLocation);
 
 // Update pins
 router.put('/user/:pinId', checkUser, updatePin);
