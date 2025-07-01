@@ -72,6 +72,10 @@ export default class RemapClient {
 	async getUserId() {
 		const { data, error } = await supabase.auth.getUser();
 
+		if (error) {
+            throw new Error("Unable to get User ID.");
+        }
+
 		return data.user?.id;
 	}
 
@@ -90,9 +94,16 @@ export default class RemapClient {
 		return response;
 	}
 
-	async getCircles(): Promise<{ id: string; name: string }[]> {
+	async getCircles(): Promise<Tables<'circles'>[]> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+
 		return await this.makeAuthRequest('circles', 'GET');
 	}
+
 
 	// ===================
 	//   PIN CRUD METHODS
@@ -104,7 +115,13 @@ export default class RemapClient {
 	}
 
 	// READ
-	async getUserPins(): Promise<any> {
+	async getUserPins(): Promise<Tables<'pins'>[]> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+
 		return await this.makeAuthRequest('pins/user', 'GET');
 	}
 
