@@ -16,7 +16,8 @@ import {
 	SafeAreaView,
 	Image,
 	Modal,
-	FlatList
+	FlatList,
+	Pressable
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/shared/useAuth';
@@ -87,7 +88,7 @@ function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
 
 /*------------------------- Circle ----------------------------*/
 function CirclesTab() {
-	const [circleData, circleSetData] = useState<Awaited<ReturnType<RemapClient["getCircles"]>> | null>(null);
+	const [circleData, circleSetData] = useState<Awaited<ReturnType<RemapClient['listCircles']>> | null>(null);
 
 	const [modalVisible, setModalVisible] = useState(false);
 	const [newCircle, setNewCircle] = useState('');
@@ -96,7 +97,7 @@ function CirclesTab() {
 		loadData();
 
 		async function loadData() {
-			const _circleData = await new RemapClient().getCircles();
+			const _circleData = await new RemapClient().listCircles();
 
 			console.log(_circleData);
 			circleSetData(_circleData);
@@ -112,7 +113,7 @@ function CirclesTab() {
 				data={circleData}
 				keyExtractor={(item, index) => {
 					if (item && item.id) {
-						return item.id;
+						return item.id.toString();
 					}
 					return `fallback-key-${index}`;
 				}}
@@ -149,7 +150,10 @@ function CirclesTab() {
 
 /*------------------------- Pins ----------------------------*/
 function PinsTab() {
-	const [data, setData] = useState<Awaited<ReturnType<RemapClient["getUserPins"]>> | null>(null);
+	const router = useRouter();
+
+	// Fetch Pins
+	const [data, setData] = useState<Awaited<ReturnType<RemapClient['getUserPins']>> | null>(null);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -173,6 +177,7 @@ function PinsTab() {
 			isMounted = false;
 		};
 	}, []);
+
 
 	// Handle Audio
 	const soundRef = useRef<Audio.Sound | null>(null);
@@ -285,7 +290,7 @@ function PinsTab() {
 				data={data}
 				keyExtractor={(item, index) => {
 					if (item && item.id) {
-						return item.id;
+						return item.id.toString();
 					}
 					return `fallback-key-${index}`;
 				}}
@@ -312,6 +317,15 @@ function PinsTab() {
 						<Button onPress={stopSound}>
 							Stop
 						</Button>
+						<Pressable
+						onPress={() =>
+							router.navigate({
+								pathname: '/(user)/[pinId]',
+								params: { pinId: `${item.id.toString()}`}
+							})
+						}>
+							<Text>View Pin</Text>
+						</Pressable>
 					</View>
 				)}
 			/>

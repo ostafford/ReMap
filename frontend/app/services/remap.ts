@@ -36,6 +36,10 @@ export default class RemapClient {
 		// Get Supabase session
 		const { data, error: authError } = await supabase.auth.getSession();
 
+		if (authError) {
+			throw new Error("No Session. Please Log in.");
+		}
+
 		const token = data.session?.access_token;
 
 		// Build headers with token
@@ -79,6 +83,10 @@ export default class RemapClient {
 		return data.user?.id;
 	}
 
+	// ===================
+	//   PROFILE METHODS
+	// ===================
+
 	async getProfile(): Promise<Tables<'profiles'> & { pins: number }> {
 		const userId = await this.getUserId();
 
@@ -94,7 +102,45 @@ export default class RemapClient {
 		return response;
 	}
 
-	async getCircles(): Promise<Tables<'circles'>[]> {
+	// UPDATE PROFILE (including avatar upload) (PUT request since it's just appending to the profile)
+	async updateProfile(profileData: FormData): Promise<any> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+
+		return await this.makeAuthRequest(
+			`profiles/${userId}`,
+			'PUT',
+			profileData,
+			true
+		);
+	}
+
+
+	// ===================
+	//   USER CIRCLE CRUD METHODS
+	// ===================
+
+	// CREATE
+	async createCircle(): Promise<Tables<'circles'>> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+
+		const response = await this.makeAuthRequest(
+			'circles',
+			'POST'
+		);
+
+		return response;
+	}
+
+	// READ
+	async listCircles(): Promise<Tables<'circles'>[]> {
 		const userId = await this.getUserId();
 
 		if (!userId) {
@@ -104,9 +150,41 @@ export default class RemapClient {
 		return await this.makeAuthRequest('circles', 'GET');
 	}
 
+	async getCircle(circleId: string): Promise<Tables<'circles'>> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+
+		return await this.makeAuthRequest(`circles/${circleId}`, 'GET');
+	}
+
+	// UPDATE
+	async updateCircle(circleId: string): Promise<Tables<'circles'>> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+
+		return await this.makeAuthRequest(`circles/${circleId}`, 'PUT');
+	}
+
+	// DELETE
+	async deleteCircle(circleId: string): Promise<Tables<'circles'>> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+
+		return await this.makeAuthRequest(`circles/${circleId}`, 'DELETE');
+	}
+
 
 	// ===================
-	//   PIN CRUD METHODS
+	//   USER PIN CRUD METHODS
 	// ===================
 
 	// CREATE
@@ -125,12 +203,14 @@ export default class RemapClient {
 		return await this.makeAuthRequest('pins/user', 'GET');
 	}
 
-	async getPublicPins(): Promise<any> {
-		return await this.makeAuthRequest('pins', 'GET');
-	}
+	async getPin(pinId: string): Promise<Tables<'pins'>> {
+	const userId = await this.getUserId();
 
-	async getPin(pinId: string): Promise<any> {
-		return await this.makeAuthRequest(`pins/user/${pinId}`, 'GET');
+	if (!userId) {
+		throw new Error('No user id found');
+	}
+	
+	return await this.makeAuthRequest(`pins/user/${pinId}`, 'GET');
 	}
 
 	// UPDATE
@@ -144,27 +224,68 @@ export default class RemapClient {
 	}
 
 	// DELETE
-	async deletePin(pinId: string): Promise<any> {
-		return await this.makeAuthRequest(`pins/user/${pinId}`, 'DELETE');
-	}
-
-	// ===================
-	//   PROFILE METHODS
-	// ===================
-
-	// UPDATE PROFILE (including avatar upload) (PUT request since it's just appending to the profile)
-	async updateProfile(profileData: FormData): Promise<any> {
+	async deletePin(pinId: string): Promise<Tables<'pins'>> {
 		const userId = await this.getUserId();
 
 		if (!userId) {
 			throw new Error('No user id found');
 		}
-
-		return await this.makeAuthRequest(
-			`profiles/${userId}`,
-			'PUT',
-			profileData,
-			true
-		);
+		
+		return await this.makeAuthRequest(`pins/user/${pinId}`, 'DELETE');
 	}
+
+
+	// ===================
+	//   MEMBERS CRUD METHODS
+	// ===================
+	
+	// ADD
+	async addMember(): Promise<Tables<'members'>> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+		
+		return await this.makeAuthRequest('circles/members', 'POST');
+	}
+
+	// READ
+	async listMembers(circleId: string): Promise<Tables<'members'>> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+		
+		return await this.makeAuthRequest(`circles/members/${circleId}`, 'GET');
+	}
+
+	// DELETE
+	async deleteMember(circleId: string): Promise<Tables<'members'>> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+		
+		return await this.makeAuthRequest(`circles/members/${circleId}`, 'DELETE');
+	}
+
+	
+	// ===================
+	//   PUBLIC CRUD METHODS
+	// ===================
+
+	/* PUBLIC PINS */
+	// LIST ALL PINS
+	async listPublicPins(): Promise<Tables<'pins'>[]> {
+		return await this.makeAuthRequest('pins', 'GET');
+	}
+
+	// GET PIN
+	async getPublicPin(pinId: string): Promise<Tables<'pins'>> {
+		return await this.makeAuthRequest(`pins/${pinId}`, 'GET');
+	}
+
 }

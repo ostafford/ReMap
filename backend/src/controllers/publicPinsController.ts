@@ -19,7 +19,7 @@ export const publicListPins = async (req: Request, res: Response) => {
             return;
         }
         console.log("List pins:", pins);
-        res.status(200).json({ "List pins": pins });
+        res.status(200).json(pins);
 
     } catch (err: any) {
         console.log("List pins server error", err.message);
@@ -47,7 +47,7 @@ export const publicGetPin = async (req: Request, res: Response) => {
             return;
         }
         console.log("Pin:", pins);
-        res.status(200).json({ "Pin": pins });
+        res.status(200).json(pins);
 
     } catch (err: any) {
         console.log("Get single pin server error", err.message);
