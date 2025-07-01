@@ -2,7 +2,7 @@
 //   CORE IMPORTS
 // ================
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { Canvas } from '@react-three/fiber/native';
 
 // ============================
@@ -104,10 +104,16 @@ export const SplashUI = ({
 					)}
 
 				<View style={styles.exploreContent}>
+					<Image
+						source={require('@/assets/images/earth-splash.jpg')}
+						style={styles.globeContainer}
+						resizeMode="contain"
+					/>
 					<Button
 						style={styles.exploreButton}
 						onPress={handlers.onNavigateToWorldMap}
 						textColour='black'
+						size='small'
 					>
 						Explore
 					</Button>
@@ -158,7 +164,7 @@ export const SplashUI = ({
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		
+
 	},
 	header: {
 		backgroundColor: 'black',
@@ -181,9 +187,9 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 	},
 	globeContainer: {
-		height: 300,
-		width: '100%',
-		marginVertical: 20,
+		marginTop: 20,
+		height: 400,
+		width: 400,
 	},
 	canvas: {
 		flex: 1,
@@ -202,6 +208,8 @@ const styles = StyleSheet.create({
 		width: '100%',
 	},
 	exploreButton: {
+		marginTop: 20,
+		position: 'absolute',
 		backgroundColor: 'white',
 		opacity: 0.6,
 		paddingVertical: 12,
