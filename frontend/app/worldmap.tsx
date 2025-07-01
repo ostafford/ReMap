@@ -358,104 +358,163 @@ export default function WorldMapScreen() {
 	// =============================
 	//   SHARED PIN PROCESSING
 	// =============================
-	const processPinsResponse = useCallback((result: any) => {
-		console.log('📡 [WORLDMAP] Processing backend response:', result);
+	const processPinsResponse = useCallback(
+		(result: any) => {
+			console.log('📡 [WORLDMAP] Processing backend response:', result);
 
-		// Handle the actual backend response format: { "List pins": pins }
-		const pins = result['List pins'] || result.data || [];
+			// Handle the actual backend response format: { "List pins": pins }
+			const pins = result['List pins'] || result.data || [];
 
-		console.log('📊 [WORLDMAP] Raw pins array:', pins);
+			console.log('📊 [WORLDMAP] Raw pins array:', pins);
 
-		if (Array.isArray(pins)) {
-			// Filter out pins with invalid coordinates
-			const validPins = pins.filter((pin: any) => {
-				const lat = pin.latitude;
-				const lng = pin.longitude;
-
-				// Basic range validation
-				const validLat = lat >= -90 && lat <= 90;
-				const validLng = lng >= -180 && lng <= 180;
-
-				// Additional validation for obviously wrong coordinates
-				// Filter out coordinates that are clearly invalid (like 0,0 for most cases)
-				const notZeroZero = !(lat === 0 && lng === 0);
-
-				// Filter out coordinates that are too extreme (like 90, -120)
-				const notExtreme = Math.abs(lat) < 85 && Math.abs(lng) < 175;
-
-				const isValid =
-					validLat && validLng && notZeroZero && notExtreme;
-
-				if (!isValid) {
-					console.log(
-						`🚫 [WORLDMAP] Filtered out invalid pin "${pin.name}" with coordinates (${lat}, ${lng})`
-					);
-				}
-
-				return isValid;
+			// Debug: Log visibility of each pin
+			pins.forEach((pin: any, index: number) => {
+				console.log(
+					`🔍 [WORLDMAP] Pin ${index}: "${pin.name}" - visibility: "${pin.visibility}", private_pin: ${pin.private_pin}, owner: ${pin.owner_id}`
+				);
 			});
 
-			console.log(
-				`📊 [WORLDMAP] Total pins: ${pins.length}, Valid pins: ${validPins.length}`
-			);
+			if (Array.isArray(pins)) {
+				// Filter out pins with invalid coordinates AND apply visibility rules
+				const validPins = pins.filter((pin: any) => {
+					const lat = pin.latitude;
+					const lng = pin.longitude;
 
-			// Transform backend data to MapPin format
-			const transformedPins: any[] = validPins.map((pin: any) => ({
-				id: pin.id,
-				name: pin.name,
-				description: pin.description,
-				coordinate: {
-					latitude: pin.latitude,
-					longitude: pin.longitude,
-				},
-				pinData: {
-					memory: {
-						name: pin.name,
-						description: pin.description,
-						owner_id: pin.owner_id,
-						created_at: pin.created_at,
-						visibility: [pin.visibility || 'public'],
-						media: {
-							photos: (pin.image_urls || [])
-								.filter((url: string) => url && url !== null)
-								.map((url: string, index: number) => ({
-									name: `photo_${index + 1}`,
-									uri: url,
-								})),
-							videos: [],
-							audio: pin.audio_url
-								? { recorded: pin.audio_url }
-								: null,
-						},
-					},
+					// Basic range validation
+					const validLat = lat >= -90 && lat <= 90;
+					const validLng = lng >= -180 && lng <= 180;
+
+					// Additional validation for obviously wrong coordinates
+					// Filter out coordinates that are clearly invalid (like 0,0 for most cases)
+					const notZeroZero = !(lat === 0 && lng === 0);
+
+					// Filter out coordinates that are too extreme (like 90, -120)
+					const notExtreme =
+						Math.abs(lat) < 85 && Math.abs(lng) < 175;
+
+					// Visibility filtering logic
+					let isVisible = true;
+
+					// Check private_pin field first (this is the primary indicator of private pins)
+					if (pin.private_pin === true) {
+						// Private pins: Only show to the owner
+						isVisible = Boolean(
+							isAuthenticated && user && pin.owner_id === user.id
+						);
+						if (!isVisible) {
+							console.log(
+								`🚫 [WORLDMAP] Filtered out private pin "${pin.name}" - not owner`
+							);
+						}
+					} else if (pin.visibility === 'social') {
+						// Social pins: Only show to authenticated users who are members of the social circle
+						// TODO: Implement social circle membership check when backend supports it
+						isVisible = Boolean(isAuthenticated);
+						if (!isVisible) {
+							console.log(
+								`🚫 [WORLDMAP] Filtered out social pin "${pin.name}" - not authenticated`
+							);
+						}
+					}
+					// Public pins: Show to everyone (no filtering needed)
+
+					const isValid =
+						validLat &&
+						validLng &&
+						notZeroZero &&
+						notExtreme &&
+						isVisible;
+
+					if (!isValid) {
+						if (!isVisible) {
+							console.log(
+								`🚫 [WORLDMAP] Filtered out pin "${pin.name}" due to visibility rules`
+							);
+						} else {
+							console.log(
+								`🚫 [WORLDMAP] Filtered out invalid pin "${pin.name}" with coordinates (${lat}, ${lng})`
+							);
+						}
+					}
+
+					return isValid;
+				});
+
+				console.log(
+					`📊 [WORLDMAP] Total pins: ${pins.length}, Valid pins: ${validPins.length}`
+				);
+
+				// Transform backend data to MapPin format with new user data structure
+				const transformedPins: any[] = validPins.map((pin: any) => ({
+					id: pin.id,
 					name: pin.name,
-					location: {
-						location_query:
-							pin.location_query || 'Unknown location',
+					description: pin.description,
+					coordinate: {
 						latitude: pin.latitude,
 						longitude: pin.longitude,
 					},
-				},
-			}));
+					pinData: {
+						memory: {
+							name: pin.name,
+							description: pin.description,
+							owner_id: pin.owner_id,
+							created_at: pin.created_at,
+							visibility: [pin.visibility || 'public'],
+							media: {
+								photos: (pin.image_urls || [])
+									.filter(
+										(url: string) => url && url !== null
+									)
+									.map((url: string, index: number) => ({
+										name: `photo_${index + 1}`,
+										uri: url,
+									})),
+								videos: [],
+								audio: pin.audio_url
+									? { recorded: pin.audio_url }
+									: null,
+							},
+						},
+						name: pin.name,
+						location: {
+							location_query:
+								pin.location_query || 'Unknown location',
+							latitude: pin.latitude,
+							longitude: pin.longitude,
+						},
+						// Add owner data for BottomSheet
+						owner: pin.owner || {
+							id: pin.owner_id,
+							username: null,
+							full_name: null,
+							avatar_url: null,
+						},
+					},
+				}));
 
-			setRealPins(transformedPins);
-			console.log(
-				`✅ [WORLDMAP] Loaded ${transformedPins.length} valid pins via remap.ts`
-			);
-			return true;
-		} else {
-			console.error('❌ [WORLDMAP] Invalid response format:', result);
-			setPinError('Invalid response format from backend');
-			setRealPins([]);
-			return false;
-		}
-	}, []);
+				setRealPins(transformedPins);
+				console.log(
+					`✅ [WORLDMAP] Loaded ${transformedPins.length} valid pins via remap.ts`
+				);
+				return true;
+			} else {
+				console.error('❌ [WORLDMAP] Invalid response format:', result);
+				setPinError('Invalid response format from backend');
+				setRealPins([]);
+				return false;
+			}
+		},
+		[isAuthenticated, user]
+	);
 
 	// =============================
 	//   PIN MARKER DISPLAY SECTION
 	// =============================
 	const fetchPins = useCallback(async () => {
 		console.log('🔄 [WORLDMAP] Fetching pins from backend via remap.ts');
+		console.log('🔐 [WORLDMAP] User authenticated:', isAuthenticated);
+		console.log('👤 [WORLDMAP] Current user:', user?.id);
+
 		setIsLoadingPins(true);
 		setPinError(null);
 
@@ -463,8 +522,19 @@ export default function WorldMapScreen() {
 			console.log('🔧 [WORLDMAP] Creating RemapClient...');
 			const remapClient = new RemapClient();
 
-			console.log('📡 [WORLDMAP] Calling getPublicPins()...');
-			const result = await remapClient.getPublicPins();
+			let result;
+
+			if (isAuthenticated && user) {
+				// Authenticated user: Get all pins they should see
+				console.log(
+					'📡 [WORLDMAP] Fetching user pins (includes private + social)'
+				);
+				result = await remapClient.getUserPins();
+			} else {
+				// Non-authenticated user: Only public pins
+				console.log('📡 [WORLDMAP] Fetching public pins only');
+				result = await remapClient.getPublicPins();
+			}
 
 			console.log('📡 [WORLDMAP] Backend response:', result);
 
@@ -489,7 +559,7 @@ export default function WorldMapScreen() {
 		} finally {
 			setIsLoadingPins(false);
 		}
-	}, [processPinsResponse]);
+	}, [processPinsResponse, isAuthenticated, user]);
 
 	function debounce(func: Function, wait: number) {
 		let timeout: ReturnType<typeof setTimeout>;
@@ -518,7 +588,16 @@ export default function WorldMapScreen() {
 
 			try {
 				const remapClient = new RemapClient();
-				const result = await remapClient.getPublicPins();
+
+				let result;
+
+				if (isAuthenticated && user) {
+					// Authenticated user: Get all pins they should see
+					result = await remapClient.getUserPins();
+				} else {
+					// Non-authenticated user: Only public pins
+					result = await remapClient.getPublicPins();
+				}
 
 				const success = processPinsResponse(result);
 
@@ -535,7 +614,7 @@ export default function WorldMapScreen() {
 				setIsLoadingPins(false);
 			}
 		},
-		[isLoadingPins, processPinsResponse]
+		[isLoadingPins, processPinsResponse, isAuthenticated, user]
 	);
 
 	// Add debounced version
