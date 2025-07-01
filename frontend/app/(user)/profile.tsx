@@ -1,7 +1,7 @@
 // =========================================================================
 //   						EXTERNAL IMPORTS
 // =========================================================================
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // ==============================
@@ -21,6 +21,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/shared/useAuth';
 import { Audio } from 'expo-av';
+import { useFocusEffect } from '@react-navigation/native';
 
 // =================
 //   UI COMPONENTS
@@ -151,27 +152,52 @@ function PinsTab() {
 	const [data, setData] = useState<Awaited<ReturnType<RemapClient["getUserPins"]>> | null>(null);
 
 	useEffect(() => {
+		let isMounted = true;
+
+		const loadData = async () => {
+			try {
+				const _data = await new RemapClient().getUserPins();				
+				
+				if (isMounted) {
+					console.log(_data);
+					setData(_data);	
+				}
+			} catch (error) {
+				console.error('Error fetching pins:', error);
+			}
+		};
+
 		loadData();
-
-		async function loadData() {
-			const _data = await new RemapClient().getUserPins();
-
-			console.log(_data);
-			setData(_data);
-		}
+		
+		return () => {
+			isMounted = false;
+		};
 	}, []);
 
 	// Handle Audio
 	const soundRef = useRef<Audio.Sound | null>(null);
 	const [lastAudio, setLastAudio] = useState<string | null>(null);
+	const [isPaused, setIsPaused] = useState(false);
 
 	// Play Audio
-	async function PlaySound(audio_url: any) {
+	async function PlaySound(audio_url: string | undefined | null) {
 		if (!audio_url) {
 			console.warn("No audio url.");
 			return;
 		}
 
+		// Pause Audio at a specific time.
+		if (soundRef.current && isPaused && lastAudio === audio_url) {
+			try {
+				await soundRef.current.playAsync();
+				setIsPaused(false);
+				return;
+			} catch (error) {
+				console.error("Error resuming audio", error);
+			}
+		}
+
+		// Stop Audio and press again = reset.
 		try {
 			if (soundRef.current) {
 				await soundRef.current.unloadAsync();
@@ -184,32 +210,72 @@ function PinsTab() {
 			);
 			soundRef.current = sound;
 			setLastAudio(audio_url);
+			setIsPaused(false);
+
+			// Track Audio
+			sound.setOnPlaybackStatusUpdate((status) => {
+				if (status.isLoaded && status.didJustFinish && !status.isLooping) {
+					console.log("Audio Finished.");
+					setLastAudio(null);
+					setIsPaused(false);
+				}
+			})
+
 		} catch (error) {
 			console.error("Error playing audio", error);
 		}
 	}
 
-	// Replay Audio
-	const replaySound = async () => {
+	// Pause Audio
+	const pauseSound = async () => {
 		try {
 			if (soundRef.current) {
-				await soundRef.current.replayAsync();
-			} else {
-				await PlaySound(lastAudio);
+				await soundRef.current.pauseAsync();
+				setIsPaused(true);
 			}
 		} catch (error) {
-			console.error("Error replaying sound", error);
+			console.error("Error pausing audio", error);
 		}
-	}
+	};
+
+	// Stop Audio
+	const stopSound = async () => {
+		try {
+			if (soundRef.current) {
+				await soundRef.current.stopAsync();
+				setLastAudio(null);
+			}
+		} catch (error) {
+			console.error("Error stopping audio", error);
+		}
+	};
 
 	// Prevent memory leaks by unloading the audio when the component unmounts.
 	useEffect(() => {
 		return () => {
 			if (soundRef.current) {
 				soundRef.current?.unloadAsync();
+				soundRef.current.setOnPlaybackStatusUpdate(null);
+				soundRef.current = null;
+				setLastAudio(null);
+				setIsPaused(false);
 			}
 		};
 	}, []);
+
+	// Stop Audio from playing if not on page
+	useFocusEffect(
+		useCallback(() => {
+			return () => {
+				if (soundRef.current) {
+					soundRef.current.unloadAsync();
+					soundRef.current = null;
+					setLastAudio(null); // reset audio state
+					setIsPaused(false); // reset pause state
+				}
+			};
+		}, [])
+	);
 
 	return (
 		<View style={styles.tabContent}>
@@ -238,12 +304,14 @@ function PinsTab() {
 						)}
 
 						<Button onPress={() => PlaySound(item?.audio_url)}>
-							Play sound
+							Play
 						</Button>
-						<Button onPress={replaySound}>
-							Replay sound
+						<Button onPress={pauseSound}>
+							Pause
 						</Button>
-
+						<Button onPress={stopSound}>
+							Stop
+						</Button>
 					</View>
 				)}
 			/>
