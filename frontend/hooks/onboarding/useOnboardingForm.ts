@@ -3,7 +3,8 @@
 //	===============
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { signUp } from '@/services/auth';
+import { signUp, signIn } from '@/app/services/auth';
+import RemapClient from '@/app/services/remap';
 
 //	====================
 // 	  TYPE DEFINITION
@@ -167,30 +168,96 @@ export const useOnboardingForm = () => {
 	const createUserAccountWithProfile = async (
 		starterPackSelections: string[]
 	) => {
-		await signUp({
+		console.log(
+			'🚀 [ONBOARDING] Starting account creation with profile data'
+		);
+
+		// Create account WITHOUT profile picture (using current auth.ts method)
+		const result = await signUp({
+			email: formData.email,
+			password: formData.password,
+			fullName: formData.fullname,
+			// Don't include profilePictureUri here - we'll handle it separately
+		});
+
+		console.log('✅ [ONBOARDING] Account created successfully');
+
+		//  Auto-sign-in the user to get authentication (JWT) token
+		console.log('🔐 [ONBOARDING] Auto-signing in user...');
+		await signIn({
 			email: formData.email,
 			password: formData.password,
 		});
 
+		console.log('✅ [ONBOARDING] User signed in successfully');
+
+		// Upload profile picture if provided (using backend endpoint)
+		if (formData.profilePictureUri) {
+			console.log(
+				'📤 [ONBOARDING] Uploading profile picture via backend...'
+			);
+			try {
+				const remapClient = new RemapClient();
+
+				// Create FormData for profile update
+				const profileFormData = new FormData();
+				profileFormData.append('full_name', formData.fullname);
+				profileFormData.append(
+					'username',
+					generateUsername(formData.email)
+				);
+
+				// Add profile picture as avatar
+				profileFormData.append('avatar', {
+					uri: formData.profilePictureUri,
+					type: 'image/jpeg',
+					name: 'profile-picture.jpg',
+				} as any);
+
+				// Upload via backend endpoint
+				const profileResult = await remapClient.updateProfile(
+					profileFormData
+				);
+				console.log(
+					'✅ [ONBOARDING] Profile picture uploaded successfully:',
+					profileResult
+				);
+			} catch (profileError) {
+				console.error(
+					'⚠️ [ONBOARDING] Profile picture upload failed:',
+					profileError
+				);
+				// Don't throw error - account was created successfully
+				// User can upload profile picture later via the profile page
+			}
+		}
+
 		const userProfileData = buildUserProfileData(starterPackSelections);
 		console.log(
-			'@useOnboardingForm - User account data with enhanced state:',
+			'✅ [ONBOARDING] User account created with profile:',
 			userProfileData
 		);
 
-		return userProfileData;
+		return { result, userProfileData };
+	};
+
+	// Helper function to generate username (moved from auth.ts)
+	const generateUsername = (email: string): string => {
+		const baseUsername = email.split('@')[0];
+		// Remove any special characters and ensure it's valid
+		return baseUsername.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
 	};
 
 	const handleAccountCreationSuccess = () => {
 		showMessage(
-			'Welcome to ReMap! Account created successfully.',
+			'Welcome to ReMap! Your account and profile have been created successfully.',
 			'success'
 		);
 		router.replace('/worldmap');
 	};
 
 	const handleAccountCreationError = (error: any) => {
-		console.error('Signup error:', error);
+		console.error('🚀 [ONBOARDING] Account creation error:', error);
 		const errorMessage =
 			error?.message || 'Could not create account. Please try again.';
 		showMessage(errorMessage, 'error');
@@ -200,7 +267,7 @@ export const useOnboardingForm = () => {
 		const starterPackSelections = getStarterPackSelections();
 
 		console.log(
-			' @useOnboardingForm - handleSignUp automatically extracted selections:',
+			'🚀 [ONBOARDING] handleSignUp with selections:',
 			starterPackSelections
 		);
 

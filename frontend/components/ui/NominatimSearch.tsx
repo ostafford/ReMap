@@ -143,9 +143,22 @@ export function NominatimSearch({
 
 	const handleResultSelect = useCallback(
 		(result: SearchResult) => {
+			const latitude = parseFloat(result.lat);
+			const longitude = parseFloat(result.lon);
+
+			// Validate coordinates are within valid geographic ranges
+			if (latitude < -90 || latitude > 90) {
+				console.error('Invalid latitude from Nominatim:', latitude);
+				return;
+			}
+			if (longitude < -180 || longitude > 180) {
+				console.error('Invalid longitude from Nominatim:', longitude);
+				return;
+			}
+
 			const coordinates = {
-				latitude: parseFloat(result.lat),
-				longitude: parseFloat(result.lon),
+				latitude,
+				longitude,
 				address: result.display_name,
 			};
 

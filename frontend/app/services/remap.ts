@@ -2,6 +2,7 @@
 
 import { supabase } from '@/lib/supabase';
 import type { Tables } from '@/types/database';
+<<<<<<< HEAD
 import { Platform } from 'react-native';
 
 // ==================
@@ -52,6 +53,8 @@ export interface MapPin {
 // ==================
 // UTILITY FUNCTIONS
 // ==================
+=======
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 
 const getApiBaseUrl = (): string => {
 	const url = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -62,6 +65,7 @@ const getApiBaseUrl = (): string => {
 
 	return url;
 };
+<<<<<<< HEAD
 
 /**
  * Utility function to derive privatePin from visibility
@@ -70,6 +74,8 @@ const getApiBaseUrl = (): string => {
 export const isPrivatePin = (visibility: string): boolean => {
 	return visibility === 'private';
 };
+=======
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 
 // Put ip address here
 const API_BASE_URL = getApiBaseUrl();
@@ -85,6 +91,7 @@ export default class RemapClient {
 		this.baseUrl = API_BASE_URL;
 	}
 
+<<<<<<< HEAD
 	// ==================
 	// AUTHENTICATION METHODS
 	// ==================
@@ -105,10 +112,25 @@ export default class RemapClient {
 		const { data, error: authError } = await supabase.auth.getSession();
 		const token = data.session?.access_token;
 
+=======
+	async makeAuthRequest(
+		endpoint: string,
+		method: string,
+		body?: any,
+		isFormData?: boolean
+	) {
+		// Get Supabase session
+		const { data, error: authError } = await supabase.auth.getSession();
+
+		const token = data.session?.access_token;
+
+		// Build headers with token
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 		const headers: Record<string, string> = {
 			Authorization: `Bearer ${token}`,
 		};
 
+<<<<<<< HEAD
 		// Add content type header if not form data
 		if (!options.isFormData) {
 			headers['Content-Type'] = 'application/json';
@@ -123,6 +145,24 @@ export default class RemapClient {
 
 		// Handle errors
 		if (response.status === 403) {
+=======
+		// Handle content types
+		if (isFormData) {
+			// Let browser set boundary automatically
+		} else {
+			headers['Content-Type'] = 'application/json';
+		}
+
+		// Make request
+		const response = await fetch(`${this.baseUrl}/api/${endpoint}`, {
+			headers,
+			method,
+			body,
+		});
+
+		// Handle errors
+		if (response.status == 403) {
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 			throw new Error('Protected endpoint');
 		}
 
@@ -133,6 +173,7 @@ export default class RemapClient {
 		return await response.json();
 	}
 
+<<<<<<< HEAD
 	/**
 	 * Public method for JSON requests
 	 * Flow: remap.ts → makeRequest() → backend
@@ -173,6 +214,21 @@ export default class RemapClient {
 			throw new Error('No user id found');
 		}
 
+=======
+	async getUserId() {
+		const { data, error } = await supabase.auth.getUser();
+
+		return data.user?.id;
+	}
+
+	async getProfile(): Promise<Tables<'profiles'> & { pins: number }> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 		const response = await this.makeAuthRequest(
 			`profiles/${userId}`,
 			'GET'
@@ -181,6 +237,7 @@ export default class RemapClient {
 		return response;
 	}
 
+<<<<<<< HEAD
 	// ==================
 	// PIN CREATION METHODS
 	// ==================
@@ -403,5 +460,66 @@ export default class RemapClient {
 				error: 'Failed to fetch pins',
 			};
 		}
+=======
+	async getCircles(): Promise<{ id: string; name: string }[]> {
+		return await this.makeAuthRequest('circles', 'GET');
+	}
+
+	// ===================
+	//   PIN CRUD METHODS
+	// ===================
+
+	// CREATE
+	async createPin(pinData: FormData): Promise<any> {
+		return await this.makeAuthRequest('pins/user', 'POST', pinData, true);
+	}
+
+	// READ
+	async getUserPins(): Promise<any> {
+		return await this.makeAuthRequest('pins/user', 'GET');
+	}
+
+	async getPublicPins(): Promise<any> {
+		return await this.makeAuthRequest('pins', 'GET');
+	}
+
+	async getPin(pinId: string): Promise<any> {
+		return await this.makeAuthRequest(`pins/user/${pinId}`, 'GET');
+	}
+
+	// UPDATE
+	async updatePin(pinId: string, pinData: FormData): Promise<any> {
+		return await this.makeAuthRequest(
+			`pins/user/${pinId}`,
+			'PUT',
+			pinData,
+			true
+		);
+	}
+
+	// DELETE
+	async deletePin(pinId: string): Promise<any> {
+		return await this.makeAuthRequest(`pins/user/${pinId}`, 'DELETE');
+	}
+
+	// ===================
+	//   PROFILE METHODS
+	// ===================
+
+	// UPDATE PROFILE (including avatar upload) (PUT request since it's just appending to the profile)
+	async updateProfile(profileData: FormData): Promise<any> {
+		const userId = await this.getUserId();
+
+		if (!userId) {
+			throw new Error('No user id found');
+		}
+
+		return await this.makeAuthRequest(
+			`profiles/${userId}`,
+			'PUT',
+			profileData,
+			true
+		);
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 	}
 }

@@ -14,6 +14,7 @@ import {
 	TouchableOpacity,
 	StyleSheet,
 	SafeAreaView,
+	Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/shared/useAuth';
@@ -26,21 +27,20 @@ import { Button } from '@/components/ui/Button';
 
 import RemapClient from '../services/remap';
 
-
 import type { Tables } from '@/types/database';
 
 const Tab = createMaterialTopTabNavigator();
 
-
 function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
-	const [data, setData] = useState<Awaited<ReturnType<RemapClient["getProfile"]>> | null>(null);
+	const [data, setData] = useState<Awaited<
+		ReturnType<RemapClient['getProfile']>
+	> | null>(null);
 
 	useEffect(() => {
 		loadData();
 
 		async function loadData() {
 			const _data = await new RemapClient().getProfile();
-
 
 			console.log(_data);
 			setData(_data);
@@ -49,10 +49,23 @@ function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
 
 	return (
 		<View style={styles.tabContent}>
-			<Text>Profile picture here</Text>
-			<Text style={styles.username}>username</Text>
-			<Text>Full name</Text>
-			<Text>{data?.full_name}</Text>
+			{/* Profile Picture Display */}
+			{data?.avatar_url ? (
+				<Image
+					source={{ uri: data.avatar_url }}
+					style={styles.profileImage}
+					resizeMode="cover"
+				/>
+			) : (
+				<View style={styles.profileImagePlaceholder}>
+					<Text style={styles.profileImagePlaceholderText}>
+						No Profile Picture
+					</Text>
+				</View>
+			)}
+
+			<Text style={styles.username}>Username: {data?.username}</Text>
+			<Text>Full name: {data?.full_name}</Text>
 			<Text>Total Pins</Text>
 			<Text>{data?.pins}</Text>
 			<Button
@@ -209,5 +222,29 @@ const styles = StyleSheet.create({
 		fontWeight: '600',
 		fontSize: 10,
 		color: 'black',
+	},
+
+	profileImage: {
+		width: 100,
+		height: 100,
+		borderRadius: 50,
+		marginBottom: 20,
+	},
+
+	profileImagePlaceholder: {
+		width: 100,
+		height: 100,
+		borderRadius: 50,
+		backgroundColor: '#ccc',
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginBottom: 20,
+	},
+
+	profileImagePlaceholderText: {
+		fontSize: 12,
+		fontWeight: 'bold',
+		color: '#666',
+		textAlign: 'center',
 	},
 });

@@ -56,6 +56,11 @@ import { VisibilitySelector } from '@/components/createPin/VisibilitySelector';
 import { SocialCircleSelector } from '@/components/createPin/SocialCircleSelector';
 import { CreatePinPreviewBottomSheet } from '@/components/createPin/CreatePinPreviewBottomSheet';
 
+// =================
+//   SERVICES
+// =================
+import RemapClient from '@/app/services/remap';
+
 // ========================
 //   COMPONENT DEFINITION
 // ========================
@@ -122,8 +127,8 @@ export default function CreatePinScreen() {
 	// ===============================================
 
 	const {
-		memoryTitle,
-		setMemoryTitle,
+		memoryName,
+		setMemoryName,
 		memoryDescription,
 		setMemoryDescription,
 		locationQuery,
@@ -131,7 +136,7 @@ export default function CreatePinScreen() {
 		coordinates,
 		updateCoordinatesFromLocationSelector,
 		locationInputRef,
-		titleInputRef,
+		nameInputRef,
 		descriptionInputRef,
 		validateMemoryContent,
 		resetForm,
@@ -191,7 +196,7 @@ export default function CreatePinScreen() {
 	}, []);
 
 	const createPinLogic = useCreatePin({
-		memoryTitle,
+		memoryName,
 		memoryDescription,
 		locationQuery,
 		coordinates,
@@ -203,7 +208,7 @@ export default function CreatePinScreen() {
 		validateMemoryContent,
 		resetMemoryContent: resetForm,
 		resetMedia,
-		setMemoryTitle,
+		setMemoryName,
 		setMemoryDescription,
 		onSuccess: handleSuccess,
 	});
@@ -230,11 +235,22 @@ export default function CreatePinScreen() {
 	}, []);
 
 	const handleResetForm = useCallback(() => {
-		setMemoryTitle('');
+		setMemoryName('');
 		setMemoryDescription('');
 		resetForm();
 		resetMedia();
+<<<<<<< HEAD
 	}, [setMemoryTitle, setMemoryDescription, resetForm, resetMedia]);
+=======
+		resetAllPrivacySettings();
+	}, [
+		setMemoryName,
+		setMemoryDescription,
+		resetMemoryContent,
+		resetMedia,
+		resetAllPrivacySettings,
+	]);
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 
 	// ===================
 	//   PRE-FILL EVENTS
@@ -325,11 +341,11 @@ export default function CreatePinScreen() {
 					</LabelText>
 
 					<Input
-						ref={titleInputRef}
-						label="Memory Title"
-						placeholder="Give this memory a title..."
-						value={memoryTitle}
-						onChangeText={setMemoryTitle}
+						ref={nameInputRef}
+						label="Memory Name"
+						placeholder="Give this memory a name..."
+						value={memoryName}
+						onChangeText={setMemoryName}
 						style={styles.fullWidth}
 						required={true}
 					/>

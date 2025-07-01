@@ -9,8 +9,23 @@ export const publicListPins = async (req: Request, res: Response) => {
 	try {
 		const { data: pins, error } = await supabase
 			.from('pins')
+<<<<<<< HEAD
 			.select()
 			.eq('private_pin', false);
+=======
+			.select(
+				`
+            *,
+            owner:profiles!pins_owner_id_fkey(
+                id,
+                username,
+                full_name,
+                avatar_url
+            )
+        `
+			)
+			.neq('visibility', 'private');
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 
 		if (error) {
 			console.log('List pins error:', error.message);
@@ -33,9 +48,25 @@ export const publicGetPin = async (req: Request, res: Response) => {
 	try {
 		const { data: pins, error } = await supabase
 			.from('pins')
+<<<<<<< HEAD
 			.select()
 			.eq('id', pin_Id)
 			.eq('private_pin', false)
+=======
+			.select(
+				`
+            *,
+            owner:profiles!pins_owner_id_fkey(
+                id,
+                username,
+                full_name,
+                avatar_url
+            )
+        `
+			)
+			.eq('id', pin_Id)
+			.neq('visibility', 'private')
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 			.single();
 
 		if (error) {

@@ -44,6 +44,11 @@ import { Dropdown } from 'react-native-element-dropdown';
 //   						INTERNAL IMPORTS
 // =========================================================================
 
+// ======================
+//   CLIENT IMPORTS
+// =======================
+import RemapClient from '@/app/services/remap';
+
 // =========================
 //   NOMINATIM IMPORT
 // =========================
@@ -58,7 +63,10 @@ import { useAuth } from '@/hooks/shared/useAuth';
 import { useModal } from '@/hooks/shared/useModal';
 import { useSlideAnimation } from '@/hooks/useSlideAnimation';
 import { useNotification } from '@/contexts/NotificationContext';
+<<<<<<< HEAD
 import RemapClient, { type MapPin } from '@/app/services/remap';
+=======
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 
 // ======================
 //  LAYOUT COMPONENTSr
@@ -72,7 +80,10 @@ import { Footer } from '@/components/layout/Footer';
 // =================
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
+<<<<<<< HEAD
 import { CustomButton } from '@/components/ui/CustomButton';
+=======
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 import { Input } from '@/components/ui/TextInput';
 import { Modal } from '@/components/ui/Modal';
 import { TopNotificationSheet } from '@/components/ui/TopNotificationSheet';
@@ -95,8 +106,13 @@ import { ReMapColors } from '@/constants/Colors';
 // ===================
 //   SERVICES IMPORTS
 // ===================
-import { getCurrentUser, signOut } from '@/services/auth';
+import { getCurrentUser, signOut } from '@/app/services/auth';
 import { remap } from 'three/tsl';
+
+// =========================
+//   DATA IMPORTS
+// =========================
+import { STARTER_PACKS } from '@/constants/onboardingStaticData';
 
 // =========================================================================
 //   						COMPONENT DEFINITION
@@ -126,8 +142,8 @@ export default function WorldMapScreen() {
 	const INITIAL_REGION = {
 		latitude: -37.817979,
 		longitude: 144.960408,
-		latitudeDelta: 0.01,
-		longitudeDelta: 0.01,
+		latitudeDelta: 0.05, // Shows Melbourne CBD + nearby suburbs
+		longitudeDelta: 0.05, // Shows Melbourne CBD + nearby suburbs
 	};
 
 	const mapRef = useRef<MapView>(null);
@@ -155,6 +171,7 @@ export default function WorldMapScreen() {
 	// ==================================
 	//   CIRCLE SELECTION DROPDOWN SETUP
 	// ==================================
+<<<<<<< HEAD
 	const circleData = [
 		{ label: 'Global', value: '1' },
 		{ label: 'Private', value: '2' },
@@ -163,6 +180,54 @@ export default function WorldMapScreen() {
 	];
 
 	const [circle, setCircle] = useState(null);
+=======
+
+	const [circle, setCircle] = useState(null);
+	const [circleData, setCircleData] = useState<
+		{ label: string; value: string }[]
+	>([]);
+
+	useEffect(() => {
+		const fetchCircles = async () => {
+			// Only fetch circles if user is authenticated
+			if (!isAuthenticated) {
+				console.log(
+					'🔒 [WORLDMAP] User not authenticated, skipping circles fetch'
+				);
+				setCircleData([
+					{ label: 'Global', value: 'global' },
+					{ label: 'Private', value: 'private' },
+				]);
+				return;
+			}
+
+			try {
+				const remap = new RemapClient();
+				const circles = await remap.getCircles();
+
+				const defaultCircles = [
+					{ label: 'Global', value: 'global' },
+					{ label: 'Private', value: 'private' },
+				];
+
+				const socialCircles = circles.map((circle) => ({
+					label: circle.name,
+					value: circle.id,
+				}));
+
+				setCircleData([...defaultCircles, ...socialCircles]);
+			} catch (err) {
+				console.error('Error fetching circles:', err);
+				// Fallback to default circles on error
+				setCircleData([
+					{ label: 'Global', value: 'global' },
+					{ label: 'Private', value: 'private' },
+				]);
+			}
+		};
+		fetchCircles();
+	}, [isAuthenticated]);
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 
 	// ==================================
 	//   STARTER PACK SELECT SETUP
@@ -351,10 +416,11 @@ export default function WorldMapScreen() {
 	// =============================
 	//   PIN MARKER DISPLAY SECTION
 	// =============================
-	const [realPins, setRealPins] = useState<MapPin[]>([]);
+	const [realPins, setRealPins] = useState<any[]>([]);
 	const [isLoadingPins, setIsLoadingPins] = useState(false);
 	const [pinError, setPinError] = useState<string | null>(null);
 
+<<<<<<< HEAD
 	// Cache for pins to avoid redundant API calls
 	const [pinCache, setPinCache] = useState<Map<string, MapPin[]>>(new Map());
 	const [lastViewport, setLastViewport] = useState<string | null>(null);
@@ -408,6 +474,213 @@ export default function WorldMapScreen() {
 
 		initialFetch();
 	}, []); // Empty dependency array - only run once on mount
+=======
+	// =============================
+	//   SHARED PIN PROCESSING
+	// =============================
+	const processPinsResponse = useCallback(
+		(result: any) => {
+			console.log('📡 [WORLDMAP] Processing backend response:', result);
+
+			// Handle the actual backend response format: { "List pins": pins }
+			const pins = result['List pins'] || result.data || [];
+
+			console.log('📊 [WORLDMAP] Raw pins array:', pins);
+
+			// Debug: Log visibility of each pin
+			pins.forEach((pin: any, index: number) => {
+				console.log(
+					`🔍 [WORLDMAP] Pin ${index}: "${pin.name}" - visibility: "${pin.visibility}", private_pin: ${pin.private_pin}, owner: ${pin.owner_id}`
+				);
+			});
+
+			if (Array.isArray(pins)) {
+				// Filter out pins with invalid coordinates AND apply visibility rules
+				const validPins = pins.filter((pin: any) => {
+					const lat = pin.latitude;
+					const lng = pin.longitude;
+
+					// Basic range validation
+					const validLat = lat >= -90 && lat <= 90;
+					const validLng = lng >= -180 && lng <= 180;
+
+					// Additional validation for obviously wrong coordinates
+					// Filter out coordinates that are clearly invalid (like 0,0 for most cases)
+					const notZeroZero = !(lat === 0 && lng === 0);
+
+					// Filter out coordinates that are too extreme (like 90, -120)
+					const notExtreme =
+						Math.abs(lat) < 85 && Math.abs(lng) < 175;
+
+					// Visibility filtering logic
+					let isVisible = true;
+
+					// Check private_pin field first (this is the primary indicator of private pins)
+					if (pin.private_pin === true) {
+						// Private pins: Only show to the owner
+						isVisible = Boolean(
+							isAuthenticated && user && pin.owner_id === user.id
+						);
+						if (!isVisible) {
+							console.log(
+								`🚫 [WORLDMAP] Filtered out private pin "${pin.name}" - not owner`
+							);
+						}
+					} else if (pin.visibility === 'social') {
+						// Social pins: Only show to authenticated users who are members of the social circle
+						// TODO: Implement social circle membership check when backend supports it
+						isVisible = Boolean(isAuthenticated);
+						if (!isVisible) {
+							console.log(
+								`🚫 [WORLDMAP] Filtered out social pin "${pin.name}" - not authenticated`
+							);
+						}
+					}
+					// Public pins: Show to everyone (no filtering needed)
+
+					const isValid =
+						validLat &&
+						validLng &&
+						notZeroZero &&
+						notExtreme &&
+						isVisible;
+
+					if (!isValid) {
+						if (!isVisible) {
+							console.log(
+								`🚫 [WORLDMAP] Filtered out pin "${pin.name}" due to visibility rules`
+							);
+						} else {
+							console.log(
+								`🚫 [WORLDMAP] Filtered out invalid pin "${pin.name}" with coordinates (${lat}, ${lng})`
+							);
+						}
+					}
+
+					return isValid;
+				});
+
+				console.log(
+					`📊 [WORLDMAP] Total pins: ${pins.length}, Valid pins: ${validPins.length}`
+				);
+
+				// Transform backend data to MapPin format with new user data structure
+				const transformedPins: any[] = validPins.map((pin: any) => ({
+					id: pin.id,
+					name: pin.name,
+					description: pin.description,
+					coordinate: {
+						latitude: pin.latitude,
+						longitude: pin.longitude,
+					},
+					pinData: {
+						memory: {
+							name: pin.name,
+							description: pin.description,
+							owner_id: pin.owner_id,
+							created_at: pin.created_at,
+							visibility: [pin.visibility || 'public'],
+							media: {
+								photos: (pin.image_urls || [])
+									.filter(
+										(url: string) => url && url !== null
+									)
+									.map((url: string, index: number) => ({
+										name: `photo_${index + 1}`,
+										uri: url,
+									})),
+								videos: [],
+								audio: pin.audio_url
+									? { recorded: pin.audio_url }
+									: null,
+							},
+						},
+						name: pin.name,
+						location: {
+							location_query:
+								pin.location_query || 'Unknown location',
+							latitude: pin.latitude,
+							longitude: pin.longitude,
+						},
+						// Add owner data for BottomSheet
+						owner: pin.owner || {
+							id: pin.owner_id,
+							username: null,
+							full_name: null,
+							avatar_url: null,
+						},
+					},
+				}));
+
+				setRealPins(transformedPins);
+				console.log(
+					`✅ [WORLDMAP] Loaded ${transformedPins.length} valid pins via remap.ts`
+				);
+				return true;
+			} else {
+				console.error('❌ [WORLDMAP] Invalid response format:', result);
+				setPinError('Invalid response format from backend');
+				setRealPins([]);
+				return false;
+			}
+		},
+		[isAuthenticated, user]
+	);
+
+	// =============================
+	//   PIN MARKER DISPLAY SECTION
+	// =============================
+	const fetchPins = useCallback(async () => {
+		console.log('🔄 [WORLDMAP] Fetching pins from backend via remap.ts');
+		console.log('🔐 [WORLDMAP] User authenticated:', isAuthenticated);
+		console.log('👤 [WORLDMAP] Current user:', user?.id);
+
+		setIsLoadingPins(true);
+		setPinError(null);
+
+		try {
+			console.log('🔧 [WORLDMAP] Creating RemapClient...');
+			const remapClient = new RemapClient();
+
+			let result;
+
+			if (isAuthenticated && user) {
+				// Authenticated user: Get all pins they should see
+				console.log(
+					'📡 [WORLDMAP] Fetching user pins (includes private + social)'
+				);
+				result = await remapClient.getUserPins();
+			} else {
+				// Non-authenticated user: Only public pins
+				console.log('📡 [WORLDMAP] Fetching public pins only');
+				result = await remapClient.getPublicPins();
+			}
+
+			console.log('📡 [WORLDMAP] Backend response:', result);
+
+			const success = processPinsResponse(result);
+
+			if (!success) {
+				console.log(
+					'❌ [WORLDMAP] Failed to process pins, not retrying automatically'
+				);
+			}
+		} catch (error) {
+			console.error(
+				'💥 [WORLDMAP] Error fetching pins via remap.ts:',
+				error
+			);
+			setPinError(
+				`Failed to load pins: ${
+					error instanceof Error ? error.message : 'Unknown error'
+				}`
+			);
+			setRealPins([]);
+		} finally {
+			setIsLoadingPins(false);
+		}
+	}, [processPinsResponse, isAuthenticated, user]);
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 
 	function debounce(func: Function, wait: number) {
 		let timeout: ReturnType<typeof setTimeout>;
@@ -454,6 +727,7 @@ export default function WorldMapScreen() {
 			setPinError(null);
 
 			try {
+<<<<<<< HEAD
 				const result = await remapClient.fetchAllVisiblePins(viewport);
 
 				if (result.success && result.data) {
@@ -467,16 +741,28 @@ export default function WorldMapScreen() {
 					);
 					setLastViewport(cacheKey);
 					setRealPins(result.data);
+=======
+				const remapClient = new RemapClient();
+
+				let result;
+
+				if (isAuthenticated && user) {
+					// Authenticated user: Get all pins they should see
+					result = await remapClient.getUserPins();
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 				} else {
-					console.error(
-						'❌ [WORLDMAP] Failed to load pins for new region:',
-						result.error
-					);
-					setPinError(result.error || 'Failed to load pins');
+					// Non-authenticated user: Only public pins
+					result = await remapClient.getPublicPins();
+				}
+
+				const success = processPinsResponse(result);
+
+				if (!success) {
+					onMapRegionChange(region);
 				}
 			} catch (error) {
 				console.error(
-					'💥 [WORLDMAP] Error fetching pins for new region:',
+					'💥 [WORLDMAP] Error fetching pins for new region via remap.ts:',
 					error
 				);
 				setPinError('Unexpected error loading pins');
@@ -484,7 +770,11 @@ export default function WorldMapScreen() {
 				setIsLoadingPins(false);
 			}
 		},
+<<<<<<< HEAD
 		[isLoadingPins, remapClient, pinCache, lastViewport]
+=======
+		[isLoadingPins, processPinsResponse, isAuthenticated, user]
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 	);
 
 	// Add debounced version with longer delay
@@ -499,7 +789,14 @@ export default function WorldMapScreen() {
 	console.log('🎯 [WORLDMAP] About to render', realPins.length, 'pins');
 	console.log(
 		'🎯 [WORLDMAP] Pin coordinates:',
+<<<<<<< HEAD
 		realPins.map((p) => `${p.name}: ${p.latitude}, ${p.longitude}`)
+=======
+		realPins.map(
+			(p) =>
+				`${p.name}: ${p.coordinate.latitude}, ${p.coordinate.longitude}`
+		)
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 	);
 	return (
 		<GestureHandlerRootView style={styles.container}>
@@ -689,6 +986,7 @@ export default function WorldMapScreen() {
 								</Text>
 								<TouchableOpacity
 									onPress={() => {
+<<<<<<< HEAD
 										setPinError(null);
 										// Trigger a fresh fetch with current map region
 										if (mapRef.current) {
@@ -730,6 +1028,12 @@ export default function WorldMapScreen() {
 													}
 												});
 										}
+=======
+										console.log(
+											'🔄 [WORLDMAP] Retry button tapped'
+										);
+										fetchPins();
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 									}}
 									style={styles.retryButton}
 								>
@@ -788,32 +1092,44 @@ export default function WorldMapScreen() {
 									styles.starterPackScrollContainer
 								}
 							>
+<<<<<<< HEAD
 								{starterPacks.map((pack, index) => {
 									const isSelected =
 										selectedPack === pack.value;
+=======
+								{STARTER_PACKS.map((pack) => {
+									const isSelected = selectedPack === pack.id;
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 
 									return (
 										<TouchableOpacity
-											key={index}
+											key={pack.id}
 											style={[
 												styles.starterPackButton,
 												isSelected &&
 													styles.selectedStarterPackButton,
 											]}
 											onPress={() => {
+<<<<<<< HEAD
 												if (
 													selectedPack === pack.value
 												) {
 													setSelectedPack(null);
 												} else {
 													setSelectedPack(pack.value);
+=======
+												if (selectedPack === pack.id) {
+													setSelectedPack(null);
+												} else {
+													setSelectedPack(pack.id);
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 												}
 											}}
 										>
 											<Text
 												style={styles.starterPackText}
 											>
-												{pack.label}
+												{pack.icon} {pack.name}
 											</Text>
 										</TouchableOpacity>
 									);
@@ -858,20 +1174,24 @@ export default function WorldMapScreen() {
 					{/* *********************************************/}
 					<Footer>
 						<View style={styles.footerContainer}>
-							<CustomButton
+							<Button
+								variant="simple"
 								onPress={
 									isAuthenticated
 										? navigateToCreatePin
 										: signInModal.open //fix this to the proper create user/login prompt
 								}
 								style={styles.addPinButton}
+<<<<<<< HEAD
 								textStyle={{
 									fontSize: 17,
 									fontWeight: '500',
 								}}
+=======
+>>>>>>> 13d4256c699d9b048d56625de6074c3413f684c7
 							>
 								Add Pin
-							</CustomButton>
+							</Button>
 						</View>
 					</Footer>
 
