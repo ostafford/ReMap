@@ -1,9 +1,8 @@
 // ================
 //   CORE IMPORTS
 // ================
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Canvas } from '@react-three/fiber/native';
+import React, {useRef, useEffect } from 'react';
+import { View, StyleSheet, Image, Animated, Easing } from 'react-native';
 
 // ============================
 //  Internal Layout Components
@@ -16,7 +15,6 @@ import { Footer } from '@/components/layout/Footer';
 //  Internal UI Components
 // ============================
 import { Button } from '@/components/ui/Button';
-import { SpinningGlobe } from '@/components/ui/Globe';
 import { ErrorMessage } from '@/components/ui/Messages';
 import { AuthModal } from '@/components/ui/AuthModal';
 
@@ -58,10 +56,39 @@ interface SplashUIProps {
 
 // FUNCTIONAL COMPONENT
 export const SplashUI = ({
-	splashState,
+	splashState = {
+        messageShow: false,
+        messageText: '',
+        messageType: 'info',
+        isSignInModalVisible: false,
+    },
 	isCheckingAuth,
 	handlers,
 }: SplashUIProps) => {
+	//  Animated.View for explore button
+	const floatAnim = useRef(new Animated.Value(0)).current;
+
+	useEffect(() => {
+		Animated.loop(
+			Animated.sequence([
+				Animated.timing(floatAnim, {
+					toValue: 1,
+					duration: 2000,
+					easing: Easing.inOut(Easing.sin),
+					useNativeDriver: true,
+				}),
+				Animated.timing(floatAnim, {
+					toValue: 0,
+					duration: 2000,
+					easing: Easing.inOut(Easing.sin),
+					useNativeDriver: true,
+				}),
+			])
+		).start();
+	}, [floatAnim]);
+
+	// Breaking down splashState for easier access
+	const { messageShow, messageText, messageType, isSignInModalVisible } = splashState;
 	// Loading state
 	if (isCheckingAuth) {
 		return (
@@ -69,22 +96,12 @@ export const SplashUI = ({
 				<Header
 					title="ReMap"
 					subtitle="Your Interactive Memory Atlas"
+					style={styles}
 				/>
-				<MainContent scrollable={false} style={styles.mainContent}>
-					<View style={styles.loadingContainer}>
-						<View style={styles.globeContainer}>
-							<Canvas style={styles.canvas}>
-								<ambientLight intensity={3} />
-								<SpinningGlobe
-									position={[0, 0, 0]}
-									scale={1.8}
-								/>
-							</Canvas>
-						</View>
+				<MainContent scrollable={false} style={styles.mainContent}>	
 						<BodyText align="center" style={styles.loadingText}>
 							Checking your authentication status...
 						</BodyText>
-					</View>
 				</MainContent>
 			</View>
 		);
@@ -93,63 +110,87 @@ export const SplashUI = ({
 	// 4. JSX RETURN: Main UI structure
 	return (
 		<View style={styles.container}>
-			<Header title="ReMap" subtitle="Your Interactive Memory Atlas" />
+			<Header 
+				title="ReMap"
+				style={styles.header}
+				fontSize={60}
+			/>
 
 			{/* ==================== */}
 			{/*     Main content     */}
 			{/* ==================== */}
 			<MainContent scrollable={false} style={styles.mainContent}>
 				{/* ERROR MESSAGE PATTERN: Controlled component */}
-				{splashState.messageShow &&
-					splashState.messageType === 'error' && (
+				{messageShow &&
+					messageType === 'error' && (
 						<View style={styles.messageContainer}>
 							<ErrorMessage onDismiss={handlers.onHideMessage}>
-								{splashState.messageText}
+								{messageText}
 							</ErrorMessage>
 						</View>
 					)}
 
-				{/* GLOBE CONTAINER: 3D Canvas element */}
-				<View style={styles.globeContainer}>
-					<Canvas style={styles.canvas}>
-						<ambientLight intensity={3} />
-						<SpinningGlobe position={[0, 0, 0]} scale={1.8} />
-					</Canvas>
+				<View style={styles.exploreContent}>
+					<Image
+						source={require('@/assets/images/earth-splash.jpg')}
+						style={styles.globeContainer}
+						resizeMode="contain"
+					/>
+					<Animated.View
+						style={[
+							styles.animatedButtonWrapper,
+							{
+								transform: [
+									{
+										translateX: floatAnim.interpolate({
+											inputRange: [0, 1],
+											outputRange: [-4, 6],
+										}),
+									},
+									{
+										translateY: floatAnim.interpolate({
+											inputRange: [0, 1],
+											outputRange: [9, 10],
+										}),
+									},
+								],
+							},
+						]}
+					>
+						<Button
+							style={styles.exploreButton}
+							onPress={handlers.onNavigateToWorldMap}
+							textColour='black'
+							size='small'
+						>
+							Explore
+						</Button>
+					</Animated.View>
 				</View>
+				
 
-				{/* DESCRIPTION TEXT */}
-				<BodyText align="center" style={styles.description}>
-					Transform your experiences into an interactive, personal
-					atlas
-				</BodyText>
 			</MainContent>
 
 			{/* ==================== */}
 			{/*   FOOTER content     */}
 			{/* ==================== */}
-			<Footer>
+			<Footer style={styles.footer}>
 				<View style={styles.buttonContainer}>
-					<View style={styles.secondaryActions}>
-						<Button
-							style={styles.secondaryButton}
-							onPress={handlers.onToggleSignInModal}
-						>
-							🔑 Sign In
-						</Button>
-						<Button
-							style={styles.secondaryButton}
-							onPress={handlers.onNavigateToOnboarding}
-						>
-							🚀 Start Onboarding
-						</Button>
-					</View>
-
 					<Button
 						style={styles.primaryButton}
-						onPress={handlers.onNavigateToWorldMap}
+						onPress={handlers.onNavigateToOnboarding}
+						textColour='black'
 					>
-						🗺️ Explore World Map
+						New User
 					</Button>
+					<Button
+						style={[styles.primaryButton, styles.loginButton]}
+						onPress={handlers.onToggleSignInModal}
+						textColour='white'
+					>
+						I already have an account
+					</Button>
+
 				</View>
 			</Footer>
 
@@ -157,7 +198,7 @@ export const SplashUI = ({
 			{/* AUTH MODAL (SIGN-IN) */}
 			{/* ==================== */}
 			<AuthModal
-				isVisible={splashState.isSignInModalVisible}
+				isVisible={isSignInModalVisible}
 				onToggle={handlers.onCloseSignInModal}
 				onSignInSuccess={handlers.onNavigateToWorldMap}
 				styles={styles}
@@ -172,11 +213,17 @@ export const SplashUI = ({
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: ReMapColors.ui.background,
+
+	},
+	header: {
+		backgroundColor: 'black',
+		
 	},
 	mainContent: {
+		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
+		backgroundColor: 'black',
 	},
 	loadingContainer: {
 		flex: 1,
@@ -189,9 +236,14 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 	},
 	globeContainer: {
-		height: 300,
-		width: '100%',
-		marginVertical: 20,
+		marginTop: 20,
+		height: 400,
+		width: 400,
+	},
+	animatedButtonWrapper: {
+		position: 'absolute',
+		transform: [{ translateX: -1 }, { translateY: -2 }],
+		zIndex: 2,
 	},
 	canvas: {
 		flex: 1,
@@ -204,24 +256,37 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: ReMapColors.ui.textSecondary,
 	},
+	exploreContent: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		width: '100%',
+	},
+	exploreButton: {
+		backgroundColor: 'white',
+		opacity: 0.6,
+		paddingVertical: 12,
+		paddingHorizontal: 20,
+		borderRadius: 24,
+		alignSelf: 'center',
+	},
 
 	// Button Styles
 	buttonContainer: {
 		width: '100%',
-		gap: 10,
+		gap: 20,
+		justifyContent: 'center',
+		alignItems: 'center',
+		paddingBottom: 30,
 	},
 	primaryButton: {
-		backgroundColor: ReMapColors.primary.violet,
-		width: '100%',
+		backgroundColor: ReMapColors.ui.cardBackground,
+		width: '85%',
+		borderRadius: 24,
+		height: 64,
 	},
-	secondaryActions: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		gap: 10,
-	},
-	secondaryButton: {
-		backgroundColor: ReMapColors.primary.cadet,
-		flex: 1,
+	loginButton: {
+		backgroundColor: '#262626',
 	},
 	modalButton: {
 		width: 150,
@@ -235,5 +300,10 @@ const styles = StyleSheet.create({
 	continueButton: {
 		backgroundColor: ReMapColors.primary.violet,
 		width: 200,
+	},
+
+	footer: {
+		backgroundColor: 'black',
+		borderTopColor: 'black',
 	},
 });
