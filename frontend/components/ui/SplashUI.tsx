@@ -1,9 +1,8 @@
 // ================
 //   CORE IMPORTS
 // ================
-import React from 'react';
-import { View, StyleSheet, Image } from 'react-native';
-import { Canvas } from '@react-three/fiber/native';
+import React, {useRef, useEffect } from 'react';
+import { View, StyleSheet, Image, Animated, Easing } from 'react-native';
 
 // ============================
 //  Internal Layout Components
@@ -16,7 +15,6 @@ import { Footer } from '@/components/layout/Footer';
 //  Internal UI Components
 // ============================
 import { Button } from '@/components/ui/Button';
-import { SpinningGlobe } from '@/components/ui/Globe';
 import { ErrorMessage } from '@/components/ui/Messages';
 import { AuthModal } from '@/components/ui/AuthModal';
 
@@ -58,10 +56,39 @@ interface SplashUIProps {
 
 // FUNCTIONAL COMPONENT
 export const SplashUI = ({
-	splashState,
+	splashState = {
+        messageShow: false,
+        messageText: '',
+        messageType: 'info',
+        isSignInModalVisible: false,
+    },
 	isCheckingAuth,
 	handlers,
 }: SplashUIProps) => {
+	//  Animated.View for explore button
+	const floatAnim = useRef(new Animated.Value(0)).current;
+
+	useEffect(() => {
+		Animated.loop(
+			Animated.sequence([
+				Animated.timing(floatAnim, {
+					toValue: 1,
+					duration: 2000,
+					easing: Easing.inOut(Easing.sin),
+					useNativeDriver: true,
+				}),
+				Animated.timing(floatAnim, {
+					toValue: 0,
+					duration: 2000,
+					easing: Easing.inOut(Easing.sin),
+					useNativeDriver: true,
+				}),
+			])
+		).start();
+	}, [floatAnim]);
+
+	// Breaking down splashState for easier access
+	const { messageShow, messageText, messageType, isSignInModalVisible } = splashState;
 	// Loading state
 	if (isCheckingAuth) {
 		return (
@@ -94,11 +121,11 @@ export const SplashUI = ({
 			{/* ==================== */}
 			<MainContent scrollable={false} style={styles.mainContent}>
 				{/* ERROR MESSAGE PATTERN: Controlled component */}
-				{splashState.messageShow &&
-					splashState.messageType === 'error' && (
+				{messageShow &&
+					messageType === 'error' && (
 						<View style={styles.messageContainer}>
 							<ErrorMessage onDismiss={handlers.onHideMessage}>
-								{splashState.messageText}
+								{messageText}
 							</ErrorMessage>
 						</View>
 					)}
@@ -109,14 +136,36 @@ export const SplashUI = ({
 						style={styles.globeContainer}
 						resizeMode="contain"
 					/>
-					<Button
-						style={styles.exploreButton}
-						onPress={handlers.onNavigateToWorldMap}
-						textColour='black'
-						size='small'
+					<Animated.View
+						style={[
+							styles.animatedButtonWrapper,
+							{
+								transform: [
+									{
+										translateX: floatAnim.interpolate({
+											inputRange: [0, 1],
+											outputRange: [-4, 6],
+										}),
+									},
+									{
+										translateY: floatAnim.interpolate({
+											inputRange: [0, 1],
+											outputRange: [9, 10],
+										}),
+									},
+								],
+							},
+						]}
 					>
-						Explore
-					</Button>
+						<Button
+							style={styles.exploreButton}
+							onPress={handlers.onNavigateToWorldMap}
+							textColour='black'
+							size='small'
+						>
+							Explore
+						</Button>
+					</Animated.View>
 				</View>
 				
 
@@ -149,7 +198,7 @@ export const SplashUI = ({
 			{/* AUTH MODAL (SIGN-IN) */}
 			{/* ==================== */}
 			<AuthModal
-				isVisible={splashState.isSignInModalVisible}
+				isVisible={isSignInModalVisible}
 				onToggle={handlers.onCloseSignInModal}
 				onSignInSuccess={handlers.onNavigateToWorldMap}
 				styles={styles}
@@ -191,6 +240,11 @@ const styles = StyleSheet.create({
 		height: 400,
 		width: 400,
 	},
+	animatedButtonWrapper: {
+		position: 'absolute',
+		transform: [{ translateX: -1 }, { translateY: -2 }],
+		zIndex: 2,
+	},
 	canvas: {
 		flex: 1,
 	},
@@ -203,13 +257,12 @@ const styles = StyleSheet.create({
 		color: ReMapColors.ui.textSecondary,
 	},
 	exploreContent: {
+		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
 		width: '100%',
 	},
 	exploreButton: {
-		marginTop: 20,
-		position: 'absolute',
 		backgroundColor: 'white',
 		opacity: 0.6,
 		paddingVertical: 12,
