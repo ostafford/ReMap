@@ -16,7 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Button } from '@/components/ui/Button';
 
 import RemapClient from '../../services/remap';
-import { styles } from '../styles';
+import { styles } from '../customStyles';
 
 
 export default function Pin() {

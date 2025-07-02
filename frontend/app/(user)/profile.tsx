@@ -20,7 +20,7 @@ import {
 	Pressable,
 	TextInput
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/shared/useAuth';
 import { Audio } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
@@ -30,6 +30,7 @@ import { useFocusEffect } from '@react-navigation/native';
 // =================
 import { ReMapColors } from '@/constants/Colors';
 import { Button } from '@/components/ui/Button';
+import { customStyles } from './customStyles';
 
 import RemapClient from '../services/remap';
 
@@ -112,14 +113,23 @@ function CirclesTab() {
 		loadData();
 	}, [loadData]);
 
+
+	// Create Circle
+	
+
 	// Delete Circle
 	async function deleteCircle(id: string) {
 		try {
+			// Leave circle
 			await new RemapClient().deleteCircle(id);
+
+			// Delete user from circle
+			await new RemapClient().deleteMember(id);
+
 			setData(prevData => prevData?.filter(circle => circle.id !== id) || null);
 
 		} catch (error) {
-			console.error("Error deleting circle:", error);
+			console.error("Error deleting circle or member:", error);
 		}
 	}
 	
@@ -151,7 +161,7 @@ function CirclesTab() {
 						<Button onPress={() => {
 							deleteCircle(item.id.toString());
 						}}>
-							Delete Pin
+							Delete Circle
 						</Button>
 
 					</View>
@@ -167,7 +177,36 @@ function CirclesTab() {
 				>
 					Create
 				</Button>
-				<Text>Create New Circle</Text>
+				{/* Modal */}
+				<Modal
+				visible={modalVisible}
+				animationType='slide'
+				transparent
+				onRequestClose={() => setModalVisible(false)}
+				>
+					<View style={customStyles.modalOverlay}>
+						<View style={customStyles.modalContent}>
+							<Text style={customStyles.modalTitle}>Add New Circle</Text>
+							<TextInput
+								style={customStyles.input}
+								placeholder='Enter Name...'
+								placeholderTextColor='#aaa'
+								value={newCircle}
+								onChangeText={setNewCircle}
+							/>
+							<View style={customStyles.modalButtons}>
+								<TouchableOpacity style={customStyles.cancelButton}
+								onPress={() => setModalVisible(false)}>
+									<Text style={customStyles.cancelButtonText}>Cancel</Text>
+								</TouchableOpacity>
+
+								<TouchableOpacity style={customStyles.saveButton}>
+									<Text style={customStyles.saveButtonText}>Save</Text>
+								</TouchableOpacity>
+							</View>
+						</View>
+					</View>
+				</Modal>
 				<Button
 					//onPress={}
 					style={styles.circleButton}

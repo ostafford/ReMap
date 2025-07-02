@@ -13,7 +13,7 @@ import { useRouter, useGlobalSearchParams, useLocalSearchParams } from 'expo-rou
 import { Button } from '@/components/ui/Button';
 
 import RemapClient from '../../services/remap';
-import { styles } from '../styles';
+import { styles } from '../customStyles';
 
 
 type CircleData = {
