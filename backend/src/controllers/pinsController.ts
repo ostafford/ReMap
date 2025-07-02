@@ -14,12 +14,12 @@ import { formatLocalTime } from '../modules/utilities';
 const upload = multer({ storage: multer.memoryStorage() });
 
 export const createPin = [
-	upload.fields([{ name: 'image' }, { name: 'audio' }]),
+	upload.fields([{ name: 'image', maxCount: 5 }, { name: 'audio' }]),
 	async (req: Request, res: Response) => {
-		const imageFile = (req.files as any)?.image?.[0];
+		const imageFiles = (req.files as any)?.image || [];
 		const audioFile = (req.files as any)?.audio?.[0];
 
-		let imageUrl: string | undefined = undefined;
+		let imageUrls: string[] = [];
 		let audioUrl: string | undefined = undefined;
 
 		const user = req.user;
@@ -58,7 +58,8 @@ export const createPin = [
 		}
 
 		try {
-			if (imageFile) {
+			// Process multiple images
+			for (const imageFile of imageFiles) {
 				if (!imageFile.mimetype.startsWith('image/')) {
 					console.log('Invalid file type. Only images are allowed');
 					res.status(400).json({
@@ -96,8 +97,8 @@ export const createPin = [
 					data: { publicUrl },
 				} = supabase.storage.from('images').getPublicUrl(imageName);
 
-				imageUrl = publicUrl;
-				console.log('Image uploaded successfully:', imageUrl);
+				imageUrls.push(publicUrl);
+				console.log('Image uploaded successfully:', publicUrl);
 			}
 		} catch (err: any) {
 			console.log('Update image server error', err.message);
@@ -215,7 +216,7 @@ export const createPin = [
 					latitude: lat,
 					longitude: lon,
 					location_query,
-					image_urls: imageUrl ? [imageUrl] : [],
+					image_urls: imageUrls,
 					audio_url: audioUrl,
 					owner_id: user_id,
 					visibility,
@@ -427,7 +428,7 @@ export const getPin = async (req: Request, res: Response) => {
 // @desc Update single pin
 // @route PUT /api/pins/user/:pinId
 export const updatePin = [
-	upload.fields([{ name: 'image' }, { name: 'audio' }]),
+	upload.fields([{ name: 'image', maxCount: 5 }, { name: 'audio' }]),
 	async (req: Request, res: Response) => {
 		const id = req.params.id;
 
@@ -438,10 +439,10 @@ export const updatePin = [
 			return;
 		}
 
-		const imageFile = (req.files as any)?.image?.[0];
+		const imageFiles = (req.files as any)?.image || [];
 		const audioFile = (req.files as any)?.audio?.[0];
 
-		let imageUrl: string | undefined = undefined;
+		let imageUrls: string[] = [];
 		let audioUrl: string | undefined = undefined;
 
 		// Get user name and id
@@ -465,8 +466,8 @@ export const updatePin = [
 		const user_id = data.id;
 
 		try {
-			// First, upload file to Supabase storage
-			if (imageFile) {
+			// Process multiple images
+			for (const imageFile of imageFiles) {
 				// Check if the file is an image (starts with "image/")
 				if (!imageFile.mimetype.startsWith('image/')) {
 					console.log('Invalid file type. Only images are allowed');
@@ -491,13 +492,14 @@ export const updatePin = [
 				if (error) {
 					console.log(`Error uploading image file: ${error.message}`);
 					res.status(400).json({ error: error.message });
+					return;
 				}
 
 				const {
 					data: { publicUrl },
 				} = supabase.storage.from('images').getPublicUrl(imageName);
 
-				imageUrl = publicUrl;
+				imageUrls.push(publicUrl);
 			}
 		} catch (err: any) {
 			console.log('Update image server error', err.message);
@@ -582,7 +584,7 @@ export const updatePin = [
 					description,
 					latitude,
 					longitude,
-					image_urls: imageUrl ? [imageUrl] : [],
+					image_urls: imageUrls,
 					audio_url: audioUrl,
 					owner_id: user_id,
 				})
