@@ -1,28 +1,34 @@
 // ================
 //   CORE IMPORTS
 // ================
-import React, { useCallback, useMemo, useRef } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import {
+	View,
+	StyleSheet,
+	Image,
+	TouchableOpacity,
+	Dimensions,
+	Text,
+} from 'react-native';
 
 // =======================
 //   THIRD-PARTY IMPORTS
 // =======================
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, {
+	BottomSheetView,
+	BottomSheetScrollView,
+} from '@gorhom/bottom-sheet';
 
 // ================================
 //   INTERNAL 'UI' COMPONENTS
 // ================================
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 
 // ================================
 //   INTERNAL 'TYPOGRAPHY' IMPORTS
 // ================================
-import {
-	HeaderText,
-	BodyText,
-	CaptionText,
-	LabelText,
-} from '@/components/ui/Typography';
+import { HeaderText, BodyText, CaptionText } from '@/components/ui/Typography';
 
 // ================================
 //   INTERNAL 'CONSTANTS' IMPORTS
@@ -30,276 +36,360 @@ import {
 import { ReMapColors } from '@/constants/Colors';
 
 // ================================
-//   TYPE IMPORTS
+//   INTERNAL 'SERVICES' IMPORTS
 // ================================
-import type { DummyPin } from '@/assets/dummyPinData';
+import RemapClient from '@/app/services/remap';
 
 // ==================
 // TYPE DEFINITIONS
 // ==================
 
-interface PinBottomSheetProps {
-	isVisible: boolean;
-	onClose: () => void;
-	pinData: DummyPin | null;
+interface PinData {
+	id: string;
+	name: string;
+	description: string;
+	location: {
+		location_query: string;
+		latitude: number;
+		longitude: number;
+	};
+	media: {
+		photos: Array<{ uri: string; name?: string }>;
+		videos: Array<{ uri: string; name?: string }>;
+		audio?: { uri: string; name?: string } | null;
+	};
+	owner: {
+		username: string;
+		avatar_url?: string;
+		display_name?: string;
+	};
+	created_at: string;
 }
 
-// ==========================
+interface PinBottomSheetProps {
+	pinData: PinData | null;
+	allPinsAtLocation?: PinData[];
+	currentPinIndex?: number;
+	onClose: () => void;
+	onNextPin?: () => void;
+}
+
+// ===========================
 // COMPONENT IMPLEMENTATION
-// ==========================
+// ===========================
 
 export function PinBottomSheet({
-	isVisible,
-	onClose,
 	pinData,
+	allPinsAtLocation = [],
+	currentPinIndex = 0,
+	onClose,
+	onNextPin,
 }: PinBottomSheetProps) {
-	// ========================
-	// BOTTOMSHEET SETUP
-	// ========================
+	// ==================
+	// STATE MANAGEMENT
+	// ==================
+	const [imagePreviewState, setImagePreviewState] = useState<{
+		visible: boolean;
+		imageUri: string | null;
+	}>({
+		visible: false,
+		imageUri: null,
+	});
 
+	// ==================
+	// REFS
+	// ==================
 	const bottomSheetRef = useRef<BottomSheet>(null);
 
-	// Snap points: 20% (peek), 50% (partial), 90% (full content)
-	const snapPoints = useMemo(() => ['26%', '50%', '90%'], []);
+	// ==================
+	// UTILITY FUNCTIONS
+	// ==================
 
-	// ========================
-	// EVENT HANDLERS
-	// ========================
+	const getDisplayName = (owner: PinData['owner']) => {
+		return owner.display_name || owner.username || 'Unknown User';
+	};
 
-	const handleSheetChanges = useCallback(
-		(index: number) => {
-			console.log('BottomSheet snap index:', index);
+	const formatCreatedAt = (dateString: string) => {
+		const date = new Date(dateString);
+		const now = new Date();
+		const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
-			// If user drags to close position (-1), trigger onClose
-			if (index === -1) {
-				onClose();
-			}
-		},
-		[onClose]
-	);
-
-	// ========================
-	// DATA HELPERS
-	// ========================
-
-	const getFormattedDate = useCallback((timestamp: string) => {
-		try {
-			return new Date(timestamp).toLocaleDateString('en-AU', {
-				day: 'numeric',
-				month: 'short',
-				year: 'numeric',
-			});
-		} catch {
-			return 'Unknown date';
+		if (diffInHours < 1) {
+			return 'Just now';
+		} else if (diffInHours < 24) {
+			const hours = Math.floor(diffInHours);
+			return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+		} else {
+			const days = Math.floor(diffInHours / 24);
+			return `${days} day${days > 1 ? 's' : ''} ago`;
 		}
+	};
+
+	// ==================
+	// MEDIA HANDLERS
+	// ==================
+
+	const handleImagePreview = useCallback((imageUri: string) => {
+		setImagePreviewState({
+			visible: true,
+			imageUri: imageUri,
+		});
 	}, []);
 
-	const getMediaSummary = useCallback((pinData: DummyPin) => {
-		const { photos, videos, audio } = pinData.memory.media;
-		const parts = [];
-
-		if (photos.length > 0)
-			parts.push(`${photos.length} photo${photos.length > 1 ? 's' : ''}`);
-		if (videos.length > 0)
-			parts.push(`${videos.length} video${videos.length > 1 ? 's' : ''}`);
-		if (audio) parts.push('1 audio note');
-
-		return parts.length > 0 ? parts.join(', ') : 'No media';
+	const handleCloseImagePreview = useCallback(() => {
+		setImagePreviewState({
+			visible: false,
+			imageUri: null,
+		});
 	}, []);
 
-	// Don't render if not visible or no data
-	if (!isVisible || !pinData) {
-		return null;
-	}
+	// ==================
+	// SNAP POINTS CALCULATION
+	// ==================
 
-	// ========================
-	// RENDER COMPONENT
-	// ========================
+	const snapPoints = useMemo(() => {
+		if (!pinData) return ['20%'];
+
+		// Calculate content height based on content
+		let contentHeight = 280; // Increased base height for header + footer + padding
+
+		// Add height for media grid
+		const mediaCount =
+			(pinData.media?.photos?.length || 0) +
+			(pinData.media?.videos?.length || 0) +
+			(pinData.media?.audio ? 1 : 0);
+		if (mediaCount > 0) {
+			contentHeight += 120; // Media grid height
+		}
+
+		// Add height for description
+		if (pinData.description) {
+			const lines = Math.ceil(pinData.description.length / 40); // Rough estimate
+			const descriptionHeight = Math.min(lines * 20, 200); // Max 200px for description
+			contentHeight += descriptionHeight;
+		}
+
+		// Add height for created date
+		contentHeight += 40;
+
+		// Convert to percentage of screen height
+		const screenHeight = Dimensions.get('window').height;
+		const contentPercentage = Math.min(
+			(contentHeight / screenHeight) * 100,
+			80
+		); // Increased max to 80%
+
+		return [`20%`, `${contentPercentage}%`];
+	}, [pinData]);
+
+	// ==================
+	// RENDER FUNCTIONS
+	// ==================
+
+	const renderMediaGrid = () => {
+		if (!pinData?.media) return null;
+
+		const allMedia = [
+			...(pinData.media.photos || []).map((photo) => ({
+				...photo,
+				type: 'photo' as const,
+			})),
+			...(pinData.media.videos || []).map((video) => ({
+				...video,
+				type: 'video' as const,
+			})),
+			...(pinData.media.audio
+				? [{ ...pinData.media.audio, type: 'audio' as const }]
+				: []),
+		];
+
+		if (allMedia.length === 0) return null;
+
+		return (
+			<View style={styles.mediaSection}>
+				<BodyText style={styles.sectionTitle}>Media</BodyText>
+				<View style={styles.mediaGrid}>
+					{allMedia.map((media, index) => (
+						<TouchableOpacity
+							key={index}
+							style={styles.mediaThumbnail}
+							onPress={() => {
+								if (media.type === 'photo') {
+									handleImagePreview(media.uri);
+								}
+								// TODO: Add video/audio playback functionality
+							}}
+						>
+							{media.type === 'photo' && (
+								<Image
+									source={{ uri: media.uri }}
+									style={styles.mediaImage}
+									resizeMode="cover"
+								/>
+							)}
+							{media.type === 'video' && (
+								<View style={styles.mediaPlaceholder}>
+									<Text style={styles.mediaIcon}>🎥</Text>
+								</View>
+							)}
+							{media.type === 'audio' && (
+								<View style={styles.mediaPlaceholder}>
+									<Text style={styles.mediaIcon}>🎵</Text>
+								</View>
+							)}
+						</TouchableOpacity>
+					))}
+				</View>
+			</View>
+		);
+	};
+
+	// ==================
+	// MAIN RENDER
+	// ==================
+
+	// Don't render if no pin data
+	if (!pinData) return null;
 
 	return (
-		<BottomSheet
-			ref={bottomSheetRef}
-			index={0}
-			snapPoints={snapPoints}
-			onChange={handleSheetChanges}
-			enablePanDownToClose={true}
-			backgroundStyle={styles.bottomSheetBackground}
-			handleStyle={styles.bottomSheetHandle}
-		>
-			<BottomSheetView style={styles.contentContainer}>
-				{/* ==================== */}
-				{/*   HEADER SECTION     */}
-				{/* ==================== */}
-				<View style={styles.header}>
-					<View style={styles.headerMain}>
-						<HeaderText style={styles.memoryTitle}>
-							{pinData.memory.title}
-						</HeaderText>
-
-						<View style={styles.locationRow}>
-							<CaptionText style={styles.locationIcon}>
-								📍
-							</CaptionText>
-							<BodyText style={styles.locationName}>
-								{pinData.name}
-							</BodyText>
-						</View>
-					</View>
-
-					<TouchableOpacity
-						style={styles.closeButton}
-						onPress={onClose}
-					>
-						<CaptionText style={styles.closeButtonText}>
-							✕
-						</CaptionText>
-					</TouchableOpacity>
-				</View>
-
-				{/* ==================== */}
-				{/*   METADATA SECTION   */}
-				{/* ==================== */}
-				<View style={styles.metadataRow}>
-					<View style={styles.metadataItem}>
-						<CaptionText style={styles.metadataLabel}>
-							By
-						</CaptionText>
-						<CaptionText style={styles.metadataValue}>
-							{pinData.memory.author}
-						</CaptionText>
-					</View>
-
-					<View style={styles.metadataItem}>
-						<CaptionText style={styles.metadataLabel}>
-							Date
-						</CaptionText>
-						<CaptionText style={styles.metadataValue}>
-							{getFormattedDate(pinData.memory.createdAt)}
-						</CaptionText>
-					</View>
-
-					<View style={styles.metadataItem}>
-						<CaptionText style={styles.metadataLabel}>
-							Media
-						</CaptionText>
-						<CaptionText style={styles.metadataValue}>
-							{getMediaSummary(pinData)}
-						</CaptionText>
-					</View>
-				</View>
-
-				{/* ==================== */}
-				{/*   DESCRIPTION        */}
-				{/* ==================== */}
-				{pinData.memory.description && (
-					<View style={styles.section}>
-						<LabelText style={styles.sectionLabel}>
-							Memory Description
-						</LabelText>
-						<BodyText style={styles.description}>
-							{pinData.memory.description}
-						</BodyText>
-					</View>
-				)}
-
-				{/* ==================== */}
-				{/*   LOCATION DETAILS   */}
-				{/* ==================== */}
-				<View style={styles.section}>
-					<LabelText style={styles.sectionLabel}>
-						Location Details
-					</LabelText>
-					<BodyText style={styles.locationDetails}>
-						{pinData.location.address}
-					</BodyText>
-					<CaptionText style={styles.coordinates}>
-						{pinData.location.latitude.toFixed(6)},{' '}
-						{pinData.location.longitude.toFixed(6)}
-					</CaptionText>
-				</View>
-
-				{/* ==================== */}
-				{/*   PRIVACY INFO       */}
-				{/* ==================== */}
-				<View style={styles.section}>
-					<LabelText style={styles.sectionLabel}>
-						Visibility
-					</LabelText>
-					<View style={styles.visibilityContainer}>
-						{pinData.memory.visibility.map((vis, index) => (
-							<View key={index} style={styles.visibilityTag}>
-								<CaptionText style={styles.visibilityText}>
-									{vis}
+		<>
+			<BottomSheet
+				ref={bottomSheetRef}
+				index={0}
+				snapPoints={snapPoints}
+				enablePanDownToClose={true}
+				onClose={onClose}
+				backgroundStyle={styles.bottomSheetBackground}
+				handleIndicatorStyle={styles.handleIndicator}
+			>
+				<BottomSheetView style={styles.container}>
+					{/* Header Section */}
+					<View style={styles.header}>
+						<View style={styles.headerContent}>
+							<View style={styles.titleSection}>
+								<HeaderText
+									style={styles.memoryName}
+									numberOfLines={2}
+								>
+									{pinData.name}
+								</HeaderText>
+								<CaptionText
+									style={styles.location}
+									numberOfLines={1}
+								>
+									📍 {pinData.location.location_query}
 								</CaptionText>
 							</View>
-						))}
-					</View>
-				</View>
-
-				{/* ==================== */}
-				{/*   MEDIA PREVIEW      */}
-				{/* ==================== */}
-				{pinData.memory.media.photos.slice(0, 3).map((photo, index) => (
-					<TouchableOpacity
-						key={index}
-						style={styles.mediaThumbnail}
-						onPress={() => {
-							// TODO: Open full image view
-							console.log('Opening image:', photo.uri);
-						}}
-					>
-						<Image
-							source={{ uri: photo.uri }}
-							style={styles.thumbnailImage}
-							resizeMode="cover"
-						/>
-					</TouchableOpacity>
-				))}
-
-				{/* ==================== */}
-				{/*   AUDIO INDICATOR    */}
-				{/* ==================== */}
-				{pinData.memory.media.audio && (
-					<View style={styles.section}>
-						<LabelText style={styles.sectionLabel}>
-							Audio Recording
-						</LabelText>
-						<View style={styles.audioContainer}>
-							<CaptionText style={styles.audioText}>
-								🎵 Voice note recorded{' '}
-								{getFormattedDate(
-									pinData.memory.media.audio.recorded
-								)}
-							</CaptionText>
+							<View style={styles.userInfo}>
+								<Image
+									source={
+										pinData.owner?.avatar_url
+											? { uri: pinData.owner.avatar_url }
+											: {
+													uri: 'https://via.placeholder.com/40x40/cccccc/666666?text=U',
+											  }
+									}
+									style={styles.userAvatar}
+									resizeMode="cover"
+								/>
+								<CaptionText
+									style={styles.username}
+									numberOfLines={1}
+								>
+									{getDisplayName(pinData.owner)}
+								</CaptionText>
+							</View>
 						</View>
 					</View>
-				)}
 
-				{/* ==================== */}
-				{/*   ACTION BUTTONS     */}
-				{/* ==================== */}
-				<View style={styles.actionsContainer}>
-					<Button
-						style={styles.actionButton}
-						variant="secondary"
-						onPress={onClose}
+					{/* Scrollable Content */}
+					<BottomSheetScrollView
+						style={styles.scrollContent}
+						contentContainerStyle={styles.scrollContentContainer}
+						showsVerticalScrollIndicator={false}
 					>
-						Close
-					</Button>
+						{/* Media Grid */}
+						{renderMediaGrid()}
 
-					<Button
-						style={styles.actionButton}
-						variant="primary"
-						onPress={() => {
-							// TODO: Navigate to full memory view
-							console.log('View full memory:', pinData.id);
-						}}
-					>
-						View Full Memory
-					</Button>
-				</View>
-			</BottomSheetView>
-		</BottomSheet>
+						{/* Description */}
+						{pinData.description && (
+							<View style={styles.descriptionSection}>
+								<BodyText style={styles.description}>
+									{pinData.description}
+								</BodyText>
+							</View>
+						)}
+
+						{/* Created Date */}
+						<View style={styles.dateSection}>
+							<CaptionText style={styles.createdAt}>
+								Created {formatCreatedAt(pinData.created_at)}
+							</CaptionText>
+						</View>
+					</BottomSheetScrollView>
+
+					{/* Footer */}
+					<View style={styles.footer}>
+						{/* Show "Next Memory" if there are multiple pins at this location */}
+						{allPinsAtLocation.length > 1 && onNextPin ? (
+							<View style={styles.footerButtonsContainer}>
+								<Button
+									onPress={onClose}
+									style={styles.footerButtonSecondary}
+									variant="secondary"
+								>
+									Close
+								</Button>
+								<Button
+									onPress={onNextPin}
+									style={styles.footerButtonPrimary}
+									variant="primary"
+								>
+									Next Memory
+								</Button>
+							</View>
+						) : (
+							<Button
+								onPress={onClose}
+								style={styles.footerButton}
+								variant="primary"
+							>
+								Close
+							</Button>
+						)}
+					</View>
+				</BottomSheetView>
+			</BottomSheet>
+
+			{/* Image Preview Modal */}
+			<Modal
+				isVisible={imagePreviewState.visible}
+				onBackdropPress={handleCloseImagePreview}
+			>
+				<Modal.Container>
+					<Modal.Header title="Memory Photo" />
+					<Modal.Body>
+						<View style={styles.imagePreviewContainer}>
+							{imagePreviewState.imageUri && (
+								<Image
+									source={{ uri: imagePreviewState.imageUri }}
+									style={styles.fullImagePreview}
+									resizeMode="contain"
+								/>
+							)}
+						</View>
+					</Modal.Body>
+					<Modal.Footer>
+						<Button
+							onPress={handleCloseImagePreview}
+							variant="primary"
+						>
+							Close
+						</Button>
+					</Modal.Footer>
+				</Modal.Container>
+			</Modal>
+		</>
 	);
 }
 
@@ -309,189 +399,148 @@ export function PinBottomSheet({
 
 const styles = StyleSheet.create({
 	bottomSheetBackground: {
-		backgroundColor: ReMapColors.primary.testing,
-		borderTopLeftRadius: 20,
-		borderTopRightRadius: 20,
-		shadowColor: '#000',
-		shadowOffset: { width: 0, height: -2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 5,
-	},
-	bottomSheetHandle: {
-		backgroundColor: ReMapColors.primary.testing,
+		backgroundColor: '#FFFFFF',
 		borderTopLeftRadius: 20,
 		borderTopRightRadius: 20,
 	},
-	contentContainer: {
+	handleIndicator: {
+		backgroundColor: '#CCCCCC',
+		width: 40,
+		height: 4,
+	},
+	container: {
 		flex: 1,
-		padding: 20,
-		paddingTop: 10,
 	},
-
-	// Header Section
 	header: {
+		paddingHorizontal: 20,
+		paddingTop: 16,
+		paddingBottom: 12,
+		borderBottomWidth: 1,
+		borderBottomColor: '#F0F0F0',
+	},
+	headerContent: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'flex-start',
-		marginBottom: 16,
-		paddingBottom: 12,
-		borderBottomWidth: 1,
-		borderBottomColor: ReMapColors.ui.border,
 	},
-	headerMain: {
+	titleSection: {
 		flex: 1,
 		marginRight: 12,
 	},
-	memoryTitle: {
-		marginBottom: 6,
-		color: ReMapColors.ui.text,
+	memoryName: {
+		fontSize: 18,
+		fontWeight: '600',
+		marginBottom: 4,
+		color: '#1A1A1A',
 	},
-	locationRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-	},
-	locationIcon: {
-		marginRight: 4,
-		color: ReMapColors.primary.blue,
-	},
-	locationName: {
-		color: ReMapColors.ui.textSecondary,
-		flex: 1,
-	},
-	closeButton: {
-		width: 28,
-		height: 28,
-		borderRadius: 14,
-		backgroundColor: ReMapColors.ui.background,
-		alignItems: 'center',
-		justifyContent: 'center',
-		borderWidth: 1,
-		borderColor: ReMapColors.ui.border,
-	},
-	closeButtonText: {
-		color: ReMapColors.ui.textSecondary,
+	location: {
 		fontSize: 14,
-		lineHeight: 16,
+		color: '#666666',
 	},
-
-	// Metadata Section
-	metadataRow: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		marginBottom: 20,
-		paddingVertical: 8,
-		backgroundColor: ReMapColors.ui.background,
-		borderRadius: 8,
-		paddingHorizontal: 12,
-	},
-	metadataItem: {
-		flex: 1,
+	userInfo: {
 		alignItems: 'center',
+		minWidth: 60,
 	},
-	metadataLabel: {
-		color: ReMapColors.ui.textSecondary,
-		marginBottom: 2,
-		fontSize: 10,
-	},
-	metadataValue: {
-		color: ReMapColors.ui.text,
-		fontSize: 11,
-		fontWeight: '500',
-		textAlign: 'center',
-	},
-
-	// Content Sections
-	section: {
-		marginBottom: 20,
-	},
-	sectionLabel: {
-		marginBottom: 8,
-		color: ReMapColors.primary.violet,
-		fontSize: 13,
-	},
-	description: {
-		lineHeight: 22,
-		color: ReMapColors.ui.text,
-	},
-	locationDetails: {
-		color: ReMapColors.ui.text,
+	userAvatar: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
 		marginBottom: 4,
 	},
-	coordinates: {
-		color: ReMapColors.ui.textSecondary,
-		fontFamily: 'monospace',
-		fontSize: 10,
+	username: {
+		fontSize: 12,
+		color: '#666666',
+		textAlign: 'center',
 	},
-
-	// Visibility Tags
-	visibilityContainer: {
-		flexDirection: 'row',
-		flexWrap: 'wrap',
-		gap: 6,
+	scrollContent: {
+		flex: 1,
 	},
-	visibilityTag: {
-		backgroundColor: ReMapColors.primary.violet,
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 12,
+	scrollContentContainer: {
+		paddingHorizontal: 20,
+		paddingVertical: 16,
 	},
-	visibilityText: {
-		color: ReMapColors.ui.cardBackground,
-		fontSize: 10,
-		fontWeight: '500',
+	mediaSection: {
+		marginBottom: 20,
 	},
-
-	// Media Section
+	sectionTitle: {
+		fontSize: 16,
+		fontWeight: '600',
+		marginBottom: 12,
+		color: '#1A1A1A',
+	},
 	mediaGrid: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',
+		justifyContent: 'center',
 		gap: 8,
 	},
 	mediaThumbnail: {
 		width: 80,
-		height: 60,
-		backgroundColor: ReMapColors.ui.background,
-		borderRadius: 6,
-		alignItems: 'center',
-		justifyContent: 'center',
-		borderWidth: 1,
-		borderColor: ReMapColors.ui.border,
+		height: 80,
+		borderRadius: 8,
+		overflow: 'hidden',
+		backgroundColor: '#F5F5F5',
 	},
-	mediaPlaceholder: {
-		fontSize: 9,
-		color: ReMapColors.ui.textSecondary,
-		textAlign: 'center',
-	},
-	thumbnailImage: {
+	mediaImage: {
 		width: '100%',
 		height: '100%',
-		borderRadius: 6,
 	},
-
-	// Audio Section
-	audioContainer: {
-		backgroundColor: ReMapColors.ui.background,
-		padding: 12,
-		borderRadius: 8,
-		borderLeftWidth: 3,
-		borderLeftColor: ReMapColors.primary.blue,
+	mediaPlaceholder: {
+		width: '100%',
+		height: '100%',
+		justifyContent: 'center',
+		alignItems: 'center',
+		backgroundColor: '#F0F0F0',
 	},
-	audioText: {
-		color: ReMapColors.ui.text,
+	mediaIcon: {
+		fontSize: 24,
 	},
-
-	// Actions
-	actionsContainer: {
+	descriptionSection: {
+		marginBottom: 20,
+	},
+	description: {
+		fontSize: 16,
+		lineHeight: 24,
+		color: '#333333',
+	},
+	dateSection: {
+		marginBottom: 20,
+		alignItems: 'center',
+	},
+	createdAt: {
+		fontSize: 14,
+		color: '#999999',
+		fontStyle: 'italic',
+	},
+	footer: {
+		paddingHorizontal: 20,
+		paddingVertical: 16,
+		borderTopWidth: 1,
+		borderTopColor: '#F0F0F0',
+	},
+	footerButton: {
+		width: '100%',
+	},
+	footerButtonsContainer: {
 		flexDirection: 'row',
 		gap: 12,
-		marginTop: 20,
-		paddingTop: 16,
-		borderTopWidth: 1,
-		borderTopColor: ReMapColors.ui.border,
 	},
-	actionButton: {
+	footerButtonSecondary: {
 		flex: 1,
+	},
+	footerButtonPrimary: {
+		flex: 2,
+	},
+	imagePreviewContainer: {
+		alignItems: 'center',
+		justifyContent: 'center',
+		minHeight: 300,
+		maxHeight: 500,
+	},
+	fullImagePreview: {
+		width: '100%',
+		height: '100%',
+		borderRadius: 8,
 	},
 });
 

@@ -76,7 +76,11 @@ export function MediaCapture({
 		if (isRecording) {
 			return '🔴 Recording... Tap microphone to stop';
 		}
-		return 'Tap camera to add photos or microphone to record audio';
+		const photoCount = selectedMedia.filter(
+			(item) => item.type === 'photo'
+		).length;
+		const photoLimit = 5;
+		return `Tap camera to add photos (${photoCount}/${photoLimit}) or microphone to record audio`;
 	};
 
 	// ======================
@@ -228,7 +232,11 @@ export function MediaCapture({
 					label="Camera"
 					variant="filled"
 					backgroundColor={ReMapColors.primary.blue}
-					disabled={disabled}
+					disabled={
+						disabled ||
+						selectedMedia.filter((item) => item.type === 'photo')
+							.length >= 5
+					}
 				/>
 
 				{/* Microphone button with dynamic state */}

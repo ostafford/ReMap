@@ -162,6 +162,19 @@ export function useMediaCapture({
 
 	const openCamera = useCallback(async () => {
 		try {
+			// Check photo limit (maximum 5 photos)
+			if (
+				selectedMedia.filter((item) => item.type === 'photo').length >=
+				5
+			) {
+				Alert.alert(
+					'Photo Limit Reached',
+					'You can only add up to 5 photos per memory. Please remove some photos before adding more.',
+					[{ text: 'OK' }]
+				);
+				return;
+			}
+
 			await ImagePicker.requestCameraPermissionsAsync();
 			let result = await ImagePicker.launchCameraAsync({
 				allowsEditing: true,
@@ -204,6 +217,19 @@ export function useMediaCapture({
 
 	const openImageLibrary = useCallback(async () => {
 		try {
+			// Check photo limit (maximum 5 photos)
+			if (
+				selectedMedia.filter((item) => item.type === 'photo').length >=
+				5
+			) {
+				Alert.alert(
+					'Photo Limit Reached',
+					'You can only add up to 5 photos per memory. Please remove some photos before adding more.',
+					[{ text: 'OK' }]
+				);
+				return;
+			}
+
 			let result = await ImagePicker.launchImageLibraryAsync({
 				allowsEditing: true,
 				quality: 0.75,

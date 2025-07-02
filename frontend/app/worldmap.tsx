@@ -242,8 +242,34 @@ export default function WorldMapScreen() {
 		pinData?: any
 	) => {
 		if (pinData) {
-			setSelectedPinData(pinData);
-			setIsBottomSheetVisible(true);
+			// Find all pins at the same location
+			const pinsAtLocation = realPins.filter((pin) => {
+				const latDiff = Math.abs(
+					pin.coordinate.latitude - coordinate.latitude
+				);
+				const lngDiff = Math.abs(
+					pin.coordinate.longitude - coordinate.longitude
+				);
+				// Use a small threshold to consider pins at the "same" location
+				return latDiff < 0.0001 && lngDiff < 0.0001;
+			});
+
+			if (pinsAtLocation.length > 1) {
+				// Multiple pins at this location
+				const allPinData = pinsAtLocation.map((pin) => pin.pinData);
+				const currentIndex = allPinData.findIndex(
+					(pin) => pin.id === pinData.id
+				);
+
+				setAllPinsAtLocation(allPinData);
+				setCurrentPinIndex(currentIndex >= 0 ? currentIndex : 0);
+				setSelectedPinData(pinData);
+			} else {
+				// Single pin at this location
+				setAllPinsAtLocation([]);
+				setCurrentPinIndex(0);
+				setSelectedPinData(pinData);
+			}
 		}
 	};
 
@@ -264,15 +290,42 @@ export default function WorldMapScreen() {
 		return colorMap[visibilityValue || 'public'] || '#666666';
 	};
 
+	// Helper function to detect pins at the same location
+	const getPinsAtLocation = (coordinate: {
+		latitude: number;
+		longitude: number;
+	}) => {
+		return realPins.filter((pin) => {
+			const latDiff = Math.abs(
+				pin.coordinate.latitude - coordinate.latitude
+			);
+			const lngDiff = Math.abs(
+				pin.coordinate.longitude - coordinate.longitude
+			);
+			// Use a small threshold to consider pins at the "same" location
+			return latDiff < 0.0001 && lngDiff < 0.0001;
+		});
+	};
+
 	// =============================
 	//   BOTTOMSHEET STATE
 	// =============================
-	const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
 	const [selectedPinData, setSelectedPinData] = useState<any>(null);
+	const [allPinsAtLocation, setAllPinsAtLocation] = useState<any[]>([]);
+	const [currentPinIndex, setCurrentPinIndex] = useState<number>(0);
 
 	const handleBottomSheetClose = () => {
-		setIsBottomSheetVisible(false);
 		setSelectedPinData(null);
+		setAllPinsAtLocation([]);
+		setCurrentPinIndex(0);
+	};
+
+	const handleNextPin = () => {
+		if (allPinsAtLocation.length > 1) {
+			const nextIndex = (currentPinIndex + 1) % allPinsAtLocation.length;
+			setCurrentPinIndex(nextIndex);
+			setSelectedPinData(allPinsAtLocation[nextIndex]);
+		}
 	};
 
 	// =============================
@@ -453,42 +506,37 @@ export default function WorldMapScreen() {
 						latitude: pin.latitude,
 						longitude: pin.longitude,
 					},
+					// PinData for BottomSheet - flattened structure
 					pinData: {
-						memory: {
-							name: pin.name,
-							description: pin.description,
-							owner_id: pin.owner_id,
-							created_at: pin.created_at,
-							visibility: [pin.visibility || 'public'],
-							media: {
-								photos: (pin.image_urls || [])
-									.filter(
-										(url: string) => url && url !== null
-									)
-									.map((url: string, index: number) => ({
-										name: `photo_${index + 1}`,
-										uri: url,
-									})),
-								videos: [],
-								audio: pin.audio_url
-									? { recorded: pin.audio_url }
-									: null,
-							},
-						},
+						id: pin.id,
 						name: pin.name,
+						description: pin.description,
 						location: {
 							location_query:
 								pin.location_query || 'Unknown location',
 							latitude: pin.latitude,
 							longitude: pin.longitude,
 						},
-						// Add owner data for BottomSheet
-						owner: pin.owner || {
-							id: pin.owner_id,
-							username: null,
-							full_name: null,
-							avatar_url: null,
+						media: {
+							photos: pin.image_urls
+								? pin.image_urls.map((url: string) => ({
+										uri: url,
+								  }))
+								: [],
+							videos: [], // TODO: Add video support when backend provides it
+							audio: pin.audio_url
+								? { uri: pin.audio_url }
+								: null,
 						},
+						owner: {
+							username: pin.owner?.username || 'Unknown User',
+							avatar_url: pin.owner?.avatar_url || null,
+							display_name: pin.owner?.full_name || null,
+						},
+						visibility: pin.private_pin
+							? 'private'
+							: pin.visibility || 'public',
+						created_at: pin.created_at,
 					},
 				}));
 
@@ -709,36 +757,56 @@ export default function WorldMapScreen() {
 							{/* ************************ */}
 							{/*      PIN FROM BACKEND    */}
 							{/* ************************ */}
-							{realPins.map((pin) => (
-								<Marker
-									key={pin.id}
-									coordinate={pin.coordinate}
-									onPress={() => {
-										handleMarkerPress(
-											pin.coordinate,
-											pin.pinData
-										);
-									}}
-									title={pin.name}
-									description={pin.description}
-								>
-									<View
-										style={[
-											styles.customMarker,
-											{
-												backgroundColor: getMarkerColor(
-													pin.pinData.memory
-														.visibility
-												),
-											},
-										]}
+							{realPins.map((pin) => {
+								const pinsAtLocation = getPinsAtLocation(
+									pin.coordinate
+								);
+								const hasMultiplePins =
+									pinsAtLocation.length > 1;
+
+								return (
+									<Marker
+										key={pin.id}
+										coordinate={pin.coordinate}
+										onPress={() => {
+											handleMarkerPress(
+												pin.coordinate,
+												pin.pinData
+											);
+										}}
+										title={pin.name}
+										description={pin.description}
 									>
-										<Text style={styles.markerIcon}>
-											📍
-										</Text>
-									</View>
-								</Marker>
-							))}
+										<View
+											style={[
+												styles.customMarker,
+												{
+													backgroundColor:
+														getMarkerColor(
+															pin.pinData
+																.visibility
+														),
+												},
+											]}
+										>
+											<Text style={styles.markerIcon}>
+												📍
+											</Text>
+
+											{/* Badge for multiple pins */}
+											{hasMultiplePins && (
+												<View style={styles.pinBadge}>
+													<Text
+														style={styles.badgeText}
+													>
+														{pinsAtLocation.length}
+													</Text>
+												</View>
+											)}
+										</View>
+									</Marker>
+								);
+							})}
 
 							{/* **************************************** */}
 							{/*   SEARCH MARKER + TOPSHEET NOTIFICATION  */}
@@ -1035,11 +1103,15 @@ export default function WorldMapScreen() {
 			{/* ==================== */}
 			{/*   PIN BOTTOMSHEET    */}
 			{/* ==================== */}
-			<PinBottomSheet
-				isVisible={isBottomSheetVisible}
-				onClose={handleBottomSheetClose}
-				pinData={selectedPinData}
-			/>
+			{selectedPinData && (
+				<PinBottomSheet
+					pinData={selectedPinData}
+					allPinsAtLocation={allPinsAtLocation}
+					currentPinIndex={currentPinIndex}
+					onClose={handleBottomSheetClose}
+					onNextPin={handleNextPin}
+				/>
+			)}
 		</GestureHandlerRootView>
 	);
 }
@@ -1124,15 +1196,31 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		borderWidth: 2,
 		borderColor: '#FFFFFF',
-		shadowColor: '#000',
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.3,
-		shadowRadius: 3,
 		elevation: 5,
 	},
 	markerIcon: {
 		fontSize: 16,
 		color: '#FFFFFF',
+	},
+	pinBadge: {
+		position: 'absolute',
+		top: -5,
+		right: -5,
+		backgroundColor: '#FF6B35', // Orange badge
+		borderRadius: 10,
+		minWidth: 20,
+		height: 20,
+		alignItems: 'center',
+		justifyContent: 'center',
+		borderWidth: 2,
+		borderColor: '#FFFFFF',
+		elevation: 3,
+	},
+	badgeText: {
+		color: '#FFFFFF',
+		fontSize: 12,
+		fontWeight: 'bold',
+		textAlign: 'center',
 	},
 
 	// ==========================
