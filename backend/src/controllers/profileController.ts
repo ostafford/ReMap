@@ -37,7 +37,10 @@ export const getProfile = async (req: Request, res: Response) => {
 	try {
 		const { data, error } = await supabase
 			.from('profiles')
-			.select()
+			.select(`
+				*,
+				pins!owner_id(count)
+			`)
 			.eq('id', id)
 			.single();
 
@@ -46,8 +49,15 @@ export const getProfile = async (req: Request, res: Response) => {
 			res.status(400).json({ error: error.message });
 			return;
 		}
-		console.log('Profile:', data);
-		res.status(200).json(data);
+
+		const dataWithPins = {
+			...data,
+			pins: data.pins[0].count,
+		}
+
+		console.log('Profile:', dataWithPins);
+
+		res.status(200).json(dataWithPins);
 	} catch (err: any) {
 		console.log('Profile error', err.message);
 		res.status(500).json({ msg: 'Profile error', error: err.message });
