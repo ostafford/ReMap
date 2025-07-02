@@ -17,9 +17,10 @@ import {
 	Image,
 	Modal,
 	FlatList,
-	Pressable
+	Pressable,
+	TextInput
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/shared/useAuth';
 import { Audio } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
@@ -88,29 +89,46 @@ function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
 
 /*------------------------- Circle ----------------------------*/
 function CirclesTab() {
-	const [circleData, circleSetData] = useState<Awaited<ReturnType<RemapClient['listCircles']>> | null>(null);
+	const [data, setData] = useState<Awaited<ReturnType<RemapClient['listCircles']>> | null>(null);
 
 	const [modalVisible, setModalVisible] = useState(false);
 	const [newCircle, setNewCircle] = useState('');
 
-	useEffect(() => {
-		loadData();
+	const router = useRouter();
 
-		async function loadData() {
-			const _circleData = await new RemapClient().listCircles();
-
-			console.log(_circleData);
-			circleSetData(_circleData);
+	const loadData = useCallback(async () => {
+		try {
+			const _data = await new RemapClient().listCircles();
+			
+			console.log(_data);
+			setData(_data);
+	
+		} catch (error) {
+			console.error('Error fetching circle:', error);
 		}
 	}, []);
 
+	useEffect(() => {
+		loadData();
+	}, [loadData]);
+
+	// Delete Circle
+	async function deleteCircle(id: string) {
+		try {
+			await new RemapClient().deleteCircle(id);
+			setData(prevData => prevData?.filter(circle => circle.id !== id) || null);
+
+		} catch (error) {
+			console.error("Error deleting circle:", error);
+		}
+	}
 	
 	return (
 		<View style={styles.tabContent}>
 			<Text>Your Circles</Text>
 
 			<FlatList
-				data={circleData}
+				data={data}
 				keyExtractor={(item, index) => {
 					if (item && item.id) {
 						return item.id.toString();
@@ -120,6 +138,22 @@ function CirclesTab() {
 				renderItem={( {item} ) => (
 					<View>
 						<Text style={{fontSize: 20}}>{item ? item.name : 'No Name'}</Text>
+						<Pressable
+						onPress={() =>
+							router.navigate({
+								pathname: '/(user)/circle/[circleId]',
+								params: { circleId: `${item.id.toString()}`}
+							})
+						}>
+							<Text>View Circle</Text>
+						</Pressable>
+
+						<Button onPress={() => {
+							deleteCircle(item.id.toString());
+						}}>
+							Delete Pin
+						</Button>
+
 					</View>
 				)}
 			/>
@@ -155,28 +189,21 @@ function PinsTab() {
 	// Fetch Pins
 	const [data, setData] = useState<Awaited<ReturnType<RemapClient['getUserPins']>> | null>(null);
 
-	useEffect(() => {
-		let isMounted = true;
-
-		const loadData = async () => {
-			try {
-				const _data = await new RemapClient().getUserPins();				
-				
-				if (isMounted) {
-					console.log(_data);
-					setData(_data);	
-				}
-			} catch (error) {
-				console.error('Error fetching pins:', error);
-			}
-		};
-
-		loadData();
-		
-		return () => {
-			isMounted = false;
-		};
+	const loadData = useCallback(async () => {
+		try {
+			const _data = await new RemapClient().getUserPins();
+			
+			console.log(_data);
+			setData(_data);
+	
+		} catch (error) {
+			console.error('Error fetching pins:', error);
+		}
 	}, []);
+
+	useEffect(() => {
+		loadData();
+	}, [loadData]);
 
 
 	// Handle Audio
@@ -191,7 +218,7 @@ function PinsTab() {
 			return;
 		}
 
-		// Pause Audio at a specific time.
+		// Check Pause Audio at a specific time.
 		if (soundRef.current && isPaused && lastAudio === audio_url) {
 			try {
 				await soundRef.current.playAsync();
@@ -282,6 +309,17 @@ function PinsTab() {
 		}, [])
 	);
 
+	// Delete Pin
+	async function deletePin(id: string) {
+		try {
+			await new RemapClient().deletePin(id);
+			setData(prevData => prevData?.filter(pin => pin.id !== id) || null);
+
+		} catch (error) {
+			console.error("Error deleting pin:", error);
+		}
+	}
+
 	return (
 		<View style={styles.tabContent}>
 			<Text>Your Pins</Text>
@@ -295,19 +333,19 @@ function PinsTab() {
 					return `fallback-key-${index}`;
 				}}
 				renderItem={( {item} ) => (
-					<View>
+					<View style={styles.tabContent}>
 						<Text style={{fontSize: 20}}>{item ? item.name : 'No Name'}</Text>
 						<Text style={{fontSize: 20}}>{item ? item.description : 'No Description'}</Text>
 						
-						{Array.isArray(item?.image_urls) && item.image_urls.length > 0 ? (
+						{Array.isArray(item?.image_urls) && item.image_urls.length > 0 && (
 							<Image
 								source={{ uri: item.image_urls[0] }}
 								style={{ width: 100, height: 100, resizeMode: 'cover' }}
 							/>
-						) : (
-							<Text>No image available</Text>
 						)}
-
+						
+						{item?.audio_url && (
+						<>
 						<Button onPress={() => PlaySound(item?.audio_url)}>
 							Play
 						</Button>
@@ -317,24 +355,33 @@ function PinsTab() {
 						<Button onPress={stopSound}>
 							Stop
 						</Button>
+						</>
+						)}
+
 						<Pressable
-						onPress={() =>
-							router.navigate({
-								pathname: '/(user)/[pinId]',
-								params: { pinId: `${item.id.toString()}`}
-							})
-						}>
+							onPress={() =>
+								router.navigate({
+									pathname: '/(user)/pin/[pinId]',
+									params: { pinId: `${item.id.toString()}`}
+								})
+							}>
 							<Text>View Pin</Text>
 						</Pressable>
+
+						<Button onPress={() => {
+							deletePin(item.id.toString());
+						}}>
+							Delete Pin
+						</Button>
 					</View>
 				)}
 			/>
 
-			<Text>maybe we should have the option to delete pins here</Text>
 		</View>
 	);
 }
 
+// Profile Screen
 export default function ProfileScreen() {
 	const insets = useSafeAreaInsets();
 	const router = useRouter();

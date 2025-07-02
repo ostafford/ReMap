@@ -180,7 +180,7 @@ export default function WorldMapScreen() {
 
 			try {
 				const remap = new RemapClient();
-				const circles = await remap.getCircles();
+				const circles = await remap.listCircles();
 
 				const defaultCircles = [
 					{ label: 'Global', value: 'global' },

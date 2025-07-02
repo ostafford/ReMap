@@ -164,11 +164,11 @@ export const getCircle = async (req: Request, res: Response) => {
             name: data[0].name,
             members: memberNames
         }});
-        res.status(200).json({ "Circle": {
+        res.status(200).json({
             id: data[0].id,
             name: data[0].name,
             members: memberNames
-        }});
+        });
 
     } catch (err: any) {
         console.log("Get single circle server error:", err.message);

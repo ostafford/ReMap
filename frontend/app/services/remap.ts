@@ -133,7 +133,7 @@ export default class RemapClient {
 
 		const response = await this.makeAuthRequest(
 			'circles',
-			'POST'
+			'POST',
 		);
 
 		return response;
@@ -150,7 +150,11 @@ export default class RemapClient {
 		return await this.makeAuthRequest('circles', 'GET');
 	}
 
-	async getCircle(circleId: string): Promise<Tables<'circles'>> {
+	async getCircle(circleId: string): Promise<{
+		id: string;
+		name: string;
+		members: string[];
+	}> {
 		const userId = await this.getUserId();
 
 		if (!userId) {
