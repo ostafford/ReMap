@@ -131,6 +131,14 @@ export default class RemapClient {
 		return await this.makeAuthRequest(`pins/user/${pinId}`, 'DELETE');
 	}
 
+	// Get pins at specific location (for "Next Memory" feature)
+	async getPinsAtLocation(latitude: number, longitude: number): Promise<any> {
+		return await this.makeAuthRequest(
+			`pins/user/location/${latitude}/${longitude}`,
+			'GET'
+		);
+	}
+
 	// ===================
 	//   PROFILE METHODS
 	// ===================
