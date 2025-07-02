@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getCurrentUser, signOut as authSignOut } from '@/app/services/auth';
 import type { User } from '@supabase/supabase-js';
 
@@ -6,35 +6,37 @@ export const useAuth = () => {
 	const [user, setUser] = useState<User | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 
-	useEffect(() => {
-		const checkAuth = async () => {
-			try {
-				const userInfo = await getCurrentUser();
-				setUser(userInfo.user);
-			} catch (error) {
-				console.error('Auth check failed:', error);
-				setUser(null);
-			} finally {
-				setIsLoading(false);
-			}
-		};
+	// Memoized computed values
+	const isAuthenticated = useMemo(() => !!user, [user]);
+	const userEmail = useMemo(() => user?.email, [user?.email]);
+	const userDisplayName = useMemo(
+		() => user?.email?.split('@')[0] || 'User',
+		[user?.email]
+	);
 
-		checkAuth();
-	}, []);
-
-	// Refresh auth state (useful after login/logout)
-	const refreshAuth = useCallback(async () => {
-		setIsLoading(true);
+	// Auth check function
+	const checkAuth = useCallback(async () => {
 		try {
 			const userInfo = await getCurrentUser();
 			setUser(userInfo.user);
 		} catch (error) {
-			console.error('Auth refresh failed:', error);
+			console.error('Auth check failed:', error);
 			setUser(null);
 		} finally {
 			setIsLoading(false);
 		}
 	}, []);
+
+	// Initial auth check
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
+
+	// Refresh auth state (useful after login/logout)
+	const refreshAuth = useCallback(async () => {
+		setIsLoading(true);
+		await checkAuth();
+	}, [checkAuth]);
 
 	// Sign out with state cleanup
 	const signOut = useCallback(async () => {
@@ -51,10 +53,10 @@ export const useAuth = () => {
 	return {
 		user,
 		isLoading,
-		isAuthenticated: !!user,
+		isAuthenticated,
 		signOut,
 		refreshAuth,
-		userEmail: user?.email,
-		userDisplayName: user?.email?.split('@')[0] || 'User',
+		userEmail,
+		userDisplayName,
 	};
 };

@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 // ============================
 //  TYPE DEFINITIONS
 // ============================
+type MessageType = 'success' | 'error' | 'warning' | 'info';
+
 type SplashState = {
 	messageShow: boolean;
 	messageText: string;
-	messageType: 'success' | 'error' | 'warning' | 'info';
-
-	// Modal states
+	messageType: MessageType;
 	isSignInModalVisible: boolean;
 };
 
@@ -23,52 +23,41 @@ export const useSplashState = () => {
 		isSignInModalVisible: false,
 	});
 
-	const updateField = <Field extends keyof SplashState>(
-		field: Field,
-		value: SplashState[Field]
-	) => {
-		setSplashState((prev) => ({
-			...prev,
-			[field]: value,
-		}));
-	};
+	const showMessage = useCallback(
+		(message: string, type: MessageType = 'info') => {
+			setSplashState((prev) => ({
+				...prev,
+				messageShow: true,
+				messageText: message,
+				messageType: type,
+			}));
+		},
+		[]
+	);
 
-	const showMessage = (
-		message: string,
-		type: SplashState['messageType'] = 'info'
-	) => {
-		setSplashState((prev) => ({
-			...prev,
-			messageShow: true,
-			messageText: message,
-			messageType: type,
-		}));
-	};
-
-	const hideMessage = () => {
+	const hideMessage = useCallback(() => {
 		setSplashState((prev) => ({
 			...prev,
 			messageShow: false,
 		}));
-	};
+	}, []);
 
-	const toggleSignInModal = () => {
+	const toggleSignInModal = useCallback(() => {
 		setSplashState((prev) => ({
 			...prev,
 			isSignInModalVisible: !prev.isSignInModalVisible,
 		}));
-	};
+	}, []);
 
-	const closeSignInModal = () => {
+	const closeSignInModal = useCallback(() => {
 		setSplashState((prev) => ({
 			...prev,
 			isSignInModalVisible: false,
 		}));
-	};
+	}, []);
 
 	return {
 		splashState,
-		updateField,
 		showMessage,
 		hideMessage,
 		toggleSignInModal,
