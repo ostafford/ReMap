@@ -416,7 +416,7 @@ export const getPin = async (req: Request, res: Response) => {
 			return;
 		}
 		console.log('User Pin:', pins);
-		res.status(200).json({ 'User Pin': pins });
+		res.status(200).json(pins);
 	} catch (err: any) {
 		console.log('Get single user pin server error', err.message);
 		res.status(500).json({
@@ -596,7 +596,7 @@ export const updatePin = [
 				return;
 			}
 			console.log('Updated Pin:', data);
-			res.status(200).json({ 'Updated Pin:': data });
+			res.status(200).json(data);
 		} catch (err: any) {
 			console.log('Update pin server error', err.message);
 			res.status(500).json({ 'Update pin server error': err.message });
