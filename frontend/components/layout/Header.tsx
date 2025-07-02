@@ -26,6 +26,7 @@ interface HeaderProps {
 	backgroundColor?: string;
 	titleColor?: string;
 	subtitleColor?: string;
+	fontSize?: number;
 }
 
 // ========================
@@ -38,6 +39,7 @@ export const Header = ({
 	backgroundColor = ReMapColors.primary.violet,
 	titleColor = ReMapColors.ui.cardBackground, // NOTE: White text on colored background
 	subtitleColor = ReMapColors.ui.cardBackground,
+	fontSize = 24,
 }: HeaderProps) => {
 	const insets = useSafeAreaInsets();
 
@@ -47,7 +49,7 @@ export const Header = ({
 				styles.container,
 				{
 					backgroundColor,
-					paddingTop: Math.max(insets.top, 50), // Respect safe area
+					paddingTop: Math.max(insets.top, 10), // Respect safe area
 				},
 				style,
 			]}
@@ -55,7 +57,7 @@ export const Header = ({
 			<View style={styles.content}>
 				<HeaderText
 					align="center"
-					style={styles.title}
+					style={[styles.title, { fontSize } ]}
 					color={titleColor}
 				>
 					{title}
@@ -97,6 +99,7 @@ const styles = StyleSheet.create({
 	title: {
 		// Typography component handles all text styling
 		opacity: 0.95,
+		paddingTop: 80,
 	},
 	subtitle: {
 		// Typography component handles all text styling
