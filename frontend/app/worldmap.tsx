@@ -37,7 +37,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import { Dropdown } from 'react-native-element-dropdown';
 
 // =========================================================================
@@ -102,9 +102,20 @@ import { getCurrentUser, signOut } from '@/app/services/auth';
 import { remap } from 'three/tsl';
 
 // =========================
-//   DATA IMPORTS
+//   CONSTANTS IMPORTS
 // =========================
-import { STARTER_PACKS } from '@/constants/onboardingStaticData';
+import { CATEGORIES } from '@/constants/Categories';
+
+
+// ===================
+//   MAP SETTINGS
+// ===================
+const INITIAL_REGION = {
+	latitude: -37.817979,
+	longitude: 144.960408,
+	latitudeDelta: 0.05, // Shows Melbourne CBD + nearby suburbs
+	longitudeDelta: 0.05, // Shows Melbourne CBD + nearby suburbs
+};
 
 // =========================
 //   UTILITY FUNCTIONS
@@ -140,6 +151,7 @@ interface MapPin {
 		visibility: string;
 		created_at: string;
 		social_circle_ids: string[];
+		categories: typeof CATEGORIES[number]['category'][];
 	};
 }
 
@@ -181,7 +193,6 @@ function formatPins(pins: Awaited<ReturnType<RemapClient['getPublicPins']>>) {
 		for (const pin of validPins) {
 			// Skip if we've already seen this pin ID
 			if (seenIds.has(pin.id)) {
-				console.log(`🚫 [WORLDMAP] Skipping duplicate pin with ID: ${pin.id}`);
 				continue;
 			}
 
@@ -225,8 +236,9 @@ function formatPins(pins: Awaited<ReturnType<RemapClient['getPublicPins']>>) {
 					visibility: pin.private_pin
 						? "private"
 						: pin.visibility || "public",
-					social_circle_ids: pin.social_circle_ids || [],
+					social_circle_ids: pin.social_circle_ids ?? [],
 					created_at: pin.created_at,
+					categories: pin.categories ?? [],
 				},
 			});
 		}
@@ -257,13 +269,7 @@ export default function WorldMapScreen() {
 	// ================
 	//   MAP SETTINGS
 	// ================
-	const INITIAL_REGION = {
-		latitude: -37.817979,
-		longitude: 144.960408,
-		latitudeDelta: 0.05, // Shows Melbourne CBD + nearby suburbs
-		longitudeDelta: 0.05, // Shows Melbourne CBD + nearby suburbs
-	};
-
+	const [region, setRegion] = useState<typeof INITIAL_REGION>(INITIAL_REGION);
 	const mapRef = useRef<MapView>(null);
 
 	// =============================
@@ -336,18 +342,7 @@ export default function WorldMapScreen() {
 		fetchCircles();
 	}, [isAuthenticated]);
 
-	// ==================================
-	//   STARTER PACK SELECT SETUP
-	// ==================================
-	const starterPacks = [
-		{ label: 'sp1', value: 'sp1' },
-		{ label: 'sp2', value: 'sp2' },
-		{ label: 'sp3', value: 'sp3' },
-		{ label: 'sp4', value: 'sp4' },
-		{ label: 'sp5', value: 'sp5' },
-	];
-
-	const [selectedPack, setSelectedPack] = useState<string | null>(null);
+	const [selectedCategory, setSelectedCategory] = useState<typeof CATEGORIES[number]['category'] | null>(null);
 
 	// const handleStarterPackSelect = (pack) => {
 	// ... code to filter pins to starter packs here
@@ -496,26 +491,6 @@ export default function WorldMapScreen() {
 	};
 
 	// =============================
-	//   NAVIGATION SECTION
-	// =============================
-	// Navigation handlers
-	const goBack = () => {
-		router.replace('/');
-	};
-
-	const navigateToWorldMap = () => {
-		router.replace('/worldmap');
-	};
-
-	const navigateToCreatePin = () => {
-		router.replace('/createPin');
-	};
-
-	const navigateToProfile = () => {
-		router.push('/profile');
-	};
-
-	// =============================
 	//   PIN MARKER DISPLAY SECTION
 	// =============================
 	// TO DO: remove "any" type and replace with proper types
@@ -525,6 +500,10 @@ export default function WorldMapScreen() {
 
 	const visiblePins = useMemo(() => {
 		if (selectedCircle === 'global') {
+			if (selectedCategory) {
+				return allPins.filter((pin) => pin.pinData.categories.includes(selectedCategory));
+			}
+
 			return allPins;
 		}
 
@@ -533,7 +512,7 @@ export default function WorldMapScreen() {
 		}
 
 		return allPins.filter((pin) => pin.pinData.social_circle_ids.includes(selectedCircle));
-	}, [selectedCircle, allPins]);
+	}, [selectedCircle, selectedCategory, allPins]);
 
 	// =============================
 	//   PIN MARKER DISPLAY SECTION
@@ -582,18 +561,6 @@ export default function WorldMapScreen() {
 		fetchPins();
 	}, [fetchPins]);
 
-	// =========================
-	//   WORLDMAP PAGE RENDER
-	// =========================
-	console.log('🎯 [WORLDMAP] About to render', visiblePins.length, 'pins');
-	console.log(
-		'🎯 [WORLDMAP] Pin coordinates:',
-		visiblePins.map(
-			(p) =>
-				`${p.name}: ${p.coordinate.latitude}, ${p.coordinate.longitude}`
-		)
-	);
-
 	return (
 		<GestureHandlerRootView style={styles.container}>
 			{/* ==================== */}
@@ -640,11 +607,12 @@ export default function WorldMapScreen() {
 						<MapView
 							// Issue with map not updating when selectedCircle changes
 							// see https://www.reddit.com/r/reactnative/comments/1hx1xed/react_native_map_marker_not_rendering_on_mount/
-							key={`map-${selectedCircle}-${visiblePins.length}`}
+							key={`map-${selectedCircle}-${selectedCategory}-${visiblePins.length}`}
 							ref={mapRef}
 							style={styles.mapFlex}
-							provider={PROVIDER_GOOGLE}
-							initialRegion={INITIAL_REGION}
+							provider="google"
+							initialRegion={region}
+							onRegionChange={(region) => setRegion(region)}
 							showsUserLocation
 							showsMyLocationButton
 						>
@@ -851,60 +819,65 @@ export default function WorldMapScreen() {
 									value={selectedCircle}
 									onChange={(item) => {
 										setSelectedCircle(item.value);
+										setSelectedCategory(null);
 									}}
 								/>
 							</View>
 
 							<IconButton
 								icon="user"
-								onPress={
-									user
-										? navigateToProfile
-										: isAuthenticated
-										? profileModal.open
-										: goBack
-								}
+								onPress={() => {
+									if (user) {
+										router.push('/profile');
+									} else if (isAuthenticated) {
+										profileModal.open();
+									} else {
+										router.back();
+									}
+								}}
 								style={styles.profileIcon}
 							/>
 						</View>
 
-						<View style={styles.starterPackOverlay}>
-							<ScrollView
-								horizontal
-								showsHorizontalScrollIndicator={false}
-								contentContainerStyle={
-									styles.starterPackScrollContainer
-								}
-							>
-								{STARTER_PACKS.map((pack) => {
-									const isSelected = selectedPack === pack.id;
+						{selectedCircle === "global" && (
+							<View style={styles.starterPackOverlay}>
+								<ScrollView
+									horizontal
+									showsHorizontalScrollIndicator={false}
+									contentContainerStyle={
+										styles.starterPackScrollContainer
+									}
+								>
+									{CATEGORIES.map((pack) => {
+										const isSelected = selectedCategory === pack.category;
 
-									return (
-										<TouchableOpacity
-											key={pack.id}
-											style={[
-												styles.starterPackButton,
-												isSelected &&
-													styles.selectedStarterPackButton,
-											]}
-											onPress={() => {
-												if (selectedPack === pack.id) {
-													setSelectedPack(null);
-												} else {
-													setSelectedPack(pack.id);
-												}
-											}}
-										>
-											<Text
-												style={styles.starterPackText}
+										return (
+											<TouchableOpacity
+												key={pack.category}
+												style={[
+													styles.starterPackButton,
+													isSelected &&
+														styles.selectedStarterPackButton,
+												]}
+												onPress={() => {
+													if (selectedCategory === pack.category) {
+														setSelectedCategory(null);
+													} else {
+														setSelectedCategory(pack.category);
+													}
+												}}
 											>
-												{pack.icon} {pack.name}
-											</Text>
-										</TouchableOpacity>
-									);
-								})}
-							</ScrollView>
-						</View>
+												<Text
+													style={styles.starterPackText}
+												>
+													{pack.icon} {pack.name}
+												</Text>
+											</TouchableOpacity>
+										);
+									})}
+								</ScrollView>
+							</View>
+						)}
 
 						{/**********************************************/}
 						{/************ UNDER MAP CONTENT ***************/}
@@ -945,11 +918,13 @@ export default function WorldMapScreen() {
 						<View style={styles.footerContainer}>
 							<Button
 								variant="simple"
-								onPress={
-									isAuthenticated
-										? navigateToCreatePin
-										: signInModal.open //fix this to the proper create user/login prompt
-								}
+								onPress={() => {
+									if (isAuthenticated) {
+										router.replace('/createPin');
+									} else {
+										signInModal.open();
+									}
+								}}
 								style={styles.addPinButton}
 							>
 								Add Pin
