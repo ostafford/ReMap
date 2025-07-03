@@ -3,6 +3,7 @@
 // ================
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, Image } from 'react-native';
+import { router } from 'expo-router';
 
 // ======================
 //   LAYOUT COMPONENTS
@@ -45,7 +46,6 @@ import { ReMapColors } from '@/constants/Colors';
 // ================
 import { useMediaCapture } from '@/hooks/createPin/useMediaCapture';
 import { useOnboardingForm } from '@/hooks/onboarding/useOnboardingForm';
-import { useNavigation } from '@/hooks/shared/useNavigation';
 
 // ========================
 //   COMPONENT DEFINITION
@@ -89,12 +89,9 @@ export default function OnboardingAccountScreen() {
 	}, [profileCapture.selectedMedia]);
 
 	//	== NAVIGATION STATE ==
-	const { goToPage } = useNavigation();
-
 	const navigateToWorldMap = () => {
 		setIsSignupModalVisible(false);
-
-		goToPage('/worldmap');
+		router.push('/worldmap');
 	};
 
 	const confirmSkip = () => {
@@ -102,7 +99,7 @@ export default function OnboardingAccountScreen() {
 		navigateToWorldMap();
 	};
 
-	const goBack = () => goToPage('/onboarding/starterpack');
+	const goBack = () => router.push('/onboarding/starterpack');
 
 	//	== MODAL STATE ==
 	const [isSignupModalVisible, setIsSignupModalVisible] = useState(false);

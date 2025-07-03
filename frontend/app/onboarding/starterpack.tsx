@@ -3,6 +3,7 @@
 // ================
 // import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 
 // ================================
 //   LAYOUT COMPONENTS
@@ -39,7 +40,6 @@ import {
 	STARTER_PACKS,
 	type StarterPack,
 } from '@/constants/onboardingStaticData';
-import { useNavigation } from '@/hooks/shared/useNavigation';
 import { useStarterPack } from '@/hooks/onboarding/useStarterPack';
 
 // ========================
@@ -54,8 +54,6 @@ export default function OnboardingStarterPackScreen() {
 		isPackSelected,
 	} = useStarterPack();
 
-	const { goToPage } = useNavigation();
-
 	// This essentially saves the selected packs in an array to the next page
 	const navigateToAccount = () => {
 		console.log('Starter pack selections:', selectedPacks);
@@ -64,13 +62,13 @@ export default function OnboardingStarterPackScreen() {
 			const selectionsParam = encodeURIComponent(
 				JSON.stringify(selectedPacks)
 			);
-			goToPage(`/onboarding/account?selections=${selectionsParam}`);
+			router.push(`/onboarding/account?selections=${selectionsParam}`);
 		} else {
-			goToPage('/onboarding/account');
+			router.push('/onboarding/account');
 		}
 	};
 
-	const goBack = () => goToPage('/onboarding/');
+	const goBack = () => router.push('/onboarding');
 
 	const hasSelected = userHasSelectedPacks();
 	const selectionCount = getNumberOfSelectedPacks();

@@ -3,6 +3,7 @@
 // ================
 import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 
 // ================================
 //   LAYOUT COMPONENTS
@@ -26,17 +27,14 @@ import { ReMapColors } from '@/constants/Colors';
 //   HOOK IMPORTS
 // ==================
 import { WELCOME_STEPS, WelcomeStep } from '@/constants/onboardingStaticData';
-import { useNavigation } from '@/hooks/shared/useNavigation';
 
 // ========================
 //   COMPONENT DEFINITION
 // ========================
 export default function OnboardingWelcomeScreen() {
-	const { goToPage } = useNavigation();
-
 	// NAVIGATION HANDLERS
-	const continueToStarterPack = () => goToPage('/onboarding/starterpack');
-	const goBackToHome = () => goToPage('/');
+	const continueToStarterPack = () => router.push('/onboarding/starterpack');
+	const goBackToHome = () => router.push('/');
 
 	const renderWelcomeStep = (step: WelcomeStep, index: number) => (
 		<View key={index} style={styles.stepContent}>
