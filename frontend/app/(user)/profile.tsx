@@ -20,7 +20,7 @@ import {
 	Pressable,
 	TextInput
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { useAuth } from '@/hooks/shared/useAuth';
 import { Audio } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
@@ -38,10 +38,14 @@ import RemapClient from '../services/remap';
 const Tab = createMaterialTopTabNavigator();
 
 /*------------------------- Profile ----------------------------*/
-function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
-	const [data, setData] = useState<Awaited<
-		ReturnType<RemapClient['getProfile']>
-	> | null>(null);
+function ProfileTab() {
+	const { signOut, user } = useAuth();
+
+	const [data, setData] = useState<
+		Awaited<ReturnType<RemapClient['getProfile']>> | null
+	>(null);
+
+	const router = useRouter();
 
 	useEffect(() => {
 		loadData();
@@ -76,7 +80,10 @@ function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
 			<Text>Total Pins</Text>
 			<Text>{data?.pins}</Text>
 			<Button
-				onPress={onSignOut} // Connect the function here
+				onPress={async () => {
+					signOut();
+					router.replace('/');
+				}}
 				style={styles.circleButton}
 				size="small"
 				textColour="white"
@@ -149,12 +156,13 @@ function CirclesTab() {
 					<View>
 						<Text style={{fontSize: 20}}>{item ? item.name : 'No Name'}</Text>
 						<Pressable
-						onPress={() =>
-							router.navigate({
-								pathname: '/(user)/circle/[circleId]',
-								params: { circleId: `${item.id.toString()}`}
-							})
-						}>
+							onPress={() =>
+								router.navigate({
+									pathname: '/(user)/circle/[circleId]',
+									params: { circleId: `${item.id.toString()}`}
+								})
+							}
+						>
 							<Text>View Circle</Text>
 						</Pressable>
 
@@ -382,18 +390,18 @@ function PinsTab() {
 								style={{ width: 100, height: 100, resizeMode: 'cover' }}
 							/>
 						)}
-						
+
 						{item?.audio_url && (
 						<>
-						<Button onPress={() => PlaySound(item?.audio_url)}>
-							Play
-						</Button>
-						<Button onPress={pauseSound}>
-							Pause
-						</Button>
-						<Button onPress={stopSound}>
-							Stop
-						</Button>
+							<Button onPress={() => PlaySound(item?.audio_url)}>
+								Play
+							</Button>
+							<Button onPress={pauseSound}>
+								Pause
+							</Button>
+							<Button onPress={stopSound}>
+								Stop
+							</Button>
 						</>
 						)}
 
@@ -423,24 +431,19 @@ function PinsTab() {
 // Profile Screen
 export default function ProfileScreen() {
 	const insets = useSafeAreaInsets();
-	const router = useRouter();
-
-	const goBack = () => {
-		router.back();
-	};
-
-	const { signOut, user } = useAuth();
-	const handleSignOut = async () => {
-		const success = await signOut();
-		if (success) {
-			router.replace('/');
-		}
-	};
+	const navigation = useNavigation();
 
 	return (
 		<SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
 			<View style={styles.header}>
-				<TouchableOpacity onPress={goBack} style={styles.backButton}>
+				<TouchableOpacity
+					onPress={() => {
+						navigation.dispatch({
+							type: 'POP_TO_TOP',
+						});
+					}}
+					style={styles.backButton}
+				>
 					<Text style={styles.backButtonText}>← Back</Text>
 				</TouchableOpacity>
 			</View>
@@ -463,7 +466,7 @@ export default function ProfileScreen() {
 			>
 				<Tab.Screen
 					name="Profile"
-					children={() => <ProfileTab onSignOut={handleSignOut} />}
+					children={ProfileTab}
 				/>
 				<Tab.Screen name="Pins" component={PinsTab} />
 				<Tab.Screen name="Circles" component={CirclesTab} />

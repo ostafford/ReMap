@@ -27,7 +27,7 @@ import {
 // ===============================
 //   EXPO/NAVIGATION IMPORTS
 // ===============================
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -253,6 +253,11 @@ function formatPins(pins: Awaited<ReturnType<RemapClient['getPublicPins']>>) {
 //   						COMPONENT DEFINITION
 // =========================================================================
 export default function WorldMapScreen() {
+	// ===============================
+	//   NAVIGATION
+	// ===============================
+	const router = useRouter();
+
 	// ===============================
 	//   UTILITY CONSTANTS & SETUP
 	// ===============================
@@ -530,10 +535,21 @@ export default function WorldMapScreen() {
 
 			const remapClient = new RemapClient();
 
-			const [publicPins, userPins] = await Promise.all([
+			const promises = await Promise.allSettled([
 				remapClient.getPublicPins(),
-				remapClient.getUserPins(),
+				isAuthenticated ? remapClient.getUserPins() : [],
 			]);
+
+			if (promises[0].status !== 'fulfilled') {
+				throw new Error('Failed to fetch public pins');
+			}
+
+			if (promises[1].status !== 'fulfilled') {
+				throw new Error('Failed to fetch user pins');
+			}
+
+			const publicPins = promises[0].value;
+			const userPins = promises[1].value;
 
 			const formattedPins = formatPins([
 				...publicPins,
@@ -832,7 +848,7 @@ export default function WorldMapScreen() {
 									} else if (isAuthenticated) {
 										profileModal.open();
 									} else {
-										router.back();
+										router.replace('/');
 									}
 								}}
 								style={styles.profileIcon}
