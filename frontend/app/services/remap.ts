@@ -197,7 +197,7 @@ export default class RemapClient {
 	}
 
 	// READ
-	async getUserPins(): Promise<Tables<'pins'>[]> {
+	async getUserPins(): Promise<(Tables<'pins'> & { owner: Tables<'profiles'> })[]> {
 		const userId = await this.getUserId();
 
 		if (!userId) {
@@ -290,7 +290,7 @@ export default class RemapClient {
 
 	/* PUBLIC PINS */
 	// LIST ALL PINS
-	async getPublicPins(): Promise<Tables<'pins'>[]> {
+	async getPublicPins(): Promise<(Tables<'pins'> & { owner: Tables<'profiles'> })[]> {
 		return await this.makeAuthRequest('pins', 'GET');
 	}
 

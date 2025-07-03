@@ -9,17 +9,15 @@ export const publicListPins = async (req: Request, res: Response) => {
 	try {
 		const { data: pins, error } = await supabase
 			.from('pins')
-			.select(
-				`
-            *,
-            owner:profiles!pins_owner_id_fkey(
-                id,
-                username,
-                full_name,
-                avatar_url
-            )
-        `
-			)
+			.select(`
+                *,
+                owner:profiles!pins_owner_id_fkey(
+                    id,
+                    username,
+                    full_name,
+                    avatar_url
+                )
+            `)
 			.neq('visibility', 'private');
 
         if (error) {

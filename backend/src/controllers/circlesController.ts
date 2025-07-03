@@ -65,7 +65,7 @@ export const createCircle = async (req: Request, res: Response) => {
             return;
         }
         console.log("Created circle:", data);
-        res.status(201).json({ "Created circle": data });
+        res.status(201).json(data);
 
     } catch (err: any) {
         console.log("Create circle server error:", err.message);
@@ -329,7 +329,7 @@ export const addMember = async (req: Request, res: Response) => {
             return;
         }
         console.log(`Added ${user_id} to ${circle_id}`);
-        res.status(201).json({ data });
+        res.status(201).json(data);
 
     } catch (err: any) {
         console.log("Add member to circle server error:", err.message);
@@ -361,7 +361,9 @@ export const listMembers = async (req: Request, res: Response) => {
             res.status(400).json({"List member error": error.message});
             return;
         }
+
         console.log("List members:", data);
+
         res.status(200).json(data);
 
     } catch (err: any) {
