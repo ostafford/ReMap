@@ -370,7 +370,7 @@ export const listPins = async (req: Request, res: Response) => {
 		console.log(`   - Public pins: ${publicPins?.length || 0}`);
 		console.log(`   - Social pins: ${socialPins.length}`);
 
-		res.status(200).json({ 'List pins': uniquePins });
+		res.status(200).json(uniquePins);
 	} catch (error) {
 		console.error('List pins error:', error);
 		res.status(500).json({ message: 'Internal server error' });

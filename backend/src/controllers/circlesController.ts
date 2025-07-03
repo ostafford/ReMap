@@ -99,7 +99,7 @@ export const listCircles = async (req: Request, res: Response) => {
         const circles = data.map(entry => entry.circles);
         
         console.log("User's Circles:", data);
-        res.status(200).json( circles );
+        res.status(200).json(circles);
 
     } catch (err: any) {
         console.log("List circles server error:", err.message);
@@ -218,7 +218,7 @@ export const updateCircle = async (req: Request, res: Response) => {
             return;
         }
         console.log("Updated circle:", data);
-        res.status(200).json({ "Updated circle": data });
+        res.status(200).json(data);
 
     } catch (err: any) {
         console.log("Update circle server error:", err.message);
@@ -362,7 +362,7 @@ export const listMembers = async (req: Request, res: Response) => {
             return;
         }
         console.log("List members:", data);
-        res.status(200).json({ "List members": data });
+        res.status(200).json(data);
 
     } catch (err: any) {
         console.log("List members server error:", err.message);

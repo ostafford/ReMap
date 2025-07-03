@@ -140,7 +140,7 @@ export default class RemapClient {
 	}
 
 	// READ
-	async listCircles(): Promise<Tables<'circles'>[]> {
+	async getCircles(): Promise<Tables<'circles'>[]> {
 		const userId = await this.getUserId();
 
 		if (!userId) {
@@ -150,7 +150,7 @@ export default class RemapClient {
 		return await this.makeAuthRequest('circles', 'GET');
 	}
 
-	async getCircle(circleId: string): Promise<{
+	async getUserCircle(circleId: string): Promise<{
 		id: string;
 		name: string;
 		members: string[];
@@ -290,12 +290,12 @@ export default class RemapClient {
 
 	/* PUBLIC PINS */
 	// LIST ALL PINS
-	async listPublicPins(): Promise<Tables<'pins'>[]> {
+	async getPublicPins(): Promise<Tables<'pins'>[]> {
 		return await this.makeAuthRequest('pins', 'GET');
 	}
 
 	// GET PIN
-	async getPublicPin(pinId: string): Promise<Tables<'pins'>> {
+	async getSinglePin(pinId: string): Promise<Tables<'pins'>> {
 		return await this.makeAuthRequest(`pins/${pinId}`, 'GET');
 	}
 

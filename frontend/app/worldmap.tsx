@@ -180,7 +180,7 @@ export default function WorldMapScreen() {
 
 			try {
 				const remap = new RemapClient();
-				const circles = await remap.listCircles();
+				const circles = await remap.getCircles();
 
 				const defaultCircles = [
 					{ label: 'Global', value: 'global' },
@@ -404,9 +404,9 @@ export default function WorldMapScreen() {
 	// =============================
 	//   PIN MARKER DISPLAY SECTION
 	// =============================
-	// const [realPins, setRealPins] = useState<any[]>([]);
-	// const [isLoadingPins, setIsLoadingPins] = useState(false);
-	// const [pinError, setPinError] = useState<string | null>(null);
+	const [realPins, setRealPins] = useState<any[]>([]);
+	const [isLoadingPins, setIsLoadingPins] = useState(false);
+	const [pinError, setPinError] = useState<string | null>(null);
 
 	// =============================
 	//   SHARED PIN PROCESSING
@@ -566,9 +566,9 @@ export default function WorldMapScreen() {
 		setIsLoadingPins(true);
 		setPinError(null);
 
-	// 	try {
-	// 		console.log('🔧 [WORLDMAP] Creating RemapClient...');
-	// 		const remapClient = new RemapClient();
+		try {
+			console.log('🔧 [WORLDMAP] Creating RemapClient...');
+			const remapClient = new RemapClient();
 
 			let result;
 
@@ -584,9 +584,9 @@ export default function WorldMapScreen() {
 				result = await remapClient.getPublicPins();
 			}
 
-	// 		console.log('📡 [WORLDMAP] Backend response:', result);
+			console.log('📡 [WORLDMAP] Backend response:', result);
 
-	// 		const success = processPinsResponse(result);
+			const success = processPinsResponse(result);
 
 			if (!success) {
 				console.log(
@@ -609,30 +609,30 @@ export default function WorldMapScreen() {
 		}
 	}, [processPinsResponse, isAuthenticated, user]);
 
-	// function debounce(func: Function, wait: number) {
-	// 	let timeout: ReturnType<typeof setTimeout>;
-	// 	return function executedFunction(...args: any[]) {
-	// 		const later = () => {
-	// 			clearTimeout(timeout);
-	// 			func(...args);
-	// 		};
-	// 		clearTimeout(timeout);
-	// 		timeout = setTimeout(later, wait);
-	// 	};
-	// }
+	function debounce(func: Function, wait: number) {
+		let timeout: ReturnType<typeof setTimeout>;
+		return function executedFunction(...args: any[]) {
+			const later = () => {
+				clearTimeout(timeout);
+				func(...args);
+			};
+			clearTimeout(timeout);
+			timeout = setTimeout(later, wait);
+		};
+	}
 
-	// const onMapRegionChange = useCallback(
-	// 	async (region: any) => {
-	// 		console.log('🗺️ [WORLDMAP] Map region changed (debounced)');
+	const onMapRegionChange = useCallback(
+		async (region: any) => {
+			console.log('🗺️ [WORLDMAP] Map region changed (debounced)');
 
-	// 		// Don't reload if already loading
-	// 		if (isLoadingPins) {
-	// 			console.log('⏳ [WORLDMAP] Already loading pins, skipping');
-	// 			return;
-	// 		}
+			// Don't reload if already loading
+			if (isLoadingPins) {
+				console.log('⏳ [WORLDMAP] Already loading pins, skipping');
+				return;
+			}
 
-	// 		setIsLoadingPins(true);
-	// 		setPinError(null);
+			setIsLoadingPins(true);
+			setPinError(null);
 
 			try {
 				const remapClient = new RemapClient();
@@ -647,7 +647,7 @@ export default function WorldMapScreen() {
 					result = await remapClient.getPublicPins();
 				}
 
-	// 			const success = processPinsResponse(result);
+				const success = processPinsResponse(result);
 
 				if (!success) {
 					onMapRegionChange(region);
@@ -665,29 +665,29 @@ export default function WorldMapScreen() {
 		[isLoadingPins, processPinsResponse, isAuthenticated, user]
 	);
 
-	// // Add debounced version
-	// // This doesn't seem to be working so i'm in the process of fixing this.
-	// const debouncedOnMapRegionChange = useCallback(
-	// 	debounce(onMapRegionChange, 500), // Wait 500ms after user stops panning
-	// 	[onMapRegionChange]
-	// );
+	// Add debounced version
+	// This doesn't seem to be working so i'm in the process of fixing this.
+	const debouncedOnMapRegionChange = useCallback(
+		debounce(onMapRegionChange, 500), // Wait 500ms after user stops panning
+		[onMapRegionChange]
+	);
 
-	// // Load pins when component mounts
-	// useEffect(() => {
-	// 	fetchPins();
-	// }, [fetchPins]);
+	// Load pins when component mounts
+	useEffect(() => {
+		fetchPins();
+	}, [fetchPins]);
 
-	// // =========================
-	// //   WORLDMAP PAGE RENDER
-	// // =========================
-	// console.log('🎯 [WORLDMAP] About to render', realPins.length, 'pins');
-	// console.log(
-	// 	'🎯 [WORLDMAP] Pin coordinates:',
-	// 	realPins.map(
-	// 		(p) =>
-	// 			`${p.name}: ${p.coordinate.latitude}, ${p.coordinate.longitude}`
-	// 	)
-	// );
+	// =========================
+	//   WORLDMAP PAGE RENDER
+	// =========================
+	console.log('🎯 [WORLDMAP] About to render', realPins.length, 'pins');
+	console.log(
+		'🎯 [WORLDMAP] Pin coordinates:',
+		realPins.map(
+			(p) =>
+				`${p.name}: ${p.coordinate.latitude}, ${p.coordinate.longitude}`
+		)
+	);
 	return (
 		<GestureHandlerRootView style={styles.container}>
 			{/* ==================== */}
@@ -866,13 +866,13 @@ export default function WorldMapScreen() {
 							{/* ************************ */}
 							{/*   LOADING PIN INDICATOR  */}
 							{/* ************************ */}
-							{/* {isLoadingPins && (
+							{isLoadingPins && (
 								<View style={styles.loadingOverlay}>
 									<Text style={styles.loadingText}>
 										Loading pins...
 									</Text>
 								</View>
-							)} */}
+							)}
 						</MapView>
 
 						{/* ATTRIBUTION - Policy requirement */}
@@ -883,7 +883,7 @@ export default function WorldMapScreen() {
 						</View>
 
 						{/* PIN ERROR */}
-						{/* {pinError && (
+						{pinError && (
 							<View style={styles.errorContainer}>
 								<Text style={styles.errorText}>
 									⚠️ {pinError}
@@ -900,7 +900,7 @@ export default function WorldMapScreen() {
 									<Text style={styles.retryText}>Retry</Text>
 								</TouchableOpacity>
 							</View>
-						)} */}
+						)}
 						{/* ************************ */}
 						{/*   OVERLAY UI CONTROLS    */}
 						{/* ************************ */}

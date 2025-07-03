@@ -90,7 +90,7 @@ function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
 
 /*------------------------- Circle ----------------------------*/
 function CirclesTab() {
-	const [data, setData] = useState<Awaited<ReturnType<RemapClient['listCircles']>> | null>(null);
+	const [data, setData] = useState<Awaited<ReturnType<RemapClient['getCircles']>> | null>(null);
 
 	const [modalVisible, setModalVisible] = useState(false);
 	const [newCircle, setNewCircle] = useState('');
@@ -99,7 +99,7 @@ function CirclesTab() {
 
 	const loadData = useCallback(async () => {
 		try {
-			const _data = await new RemapClient().listCircles();
+			const _data = await new RemapClient().getCircles();
 			
 			console.log(_data);
 			setData(_data);

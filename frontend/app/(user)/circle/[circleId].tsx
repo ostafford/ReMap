@@ -13,7 +13,7 @@ import { useRouter, useGlobalSearchParams, useLocalSearchParams } from 'expo-rou
 import { Button } from '@/components/ui/Button';
 
 import RemapClient from '../../services/remap';
-import { styles } from '../customStyles';
+import { customStyles } from '../customStyles';
 
 
 type CircleData = {
@@ -32,7 +32,7 @@ export default function Circle() {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const _data = await new RemapClient().getCircle(circleId.toString());
+                const _data = await new RemapClient().getUserCircle(circleId.toString());
                 
                 const formatted = {
                     Circle: {
