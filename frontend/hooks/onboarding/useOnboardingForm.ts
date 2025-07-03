@@ -1,270 +1,62 @@
 //	===============
 //	CORE IMPORTS
 //	===============
-import { useState } from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
-import { signUp, signIn } from '@/app/services/auth';
-import RemapClient from '@/app/services/remap';
+import { useFormValidation, type FormData } from './useFormValidation';
+import {
+	useAccountCreation,
+	type AccountCreationData,
+} from './useAccountCreation';
+import { useOnboardingMessages } from './useOnboardingMessages';
+import { useOnboardingContext } from '@/contexts/OnboardingContext';
 
 //	====================
 // 	  TYPE DEFINITION
 //	====================
-type OnboardingFormData = {
-	fullname: string;
-	email: string;
-	password: string;
-	confirmPassword: string;
+type OnboardingFormData = FormData & {
 	profilePictureUri: string | null;
-
-	// Message state
-	messageShow: boolean;
-	messageText: string;
-	messageType: 'success' | 'error' | 'warning' | 'info';
-
-	// Loading states
-	isCreatingAccount: boolean;
-	isUploadingProfilePicture: boolean;
 };
 
 //	====================
 //	MAIN COMPONENT
 //	====================
 export const useOnboardingForm = () => {
-	const { selections } = useLocalSearchParams();
+	// Use focused hooks
+	const {
+		formData,
+		updateFormField,
+		resetForm: resetFormData,
+		validateFormData,
+	} = useFormValidation();
 
-	//	== THIS RECIEVES THE OBJECT [ARRAY] FROM THE STARTER PACK PAGE
-	const getStarterPackSelections = (): string[] => {
-		if (!selections || typeof selections !== 'string') {
-			console.log('🔍 No selections found in URL parameters');
-			return [];
-		}
+	const { isCreatingAccount, createAccount } = useAccountCreation();
+	const { messageState, showMessage, hideMessage, showSuccess, showError } =
+		useOnboardingMessages();
 
-		try {
-			const decoded = decodeURIComponent(selections);
-			const parsed = JSON.parse(decoded);
-			console.log('🔍 Parsed selections from URL:', parsed);
-			return Array.isArray(parsed) ? parsed : [];
-		} catch (error) {
-			console.error('Error parsing selections from URL:', error);
-			return [];
-		}
+	// Use onboarding context
+	const { state, updateProfilePicture, resetOnboarding } =
+		useOnboardingContext();
+
+	// Combined form data
+	const combinedFormData: OnboardingFormData = {
+		...formData,
+		profilePictureUri: state.profilePictureUri,
 	};
 
-	const [formData, setFormData] = useState<OnboardingFormData>({
-		fullname: '',
-		email: '',
-		password: '',
-		confirmPassword: '',
-		profilePictureUri: null,
-
-		// Message state (NOTIFICATION)
-		messageShow: false,
-		messageText: '',
-		messageType: 'info',
-
-		// Loading states
-		isCreatingAccount: false,
-		isUploadingProfilePicture: false,
-	});
-
-	const updateFormField = <Field extends keyof OnboardingFormData>(
-		field: Field,
-		value: OnboardingFormData[Field]
-	) => {
-		setFormData((prev) => ({
-			...prev,
-			[field]: value,
-		}));
-	};
-
+	// Reset form including profile picture
 	const resetForm = () => {
-		updateFormField('fullname', '');
-		updateFormField('email', '');
-		updateFormField('password', '');
-		updateFormField('confirmPassword', '');
-		setProfilePicture(null);
+		resetFormData();
+		updateProfilePicture(null);
 		hideMessage();
 	};
 
-	//	== CLIENT SIDE VALIDATION ==
-	const validateFormData = (): { isValid: boolean; errorMessage: string } => {
-		const { email, password, confirmPassword, fullname } = formData;
-
-		if (!fullname.trim()) {
-			return {
-				isValid: false,
-				errorMessage: 'Please enter your full name.',
-			};
-		}
-
-		if (!email.trim()) {
-			return {
-				isValid: false,
-				errorMessage: 'Please enter your email address.',
-			};
-		}
-
-		if (!email.includes('@') || email.length < 5) {
-			return {
-				isValid: false,
-				errorMessage: 'Please enter a valid email address.',
-			};
-		}
-
-		if (password.length < 6) {
-			return {
-				isValid: false,
-				errorMessage: 'Password must be at least 6 characters long.',
-			};
-		}
-
-		if (password !== confirmPassword) {
-			return { isValid: false, errorMessage: 'Passwords do not match.' };
-		}
-
-		return { isValid: true, errorMessage: '' };
-	};
-
-	// PROFILE PICTURE HELPERS: Handle profile picture updates
+	// Profile picture helpers
 	const setProfilePicture = (uri: string | null) => {
-		updateFormField('profilePictureUri', uri);
+		updateProfilePicture(uri);
 	};
 
-	//	== NOTIFICATION MESSAGES ==
-	const showMessage = (
-		message: string,
-		type: OnboardingFormData['messageType'] = 'info'
-	) => {
-		setFormData((prev) => ({
-			...prev,
-			messageShow: true,
-			messageText: message,
-			messageType: type,
-		}));
-	};
-
-	const hideMessage = () => {
-		setFormData((prev) => ({
-			...prev,
-			messageShow: false,
-		}));
-	};
-
-	//	== HANDLING THE SIGN UP PROCESS ==
-	// PROFILE BUILDING: Create user profile data object
-	const buildUserProfileData = (starterPackSelections: string[]) => {
-		return {
-			fullName: formData.fullname,
-			email: formData.email,
-			profilePictureUri: formData.profilePictureUri,
-			starterPackPreferences: {
-				selectedMemoryTypes: starterPackSelections,
-				timestamp: new Date().toISOString(),
-			},
-			accountCreatedAt: new Date().toISOString(),
-		};
-	};
-
-	const createUserAccountWithProfile = async (
-		starterPackSelections: string[]
-	) => {
-		console.log(
-			'🚀 [ONBOARDING] Starting account creation with profile data'
-		);
-
-		// Create account WITHOUT profile picture (using current auth.ts method)
-		const result = await signUp({
-			email: formData.email,
-			password: formData.password,
-			fullName: formData.fullname,
-			// Don't include profilePictureUri here - we'll handle it separately
-		});
-
-		console.log('✅ [ONBOARDING] Account created successfully');
-
-		//  Auto-sign-in the user to get authentication (JWT) token
-		console.log('🔐 [ONBOARDING] Auto-signing in user...');
-		await signIn({
-			email: formData.email,
-			password: formData.password,
-		});
-
-		console.log('✅ [ONBOARDING] User signed in successfully');
-
-		// Upload profile picture if provided (using backend endpoint)
-		if (formData.profilePictureUri) {
-			console.log(
-				'📤 [ONBOARDING] Uploading profile picture via backend...'
-			);
-			try {
-				const remapClient = new RemapClient();
-
-				// Create FormData for profile update
-				const profileFormData = new FormData();
-				profileFormData.append('full_name', formData.fullname);
-				profileFormData.append(
-					'username',
-					generateUsername(formData.email)
-				);
-
-				// Add profile picture as avatar
-				profileFormData.append('avatar', {
-					uri: formData.profilePictureUri,
-					type: 'image/jpeg',
-					name: 'profile-picture.jpg',
-				} as any);
-
-				// Upload via backend endpoint
-				const profileResult = await remapClient.updateProfile(
-					profileFormData
-				);
-				console.log(
-					'✅ [ONBOARDING] Profile picture uploaded successfully:',
-					profileResult
-				);
-			} catch (profileError) {
-				console.error(
-					'⚠️ [ONBOARDING] Profile picture upload failed:',
-					profileError
-				);
-				// Don't throw error - account was created successfully
-				// User can upload profile picture later via the profile page
-			}
-		}
-
-		const userProfileData = buildUserProfileData(starterPackSelections);
-		console.log(
-			'✅ [ONBOARDING] User account created with profile:',
-			userProfileData
-		);
-
-		return { result, userProfileData };
-	};
-
-	// Helper function to generate username (moved from auth.ts)
-	const generateUsername = (email: string): string => {
-		const baseUsername = email.split('@')[0];
-		// Remove any special characters and ensure it's valid
-		return baseUsername.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
-	};
-
-	const handleAccountCreationSuccess = () => {
-		showMessage(
-			'Welcome to ReMap! Your account and profile have been created successfully.',
-			'success'
-		);
-		router.replace('/worldmap');
-	};
-
-	const handleAccountCreationError = (error: any) => {
-		console.error('🚀 [ONBOARDING] Account creation error:', error);
-		const errorMessage =
-			error?.message || 'Could not create account. Please try again.';
-		showMessage(errorMessage, 'error');
-	};
-
+	// Main sign up handler
 	const handleSignUp = async () => {
-		const starterPackSelections = getStarterPackSelections();
+		const starterPackSelections = state.starterPackSelections;
 
 		console.log(
 			'🚀 [ONBOARDING] handleSignUp with selections:',
@@ -273,32 +65,46 @@ export const useOnboardingForm = () => {
 
 		const validation = validateFormData();
 		if (!validation.isValid) {
-			showMessage(validation.errorMessage, 'error');
+			showError(validation.errorMessage);
 			return;
 		}
 
-		setAccountCreationLoading(true);
+		// Prepare account creation data
+		const accountData: AccountCreationData = {
+			fullName: formData.fullname,
+			email: formData.email,
+			password: formData.password,
+			profilePictureUri: state.profilePictureUri,
+			starterPackSelections,
+		};
 
-		try {
-			await createUserAccountWithProfile(starterPackSelections);
-			handleAccountCreationSuccess();
-		} catch (error) {
-			handleAccountCreationError(error);
-		} finally {
-			setAccountCreationLoading(false);
+		// Create account
+		const result = await createAccount(accountData);
+
+		if (result.success) {
+			showSuccess(
+				'Welcome to ReMap! Your account and profile have been created successfully.'
+			);
+			// Reset onboarding state after successful account creation
+			resetOnboarding();
+		} else {
+			showError(
+				result.error || 'Could not create account. Please try again.'
+			);
 		}
 	};
 
-	const setAccountCreationLoading = (isLoading: boolean) => {
-		updateFormField('isCreatingAccount', isLoading);
-	};
-
 	return {
-		formData,
+		formData: {
+			...combinedFormData,
+			// Include message state for backward compatibility
+			messageShow: messageState.messageShow,
+			messageText: messageState.messageText,
+			messageType: messageState.messageType,
+			isCreatingAccount,
+		},
 		updateFormField,
 		setProfilePicture,
-		setAccountCreationLoading,
-		validateFormData,
 		resetForm,
 		showMessage,
 		hideMessage,

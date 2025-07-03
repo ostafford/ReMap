@@ -1,48 +1,34 @@
 // ================
 //   CORE IMPORTS
 // ================
-import { useState } from 'react';
-
-// =========================
-//   TYPE DEFINITIONS
-// =========================
-type StarterPackState = {
-	selectedMemoryTypes: string[];
-};
+import { useOnboardingContext } from '@/contexts/OnboardingContext';
 
 // ==================
 //    CUSTOM HOOK
 // ==================
 export const useStarterPack = () => {
-	const [starterPackState, setStarterPackState] = useState<StarterPackState>({
-		selectedMemoryTypes: [],
-	});
+	const { state, updateStarterPackSelections } = useOnboardingContext();
+	const selectedPacks = state.starterPackSelections;
 
 	// PACK SELECTION MANAGEMENT: Handle user pack choices
-	// In a nutshell this essentially creates an empty array when navigated to the page.
 	const togglePackSelection = (packId: string) => {
-		setStarterPackState((prev) => ({
-			...prev,
-			selectedMemoryTypes: prev.selectedMemoryTypes.includes(packId)
-				? prev.selectedMemoryTypes.filter((id) => id !== packId) // Remove if selected
-				: [...prev.selectedMemoryTypes, packId], // Add if not selected
-		}));
+		const newSelections = selectedPacks.includes(packId)
+			? selectedPacks.filter((id) => id !== packId) // Remove if selected
+			: [...selectedPacks, packId]; // Add if not selected
+
+		updateStarterPackSelections(newSelections);
 	};
 
-	const userHasSelectedPacks = () =>
-		starterPackState.selectedMemoryTypes.length > 0;
+	const userHasSelectedPacks = () => selectedPacks.length > 0;
 
-	const getNumberOfSelectedPacks = () =>
-		starterPackState.selectedMemoryTypes.length;
+	const getNumberOfSelectedPacks = () => selectedPacks.length;
 
 	const isPackSelected = (packId: string) => {
-		return starterPackState.selectedMemoryTypes.includes(packId);
+		return selectedPacks.includes(packId);
 	};
 
 	return {
-		starterPackState,
-		selectedPacks: starterPackState.selectedMemoryTypes,
-
+		selectedPacks,
 		togglePackSelection,
 		userHasSelectedPacks,
 		getNumberOfSelectedPacks,

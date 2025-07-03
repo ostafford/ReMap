@@ -57,15 +57,7 @@ export default function OnboardingStarterPackScreen() {
 	// This essentially saves the selected packs in an array to the next page
 	const navigateToAccount = () => {
 		console.log('Starter pack selections:', selectedPacks);
-
-		if (selectedPacks.length > 0) {
-			const selectionsParam = encodeURIComponent(
-				JSON.stringify(selectedPacks)
-			);
-			router.push(`/onboarding/account?selections=${selectionsParam}`);
-		} else {
-			router.push('/onboarding/account');
-		}
+		router.push('/onboarding/account');
 	};
 
 	const goBack = () => router.push('/onboarding');
