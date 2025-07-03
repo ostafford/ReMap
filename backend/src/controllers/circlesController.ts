@@ -61,15 +61,15 @@ export const createCircle = async (req: Request, res: Response) => {
 
         if (error) {
             console.log("Create circle error:", error.message);
-            res.status(400).json({ "Create circle error": error.message });
+            res.status(400).json(error.message);
             return;
         }
         console.log("Created circle:", data);
-        res.status(201).json({ "Created circle": data });
+        res.status(201).json(data);
 
     } catch (err: any) {
         console.log("Create circle server error:", err.message);
-        res.status(500).json({ "Create circle server error": err.message });
+        res.status(500).json(err.message);
     }
 }
 
@@ -86,24 +86,25 @@ export const listCircles = async (req: Request, res: Response) => {
 
     try {
         const { data, error } = await supabase
-        .from("members")
-        .select("circle_id, circles(id, name)")
-        .eq("user_id", user.id);
+        .from("circles")
+        .select("id, name, members(user_id)")
+        .eq("owner_id", user.id)
+        .eq("visibility", "social");
 
         if (error) {
             console.log("List circles error:", error.message);
-            res.status(400).json({ "List circles error": error.message });
+            res.status(400).json(error.message);
             return;
         }
 
-        const circles = data.map(entry => entry.circles);
+        // const circles = data.map(entry => entry.members);
         
         console.log("User's Circles:", data);
-        res.status(200).json( circles );
+        res.status(200).json(data);
 
     } catch (err: any) {
         console.log("List circles server error:", err.message);
-        res.status(500).json({ "List circles server error": err.message });
+        res.status(500).json(err.message);
     }
 }
 
@@ -129,7 +130,7 @@ export const getCircle = async (req: Request, res: Response) => {
 
         if (error) {
             console.log("Get single circle error:", error.message);
-            res.status(400).json({ "Get single circle error": error.message });
+            res.status(400).json(error.message);
             return;
         }
 
@@ -151,7 +152,7 @@ export const getCircle = async (req: Request, res: Response) => {
 
         if (profileError) {
             console.log("(Circle) Get profiles error:", profileError.message);
-            res.status(400).json({ "(Circle) Get profiles error": profileError.message });
+            res.status(400).json(profileError.message);
             return;
         }
 
@@ -172,7 +173,7 @@ export const getCircle = async (req: Request, res: Response) => {
 
     } catch (err: any) {
         console.log("Get single circle server error:", err.message);
-        res.status(500).json({ "Get single circle server error": err.message });
+        res.status(500).json(err.message);
     }
 }
 
@@ -214,15 +215,15 @@ export const updateCircle = async (req: Request, res: Response) => {
 
         if (error) {
             console.log("Update circle error:", error.message);
-            res.status(400).json({ "Update circle error": error.message });
+            res.status(400).json(error.message);
             return;
         }
         console.log("Updated circle:", data);
-        res.status(200).json({ "Updated circle": data });
+        res.status(200).json(data);
 
     } catch (err: any) {
         console.log("Update circle server error:", err.message);
-        res.status(500).json({ "Update circle server error": err.message});
+        res.status(500).json(err.message);
     }
 }
 
@@ -248,7 +249,7 @@ export const deleteCircle = async (req: Request, res: Response) => {
 
         if (error) {
             console.log("Delete circle error:", error.message);
-            res.status(400).json({ "Delete circle error": error.message });
+            res.status(400).json(error.message);
             return;
         }
         console.log(`Circle: ${circle_id} deleted`);
@@ -256,7 +257,7 @@ export const deleteCircle = async (req: Request, res: Response) => {
 
     } catch (err: any) {
         console.log("Delete circle server error:", err.message);
-        res.status(500).json({ "Delete circle server error": err.message });
+        res.status(500).json(err.message);
     }
 }
 
