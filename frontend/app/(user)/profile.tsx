@@ -1,7 +1,7 @@
 // =========================================================================
 //   						EXTERNAL IMPORTS
 // =========================================================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // ==============================
@@ -15,26 +15,37 @@ import {
 	StyleSheet,
 	SafeAreaView,
 	Image,
+	Modal,
+	FlatList,
+	Pressable,
+	TextInput
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { useAuth } from '@/hooks/shared/useAuth';
+import { Audio } from 'expo-av';
+import { useFocusEffect } from '@react-navigation/native';
 
 // =================
 //   UI COMPONENTS
 // =================
 import { ReMapColors } from '@/constants/Colors';
 import { Button } from '@/components/ui/Button';
+import { customStyles } from './customStyles';
 
 import RemapClient from '../services/remap';
 
-import type { Tables } from '@/types/database';
 
 const Tab = createMaterialTopTabNavigator();
 
-function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
-	const [data, setData] = useState<Awaited<
-		ReturnType<RemapClient['getProfile']>
-	> | null>(null);
+/*------------------------- Profile ----------------------------*/
+function ProfileTab() {
+	const { signOut, user } = useAuth();
+
+	const [data, setData] = useState<
+		Awaited<ReturnType<RemapClient['getProfile']>> | null
+	>(null);
+
+	const router = useRouter();
 
 	useEffect(() => {
 		loadData();
@@ -54,7 +65,7 @@ function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
 				<Image
 					source={{ uri: data.avatar_url }}
 					style={styles.profileImage}
-					resizeMode="cover"
+					resizeMode="contain"
 				/>
 			) : (
 				<View style={styles.profileImagePlaceholder}>
@@ -69,7 +80,10 @@ function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
 			<Text>Total Pins</Text>
 			<Text>{data?.pins}</Text>
 			<Button
-				onPress={onSignOut} // Connect the function here
+				onPress={async () => {
+					signOut();
+					router.replace('/');
+				}}
 				style={styles.circleButton}
 				size="small"
 				textColour="white"
@@ -80,19 +94,127 @@ function ProfileTab({ onSignOut }: { onSignOut: () => void }) {
 	);
 }
 
+
+/*------------------------- Circle ----------------------------*/
 function CirclesTab() {
+	const [data, setData] = useState<Awaited<ReturnType<RemapClient['getCircles']>> | null>(null);
+
+	const [modalVisible, setModalVisible] = useState(false);
+	const [newCircle, setNewCircle] = useState('');
+
+	const router = useRouter();
+
+	const loadData = useCallback(async () => {
+		try {
+			const _data = await new RemapClient().getCircles();
+			
+			console.log(_data);
+			setData(_data);
+	
+		} catch (error) {
+			console.error('Error fetching circle:', error);
+		}
+	}, []);
+
+	useEffect(() => {
+		loadData();
+	}, [loadData]);
+
+
+	// Create Circle
+	
+
+	// Delete Circle
+	async function deleteCircle(id: string) {
+		try {
+			// Leave circle
+			await new RemapClient().deleteCircle(id);
+
+			// Delete user from circle
+			await new RemapClient().deleteMember(id);
+
+			setData(prevData => prevData?.filter(circle => circle.id !== id) || null);
+
+		} catch (error) {
+			console.error("Error deleting circle or member:", error);
+		}
+	}
+	
 	return (
 		<View style={styles.tabContent}>
 			<Text>Your Circles</Text>
+
+			<FlatList
+				data={data}
+				keyExtractor={(item, index) => {
+					if (item && item.id) {
+						return item.id.toString();
+					}
+					return `fallback-key-${index}`;
+				}}
+				renderItem={( {item} ) => (
+					<View>
+						<Text style={{fontSize: 20}}>{item ? item.name : 'No Name'}</Text>
+						<Pressable
+							onPress={() =>
+								router.navigate({
+									pathname: '/(user)/circle/[circleId]',
+									params: { circleId: `${item.id.toString()}`}
+								})
+							}
+						>
+							<Text>View Circle</Text>
+						</Pressable>
+
+						<Button onPress={() => {
+							deleteCircle(item.id.toString());
+						}}>
+							Delete Circle
+						</Button>
+
+					</View>
+				)}
+			/>
+
 			<View style={styles.buttonContainer}>
 				<Button
-					//onPress={} we'll implement function laterrrr
+					onPress={ () => setModalVisible(true) }
 					style={styles.circleButton}
 					size="small"
 					textColour="white"
 				>
 					Create
 				</Button>
+				{/* Modal */}
+				<Modal
+				visible={modalVisible}
+				animationType='slide'
+				transparent
+				onRequestClose={() => setModalVisible(false)}
+				>
+					<View style={customStyles.modalOverlay}>
+						<View style={customStyles.modalContent}>
+							<Text style={customStyles.modalTitle}>Add New Circle</Text>
+							<TextInput
+								style={customStyles.input}
+								placeholder='Enter Name...'
+								placeholderTextColor='#aaa'
+								value={newCircle}
+								onChangeText={setNewCircle}
+							/>
+							<View style={customStyles.modalButtons}>
+								<TouchableOpacity style={customStyles.cancelButton}
+								onPress={() => setModalVisible(false)}>
+									<Text style={customStyles.cancelButtonText}>Cancel</Text>
+								</TouchableOpacity>
+
+								<TouchableOpacity style={customStyles.saveButton}>
+									<Text style={customStyles.saveButtonText}>Save</Text>
+								</TouchableOpacity>
+							</View>
+						</View>
+					</View>
+				</Modal>
 				<Button
 					//onPress={}
 					style={styles.circleButton}
@@ -106,36 +228,222 @@ function CirclesTab() {
 	);
 }
 
+
+/*------------------------- Pins ----------------------------*/
 function PinsTab() {
+	const router = useRouter();
+
+	// Fetch Pins
+	const [data, setData] = useState<Awaited<ReturnType<RemapClient['getUserPins']>> | null>(null);
+
+	const loadData = useCallback(async () => {
+		try {
+			const _data = await new RemapClient().getUserPins();
+			
+			console.log(_data);
+			setData(_data);
+	
+		} catch (error) {
+			console.error('Error fetching pins:', error);
+		}
+	}, []);
+
+	useEffect(() => {
+		loadData();
+	}, [loadData]);
+
+
+	// Handle Audio
+	const soundRef = useRef<Audio.Sound | null>(null);
+	const [lastAudio, setLastAudio] = useState<string | null>(null);
+	const [isPaused, setIsPaused] = useState(false);
+
+	// Play Audio
+	async function PlaySound(audio_url: string | undefined | null) {
+		if (!audio_url) {
+			console.warn("No audio url.");
+			return;
+		}
+
+		// Check Pause Audio at a specific time.
+		if (soundRef.current && isPaused && lastAudio === audio_url) {
+			try {
+				await soundRef.current.playAsync();
+				setIsPaused(false);
+				return;
+			} catch (error) {
+				console.error("Error resuming audio", error);
+			}
+		}
+
+		// Stop Audio and press again = reset.
+		try {
+			if (soundRef.current) {
+				await soundRef.current.unloadAsync();
+				soundRef.current = null;
+			}
+
+			const { sound } = await Audio.Sound.createAsync(
+				{ uri: audio_url },
+				{ shouldPlay: true }
+			);
+			soundRef.current = sound;
+			setLastAudio(audio_url);
+			setIsPaused(false);
+
+			// Track Audio
+			sound.setOnPlaybackStatusUpdate((status) => {
+				if (status.isLoaded && status.didJustFinish && !status.isLooping) {
+					console.log("Audio Finished.");
+					setLastAudio(null);
+					setIsPaused(false);
+				}
+			})
+
+		} catch (error) {
+			console.error("Error playing audio", error);
+		}
+	}
+
+	// Pause Audio
+	const pauseSound = async () => {
+		try {
+			if (soundRef.current) {
+				await soundRef.current.pauseAsync();
+				setIsPaused(true);
+			}
+		} catch (error) {
+			console.error("Error pausing audio", error);
+		}
+	};
+
+	// Stop Audio
+	const stopSound = async () => {
+		try {
+			if (soundRef.current) {
+				await soundRef.current.stopAsync();
+				setLastAudio(null);
+			}
+		} catch (error) {
+			console.error("Error stopping audio", error);
+		}
+	};
+
+	// Prevent memory leaks by unloading the audio when the component unmounts.
+	useEffect(() => {
+		return () => {
+			if (soundRef.current) {
+				soundRef.current?.unloadAsync();
+				soundRef.current.setOnPlaybackStatusUpdate(null);
+				soundRef.current = null;
+				setLastAudio(null);
+				setIsPaused(false);
+			}
+		};
+	}, []);
+
+	// Stop Audio from playing if not on page
+	useFocusEffect(
+		useCallback(() => {
+			return () => {
+				if (soundRef.current) {
+					soundRef.current.unloadAsync();
+					soundRef.current = null;
+					setLastAudio(null); // reset audio state
+					setIsPaused(false); // reset pause state
+				}
+			};
+		}, [])
+	);
+
+	// Delete Pin
+	async function deletePin(id: string) {
+		try {
+			await new RemapClient().deletePin(id);
+			setData(prevData => prevData?.filter(pin => pin.id !== id) || null);
+
+		} catch (error) {
+			console.error("Error deleting pin:", error);
+		}
+	}
+
 	return (
 		<View style={styles.tabContent}>
 			<Text>Your Pins</Text>
 			<Text>pin display here</Text>
-			<Text>maybe we should have the option to delete pins here</Text>
+			<FlatList
+				data={data}
+				keyExtractor={(item, index) => {
+					if (item && item.id) {
+						return item.id.toString();
+					}
+					return `fallback-key-${index}`;
+				}}
+				renderItem={( {item} ) => (
+					<View style={styles.tabContent}>
+						<Text style={{fontSize: 20}}>{item ? item.name : 'No Name'}</Text>
+						<Text style={{fontSize: 20}}>{item ? item.description : 'No Description'}</Text>
+						
+						{Array.isArray(item?.image_urls) && item.image_urls.length > 0 && (
+							<Image
+								source={{ uri: item.image_urls[0] }}
+								style={{ width: 100, height: 100, resizeMode: 'cover' }}
+							/>
+						)}
+
+						{item?.audio_url && (
+						<>
+							<Button onPress={() => PlaySound(item?.audio_url)}>
+								Play
+							</Button>
+							<Button onPress={pauseSound}>
+								Pause
+							</Button>
+							<Button onPress={stopSound}>
+								Stop
+							</Button>
+						</>
+						)}
+
+						<Pressable
+							onPress={() =>
+								router.navigate({
+									pathname: '/(user)/pin/[pinId]',
+									params: { pinId: `${item.id.toString()}`}
+								})
+							}>
+							<Text>View Pin</Text>
+						</Pressable>
+
+						<Button onPress={() => {
+							deletePin(item.id.toString());
+						}}>
+							Delete Pin
+						</Button>
+					</View>
+				)}
+			/>
+
 		</View>
 	);
 }
 
+// Profile Screen
 export default function ProfileScreen() {
 	const insets = useSafeAreaInsets();
-	const router = useRouter();
-
-	const goBack = () => {
-		router.back();
-	};
-
-	const { signOut, user } = useAuth();
-	const handleSignOut = async () => {
-		const success = await signOut();
-		if (success) {
-			router.replace('/');
-		}
-	};
+	const navigation = useNavigation();
 
 	return (
 		<SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
 			<View style={styles.header}>
-				<TouchableOpacity onPress={goBack} style={styles.backButton}>
+				<TouchableOpacity
+					onPress={() => {
+						navigation.dispatch({
+							type: 'POP_TO_TOP',
+						});
+					}}
+					style={styles.backButton}
+				>
 					<Text style={styles.backButtonText}>← Back</Text>
 				</TouchableOpacity>
 			</View>
@@ -158,7 +466,7 @@ export default function ProfileScreen() {
 			>
 				<Tab.Screen
 					name="Profile"
-					children={() => <ProfileTab onSignOut={handleSignOut} />}
+					children={ProfileTab}
 				/>
 				<Tab.Screen name="Pins" component={PinsTab} />
 				<Tab.Screen name="Circles" component={CirclesTab} />

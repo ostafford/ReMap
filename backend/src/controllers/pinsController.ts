@@ -282,95 +282,7 @@ export const listPins = async (req: Request, res: Response) => {
 			return;
 		}
 
-		// Get public pins (visible to everyone)
-		const { data: publicPins, error: publicPinsError } = await supabase
-			.from('pins')
-			.select(
-				`
-				*,
-				owner:profiles!pins_owner_id_fkey(
-					id,
-					username,
-					full_name,
-					avatar_url
-				)
-			`
-			)
-			.eq('visibility', 'public')
-			.neq('owner_id', user.id); // Exclude user's own pins (already included above)
-
-		if (publicPinsError) {
-			console.log('List public pins error:', publicPinsError.message);
-			res.status(400).json({
-				'List public pins error': publicPinsError.message,
-			});
-			return;
-		}
-
-		// Get social pins where user is a member of the circle
-		// First, get user's social circles
-		const { data: userCircles, error: circlesError } = await supabase
-			.from('members')
-			.select('circle_id')
-			.eq('user_id', user.id);
-
-		if (circlesError) {
-			console.log('Get user circles error:', circlesError.message);
-			// Continue without social pins if there's an error
-		}
-
-		let socialPins: any[] = [];
-		if (userCircles && userCircles.length > 0) {
-			const circleIds = userCircles.map((c) => c.circle_id);
-
-			// Get pins that are shared with any of user's circles
-			const { data: socialPinsData, error: socialPinsError } =
-				await supabase
-					.from('pins')
-					.select(
-						`
-					*,
-					owner:profiles!pins_owner_id_fkey(
-						id,
-						username,
-						full_name,
-						avatar_url
-					)
-				`
-					)
-					.eq('visibility', 'social')
-					.neq('owner_id', user.id) // Exclude user's own pins
-					.overlaps('social_circle_ids', circleIds);
-
-			if (socialPinsError) {
-				console.log('List social pins error:', socialPinsError.message);
-				// Continue without social pins if there's an error
-			} else {
-				socialPins = socialPinsData || [];
-			}
-		}
-
-		// Combine all pins and remove duplicates
-		const allPins = [
-			...(userPins || []),
-			...(publicPins || []),
-			...socialPins,
-		];
-
-		// Remove duplicates based on pin ID
-		const uniquePins = allPins.filter(
-			(pin, index, self) =>
-				index === self.findIndex((p) => p.id === pin.id)
-		);
-
-		console.log(
-			`📊 [BACKEND] Returning ${uniquePins.length} pins for user ${user.id}:`
-		);
-		console.log(`   - User's pins: ${userPins?.length || 0}`);
-		console.log(`   - Public pins: ${publicPins?.length || 0}`);
-		console.log(`   - Social pins: ${socialPins.length}`);
-
-		res.status(200).json({ 'List pins': uniquePins });
+		res.status(200).json(userPins);
 	} catch (error) {
 		console.error('List pins error:', error);
 		res.status(500).json({ message: 'Internal server error' });
@@ -416,7 +328,7 @@ export const getPin = async (req: Request, res: Response) => {
 			return;
 		}
 		console.log('User Pin:', pins);
-		res.status(200).json({ 'User Pin': pins });
+		res.status(200).json(pins);
 	} catch (err: any) {
 		console.log('Get single user pin server error', err.message);
 		res.status(500).json({
@@ -596,7 +508,7 @@ export const updatePin = [
 				return;
 			}
 			console.log('Updated Pin:', data);
-			res.status(200).json({ 'Updated Pin:': data });
+			res.status(200).json(data);
 		} catch (err: any) {
 			console.log('Update pin server error', err.message);
 			res.status(500).json({ 'Update pin server error': err.message });

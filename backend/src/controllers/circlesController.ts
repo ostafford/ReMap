@@ -65,7 +65,7 @@ export const createCircle = async (req: Request, res: Response) => {
             return;
         }
         console.log("Created circle:", data);
-        res.status(201).json({ "Created circle": data });
+        res.status(201).json(data);
 
     } catch (err: any) {
         console.log("Create circle server error:", err.message);
@@ -99,7 +99,7 @@ export const listCircles = async (req: Request, res: Response) => {
         const circles = data.map(entry => entry.circles);
         
         console.log("User's Circles:", data);
-        res.status(200).json( circles );
+        res.status(200).json(circles);
 
     } catch (err: any) {
         console.log("List circles server error:", err.message);
@@ -164,11 +164,11 @@ export const getCircle = async (req: Request, res: Response) => {
             name: data[0].name,
             members: memberNames
         }});
-        res.status(200).json({ "Circle": {
+        res.status(200).json({
             id: data[0].id,
             name: data[0].name,
             members: memberNames
-        }});
+        });
 
     } catch (err: any) {
         console.log("Get single circle server error:", err.message);
@@ -218,7 +218,7 @@ export const updateCircle = async (req: Request, res: Response) => {
             return;
         }
         console.log("Updated circle:", data);
-        res.status(200).json({ "Updated circle": data });
+        res.status(200).json(data);
 
     } catch (err: any) {
         console.log("Update circle server error:", err.message);
@@ -329,7 +329,7 @@ export const addMember = async (req: Request, res: Response) => {
             return;
         }
         console.log(`Added ${user_id} to ${circle_id}`);
-        res.status(201).json({ data });
+        res.status(201).json(data);
 
     } catch (err: any) {
         console.log("Add member to circle server error:", err.message);
@@ -361,8 +361,10 @@ export const listMembers = async (req: Request, res: Response) => {
             res.status(400).json({"List member error": error.message});
             return;
         }
+
         console.log("List members:", data);
-        res.status(200).json({ "List members": data });
+
+        res.status(200).json(data);
 
     } catch (err: any) {
         console.log("List members server error:", err.message);
