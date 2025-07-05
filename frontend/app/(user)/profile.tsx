@@ -18,7 +18,7 @@ import {
 	Modal,
 	FlatList,
 	Pressable,
-	TextInput
+	TextInput,
 } from 'react-native';
 import { useRouter, useNavigation } from 'expo-router';
 import { useAuth } from '@/hooks/shared/useAuth';
@@ -34,16 +34,15 @@ import { customStyles } from './customStyles';
 
 import RemapClient from '../services/remap';
 
-
 const Tab = createMaterialTopTabNavigator();
 
 /*------------------------- Profile ----------------------------*/
 function ProfileTab() {
 	const { signOut, user } = useAuth();
 
-	const [data, setData] = useState<
-		Awaited<ReturnType<RemapClient['getProfile']>> | null
-	>(null);
+	const [data, setData] = useState<Awaited<
+		ReturnType<RemapClient['getProfile']>
+	> | null>(null);
 
 	const router = useRouter();
 
@@ -94,10 +93,11 @@ function ProfileTab() {
 	);
 }
 
-
 /*------------------------- Circle ----------------------------*/
 function CirclesTab() {
-	const [data, setData] = useState<Awaited<ReturnType<RemapClient['getCircles']>> | null>(null);
+	const [data, setData] = useState<Awaited<
+		ReturnType<RemapClient['getCircles']>
+	> | null>(null);
 
 	const [modalVisible, setModalVisible] = useState(false);
 	const [newCircle, setNewCircle] = useState('');
@@ -107,10 +107,9 @@ function CirclesTab() {
 	const loadData = useCallback(async () => {
 		try {
 			const _data = await new RemapClient().getCircles();
-			
+
 			console.log(_data);
 			setData(_data);
-	
 		} catch (error) {
 			console.error('Error fetching circle:', error);
 		}
@@ -120,9 +119,7 @@ function CirclesTab() {
 		loadData();
 	}, [loadData]);
 
-
 	// Create Circle
-	
 
 	// Delete Circle
 	async function deleteCircle(id: string) {
@@ -133,15 +130,27 @@ function CirclesTab() {
 			// Delete user from circle
 			await new RemapClient().deleteMember(id);
 
-			setData(prevData => prevData?.filter(circle => circle.id !== id) || null);
-
+			setData(
+				(prevData) =>
+					prevData?.filter((circle) => circle.id !== id) || null
+			);
 		} catch (error) {
-			console.error("Error deleting circle or member:", error);
+			console.error('Error deleting circle or member:', error);
 		}
 	}
-	
+
 	return (
 		<View style={styles.tabContent}>
+			{/* Create Circle Button at the top */}
+			<Button
+				onPress={() => router.navigate('/(user)/circle/create')}
+				style={styles.circleButton}
+				size="small"
+				textColour="white"
+			>
+				Create Circle
+			</Button>
+
 			<Text>Your Circles</Text>
 
 			<FlatList
@@ -152,97 +161,104 @@ function CirclesTab() {
 					}
 					return `fallback-key-${index}`;
 				}}
-				renderItem={( {item} ) => (
+				renderItem={({ item }) => (
 					<View>
-						<Text style={{fontSize: 20}}>{item ? item.name : 'No Name'}</Text>
+						<Text style={{ fontSize: 20 }}>
+							{item ? item.name : 'No Name'}
+						</Text>
 						<Pressable
 							onPress={() =>
 								router.navigate({
 									pathname: '/(user)/circle/[circleId]',
-									params: { circleId: `${item.id.toString()}`}
+									params: {
+										circleId: `${item.id.toString()}`,
+									},
 								})
 							}
 						>
 							<Text>View Circle</Text>
 						</Pressable>
 
-						<Button onPress={() => {
-							deleteCircle(item.id.toString());
-						}}>
+						<Button
+							onPress={() => {
+								deleteCircle(item.id.toString());
+							}}
+						>
 							Delete Circle
 						</Button>
-
 					</View>
 				)}
 			/>
 
 			<View style={styles.buttonContainer}>
 				<Button
-					onPress={ () => setModalVisible(true) }
-					style={styles.circleButton}
-					size="small"
-					textColour="white"
-				>
-					Create
-				</Button>
-				{/* Modal */}
-				<Modal
-				visible={modalVisible}
-				animationType='slide'
-				transparent
-				onRequestClose={() => setModalVisible(false)}
-				>
-					<View style={customStyles.modalOverlay}>
-						<View style={customStyles.modalContent}>
-							<Text style={customStyles.modalTitle}>Add New Circle</Text>
-							<TextInput
-								style={customStyles.input}
-								placeholder='Enter Name...'
-								placeholderTextColor='#aaa'
-								value={newCircle}
-								onChangeText={setNewCircle}
-							/>
-							<View style={customStyles.modalButtons}>
-								<TouchableOpacity style={customStyles.cancelButton}
-								onPress={() => setModalVisible(false)}>
-									<Text style={customStyles.cancelButtonText}>Cancel</Text>
-								</TouchableOpacity>
-
-								<TouchableOpacity style={customStyles.saveButton}>
-									<Text style={customStyles.saveButtonText}>Save</Text>
-								</TouchableOpacity>
-							</View>
-						</View>
-					</View>
-				</Modal>
-				<Button
-					//onPress={}
+					onPress={() => setModalVisible(true)}
 					style={styles.circleButton}
 					size="small"
 					textColour="white"
 				>
 					Join
 				</Button>
+				{/* Modal */}
+				<Modal
+					visible={modalVisible}
+					animationType="slide"
+					transparent
+					onRequestClose={() => setModalVisible(false)}
+				>
+					<View style={customStyles.modalOverlay}>
+						<View style={customStyles.modalContent}>
+							<Text style={customStyles.modalTitle}>
+								Add New Circle
+							</Text>
+							<TextInput
+								style={customStyles.input}
+								placeholder="Enter Name..."
+								placeholderTextColor="#aaa"
+								value={newCircle}
+								onChangeText={setNewCircle}
+							/>
+							<View style={customStyles.modalButtons}>
+								<TouchableOpacity
+									style={customStyles.cancelButton}
+									onPress={() => setModalVisible(false)}
+								>
+									<Text style={customStyles.cancelButtonText}>
+										Cancel
+									</Text>
+								</TouchableOpacity>
+
+								<TouchableOpacity
+									style={customStyles.saveButton}
+								>
+									<Text style={customStyles.saveButtonText}>
+										Save
+									</Text>
+								</TouchableOpacity>
+							</View>
+						</View>
+					</View>
+				</Modal>
 			</View>
 		</View>
 	);
 }
-
 
 /*------------------------- Pins ----------------------------*/
 function PinsTab() {
 	const router = useRouter();
 
 	// Fetch Pins
-	const [data, setData] = useState<Awaited<ReturnType<RemapClient['getUserPins']>> | null>(null);
+	const [data, setData] = useState<Awaited<
+		ReturnType<RemapClient['getUserPins']>
+	> | null>(null);
 
 	const loadData = useCallback(async () => {
 		try {
 			const _data = await new RemapClient().getUserPins();
-			
+
 			console.log(_data);
 			setData(_data);
-	
 		} catch (error) {
 			console.error('Error fetching pins:', error);
 		}
@@ -252,7 +268,6 @@ function PinsTab() {
 		loadData();
 	}, [loadData]);
 
-
 	// Handle Audio
 	const soundRef = useRef<Audio.Sound | null>(null);
 	const [lastAudio, setLastAudio] = useState<string | null>(null);
@@ -261,7 +276,7 @@ function PinsTab() {
 	// Play Audio
 	async function PlaySound(audio_url: string | undefined | null) {
 		if (!audio_url) {
-			console.warn("No audio url.");
+			console.warn('No audio url.');
 			return;
 		}
 
@@ -272,7 +287,7 @@ function PinsTab() {
 				setIsPaused(false);
 				return;
 			} catch (error) {
-				console.error("Error resuming audio", error);
+				console.error('Error resuming audio', error);
 			}
 		}
 
@@ -293,15 +308,18 @@ function PinsTab() {
 
 			// Track Audio
 			sound.setOnPlaybackStatusUpdate((status) => {
-				if (status.isLoaded && status.didJustFinish && !status.isLooping) {
-					console.log("Audio Finished.");
+				if (
+					status.isLoaded &&
+					status.didJustFinish &&
+					!status.isLooping
+				) {
+					console.log('Audio Finished.');
 					setLastAudio(null);
 					setIsPaused(false);
 				}
-			})
-
+			});
 		} catch (error) {
-			console.error("Error playing audio", error);
+			console.error('Error playing audio', error);
 		}
 	}
 
@@ -313,7 +331,7 @@ function PinsTab() {
 				setIsPaused(true);
 			}
 		} catch (error) {
-			console.error("Error pausing audio", error);
+			console.error('Error pausing audio', error);
 		}
 	};
 
@@ -325,7 +343,7 @@ function PinsTab() {
 				setLastAudio(null);
 			}
 		} catch (error) {
-			console.error("Error stopping audio", error);
+			console.error('Error stopping audio', error);
 		}
 	};
 
@@ -360,10 +378,11 @@ function PinsTab() {
 	async function deletePin(id: string) {
 		try {
 			await new RemapClient().deletePin(id);
-			setData(prevData => prevData?.filter(pin => pin.id !== id) || null);
-
+			setData(
+				(prevData) => prevData?.filter((pin) => pin.id !== id) || null
+			);
 		} catch (error) {
-			console.error("Error deleting pin:", error);
+			console.error('Error deleting pin:', error);
 		}
 	}
 
@@ -379,51 +398,60 @@ function PinsTab() {
 					}
 					return `fallback-key-${index}`;
 				}}
-				renderItem={( {item} ) => (
+				renderItem={({ item }) => (
 					<View style={styles.tabContent}>
-						<Text style={{fontSize: 20}}>{item ? item.name : 'No Name'}</Text>
-						<Text style={{fontSize: 20}}>{item ? item.description : 'No Description'}</Text>
-						
-						{Array.isArray(item?.image_urls) && item.image_urls.length > 0 && (
-							<Image
-								source={{ uri: item.image_urls[0] }}
-								style={{ width: 100, height: 100, resizeMode: 'cover' }}
-							/>
-						)}
+						<Text style={{ fontSize: 20 }}>
+							{item ? item.name : 'No Name'}
+						</Text>
+						<Text style={{ fontSize: 20 }}>
+							{item ? item.description : 'No Description'}
+						</Text>
+
+						{Array.isArray(item?.image_urls) &&
+							item.image_urls.length > 0 && (
+								<Image
+									source={{ uri: item.image_urls[0] }}
+									style={{
+										width: 100,
+										height: 100,
+										resizeMode: 'cover',
+									}}
+								/>
+							)}
 
 						{item?.audio_url && (
-						<>
-							<Button onPress={() => PlaySound(item?.audio_url)}>
-								Play
-							</Button>
-							<Button onPress={pauseSound}>
-								Pause
-							</Button>
-							<Button onPress={stopSound}>
-								Stop
-							</Button>
-						</>
+							<>
+								<Button
+									onPress={() => PlaySound(item?.audio_url)}
+								>
+									Play
+								</Button>
+								<Button onPress={pauseSound}>Pause</Button>
+								<Button onPress={stopSound}>Stop</Button>
+							</>
 						)}
 
 						<Pressable
 							onPress={() =>
 								router.navigate({
 									pathname: '/(user)/pin/[pinId]',
-									params: { pinId: `${item.id.toString()}`}
+									params: { pinId: `${item.id.toString()}` },
 								})
-							}>
+							}
+						>
 							<Text>View Pin</Text>
 						</Pressable>
 
-						<Button onPress={() => {
-							deletePin(item.id.toString());
-						}}>
+						<Button
+							onPress={() => {
+								deletePin(item.id.toString());
+							}}
+						>
 							Delete Pin
 						</Button>
 					</View>
 				)}
 			/>
-
 		</View>
 	);
 }
@@ -464,10 +492,7 @@ export default function ProfileScreen() {
 					},
 				}}
 			>
-				<Tab.Screen
-					name="Profile"
-					children={ProfileTab}
-				/>
+				<Tab.Screen name="Profile" children={ProfileTab} />
 				<Tab.Screen name="Pins" component={PinsTab} />
 				<Tab.Screen name="Circles" component={CirclesTab} />
 			</Tab.Navigator>
