@@ -76,15 +76,9 @@ export default function CreateCircle() {
 	}, [circleName, selectedImage, router]);
 
 	return (
-		<KeyboardAvoidingView
-			style={{ flex: 1, backgroundColor: 'black' }}
-			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-		>
-			<ScrollView
-				contentContainerStyle={styles.container}
-				keyboardShouldPersistTaps="handled"
-			>
-				{/* Header */}
+		<View style={styles.rootContainer}>
+			{/* Sticky Header */}
+			<View style={styles.stickyHeader}>
 				<View style={styles.headerRow}>
 					<TouchableOpacity
 						onPress={() => router.back()}
@@ -94,43 +88,49 @@ export default function CreateCircle() {
 					</TouchableOpacity>
 					<Text style={styles.headerTitle}>Create a circle</Text>
 				</View>
-
-				{/* Image Picker Section */}
-				<View style={styles.photoSection}>
-					<TouchableOpacity
-						style={styles.imagePicker}
-						onPress={mediaCapture.handleCameraPress}
-						activeOpacity={0.7}
-					>
-						<View style={styles.plusCircle}>
-							<Text style={styles.plusIcon}>+</Text>
-						</View>
-					</TouchableOpacity>
-					<Text style={styles.photoPlaceholder}>Circle photo</Text>
-				</View>
-
-				{/* Name Input */}
-				<TextInput
-					style={styles.input}
-					placeholder="Name the circle"
-					placeholderTextColor="#bbb"
-					value={circleName}
-					onChangeText={setCircleName}
-					autoCapitalize="words"
-					maxLength={40}
-				/>
-
-				{/* Earth Splash or Selected Image */}
-				<View style={styles.earthContainer}>
-					<Image
-						source={
-							selectedImage ? { uri: selectedImage } : earthSplash
-						}
-						style={styles.earthImage}
-						resizeMode="contain"
+			</View>
+			<ScrollView
+				contentContainerStyle={styles.centeredContent}
+				keyboardShouldPersistTaps="handled"
+			>
+				{/* Centered Name Input and Image Picker */}
+				<View style={styles.centeredInner}>
+					{/* Name Input */}
+					<TextInput
+						style={styles.input}
+						placeholder="Name the circle"
+						placeholderTextColor="#bbb"
+						value={circleName}
+						onChangeText={setCircleName}
+						autoCapitalize="words"
+						maxLength={40}
 					/>
-				</View>
 
+					{/* Image Picker as Earth Image */}
+					<View style={styles.earthContainer}>
+						<TouchableOpacity
+							onPress={mediaCapture.handleCameraPress}
+							activeOpacity={0.8}
+						>
+							<Image
+								source={
+									selectedImage
+										? { uri: selectedImage }
+										: earthSplash
+								}
+								style={styles.earthImage}
+								resizeMode="contain"
+							/>
+							{!selectedImage && (
+								<View style={styles.overlay}>
+									<Text style={styles.overlayText}>
+										Upload photo
+									</Text>
+								</View>
+							)}
+						</TouchableOpacity>
+					</View>
+				</View>
 				{error ? <Text style={styles.errorText}>{error}</Text> : null}
 			</ScrollView>
 			{/* Sticky Create Button */}
@@ -144,23 +144,45 @@ export default function CreateCircle() {
 					{isCreating ? 'Creating...' : 'Create'}
 				</Button>
 			</View>
-		</KeyboardAvoidingView>
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flexGrow: 1,
-		padding: 24,
-		alignItems: 'center',
+	rootContainer: {
+		flex: 1,
 		backgroundColor: 'black',
+	},
+	stickyHeader: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		zIndex: 10,
+		backgroundColor: 'black',
+		paddingTop: Platform.OS === 'ios' ? 48 : 24,
+		paddingBottom: 8,
+	},
+	centeredContent: {
+		flexGrow: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		paddingTop: 80, // space for sticky header
+		paddingBottom: 120, // space for sticky button
+		backgroundColor: 'black',
+		minHeight: 600,
+	},
+	centeredInner: {
+		alignItems: 'center',
+		justifyContent: 'center',
+		width: '100%',
 	},
 	headerRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		width: '100%',
-		marginBottom: 32,
-		marginTop: 8,
+		marginBottom: 0,
+		marginTop: 0,
 	},
 	backButton: {
 		padding: 8,
@@ -178,44 +200,8 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 		marginRight: 36, // to balance the back arrow
 	},
-	photoSection: {
-		alignItems: 'center',
-		marginBottom: 32,
-		marginTop: 16,
-		width: '100%',
-	},
-	imagePicker: {
-		alignItems: 'center',
-		marginBottom: 8,
-	},
-	plusCircle: {
-		width: 80,
-		height: 80,
-		borderRadius: 40,
-		borderWidth: 2,
-		borderColor: 'white',
-		alignItems: 'center',
-		justifyContent: 'center',
-		marginBottom: 0,
-		backgroundColor: '#222',
-		display: 'flex',
-	},
-	plusIcon: {
-		fontSize: 40,
-		color: 'white',
-		fontWeight: 'bold',
-		textAlign: 'center',
-		textAlignVertical: 'center',
-		lineHeight: 44,
-	},
-	photoPlaceholder: {
-		fontSize: 16,
-		color: '#bbb',
-		marginTop: 8,
-		marginBottom: 0,
-	},
 	input: {
-		width: '100%',
+		width: '70%',
 		backgroundColor: '#222',
 		borderRadius: 18,
 		paddingHorizontal: 16,
@@ -223,18 +209,38 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		marginBottom: 40,
 		color: 'white',
+		textAlign: 'center',
 	},
 	earthContainer: {
 		alignItems: 'center',
 		marginTop: 32,
 		marginBottom: 48,
 		width: '100%',
+		justifyContent: 'center',
 	},
 	earthImage: {
 		width: 300,
 		height: 300,
 		borderRadius: 150,
 		backgroundColor: '#eee',
+	},
+	overlay: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		width: 300,
+		height: 300,
+		borderRadius: 150,
+		backgroundColor: 'rgba(0,0,0,0.45)',
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	overlayText: {
+		color: 'white',
+		fontSize: 22,
+		fontWeight: '600',
+		textAlign: 'center',
+		opacity: 0.5,
 	},
 	errorText: {
 		color: 'red',
